@@ -1,0 +1,20 @@
+{
+  "name": "heatwaves-edge-ai-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Heatwaves & Edge AI Dashboard (BPUT Hackathon PS02)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongodb-memory-server": "^10.1.4",
+    "mongoose": "^8.9.5",
+    "nodemon": "^3.1.14"
+  }
+}
