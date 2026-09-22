@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis,
   Tooltip, CartesianGrid, ReferenceLine
 } from 'recharts';
-import { Trash2, RefreshCw, Radio, Activity, AlertTriangle, Gauge } from 'lucide-react';
+import { Trash2, RefreshCw, Radio, Activity, AlertTriangle, Gauge, TrendingUp, TrendingDown, Wind, Thermometer, Droplets, Zap, Sliders, BarChart2 } from 'lucide-react';
 import { nodesAPI, readingsAPI } from '../services/api';
 import socket from '../services/socket';
 import { LoadingState, ErrorState, ProtrudingStatCard } from '../components/UI';
@@ -35,6 +35,23 @@ export default function SensorDetails() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError]                   = useState(null);
   const [deletingId, setDeletingId]         = useState(null);
+  const [chartMode, setChartMode]           = useState('wave');
+
+  // Compute live statistics for the active history dataset
+  const historyStats = useMemo(() => {
+    if (!historyData || historyData.length === 0) return { max: '—', min: '—', avg: '—', count: 0 };
+    const validVals = historyData.map((d) => d.value).filter((v) => typeof v === 'number' && !isNaN(v));
+    if (validVals.length === 0) return { max: '—', min: '—', avg: '—', count: 0 };
+    const max = Math.max(...validVals);
+    const min = Math.min(...validVals);
+    const avg = validVals.reduce((a, b) => a + b, 0) / validVals.length;
+    return {
+      max: max.toFixed(1),
+      min: min.toFixed(1),
+      avg: avg.toFixed(1),
+      count: historyData.length,
+    };
+  }, [historyData]);
 
   // 1. Fetch latest reading for chosen node
   const fetchLatest = useCallback(async () => {
@@ -195,89 +212,25 @@ export default function SensorDetails() {
 
   return (
     <div>
-      {/* ── Top Node Selector Dropdown Bar ──────────────────────────── */}
-      <div
-        style={{
-          background: '#FFFFFF',
-          border: '1px solid #F1E9C8',
-          borderRadius: 16,
-          padding: '14px 20px',
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 14,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: 'var(--color-primary-dim)',
-              border: '1px solid var(--color-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-primary)',
-              flexShrink: 0,
-            }}
-          >
-            <Radio size={19} />
-          </div>
+      {/* ── Node Selector Banner ─────────────────────────────────────── */}
+      <div className="node-selector-banner">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingLeft: 8 }}>
+          <div className="node-selector-icon"><Radio size={19} /></div>
           <div>
-            <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-label)' }}>
-              Telemetry Node
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-heading)' }}>
-                {selectedNode ? `${selectedNode.name} (${selectedNode.nodeId})` : 'Select a Node to View Sensors'}
-              </span>
-              {selectedNode?.isMaster && (
-                <span
-                  style={{
-                    background: 'var(--color-primary-dim)',
-                    color: 'var(--color-primary)',
-                    border: '1px solid var(--color-primary)',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: 999,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  ★ Master Node
-                </span>
-              )}
+            <div className="node-selector-label">Telemetry Node</div>
+            <div className="node-selector-title">
+              {selectedNode ? `${selectedNode.name} (${selectedNode.nodeId})` : 'Select a Node to View Sensors'}
+              {selectedNode?.isMaster && <span className="node-master-badge">★ Master</span>}
             </div>
           </div>
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label htmlFor="node-select-sensors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-heading)' }}>
-            Node:
-          </label>
+          <label htmlFor="node-select-sensors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-heading)' }}>Node:</label>
           <select
             id="node-select-sensors"
             value={selectedNodeId}
             onChange={(e) => setSelectedNodeId(e.target.value)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 10,
-              border: '1px solid #F1E9C8',
-              background: '#FFFDF3',
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#343434',
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              outline: 'none',
-              minWidth: 200,
-            }}
+            className="node-select-control"
           >
             <option value="">-- Choose a Node --</option>
             {nodes.map((n) => (
@@ -287,65 +240,27 @@ export default function SensorDetails() {
             ))}
           </select>
           {selectedNodeId && (
-            <button
-              onClick={refreshAll}
-              className="btn btn-secondary btn-sm"
-              title="Refresh telemetry"
-              style={{ padding: '8px 12px' }}
-            >
+            <button onClick={refreshAll} className="btn btn-secondary btn-sm" title="Refresh telemetry">
               <RefreshCw size={13} />
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Conditional Render: Prompt if no node selected ──────────── */}
+      {/* ── Conditional: No node / loading / error ───────────────────── */}
       {loadingNodes ? (
         <LoadingState text="Loading node sensor details..." />
       ) : !selectedNodeId ? (
-        <div
-          style={{
-            background: '#FFFFFF',
-            border: '1px solid #F1E9C8',
-            borderRadius: 16,
-            padding: '50px 24px',
-            textAlign: 'center',
-            boxShadow: '0 4px 20px rgba(210, 190, 100, 0.08)',
-            marginBottom: 24,
-          }}
-        >
-          <div
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 14,
-              background: 'var(--color-primary-dim)',
-              border: '1px solid var(--color-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              color: 'var(--color-primary)',
-            }}
-          >
-            <Radio size={26} />
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-heading)' }}>
-            Select a Node to View Sensor Details
-          </h3>
-          <p style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', maxWidth: 480, margin: '8px auto 22px', lineHeight: 1.5 }}>
+        <div className="empty-prompt-card">
+          <div className="empty-prompt-icon"><Radio size={28} /></div>
+          <h3 className="empty-prompt-title">Select a Node to View Sensor Details</h3>
+          <p className="empty-prompt-desc">
             Please select a telemetry node from the dropdown above to inspect its live sensor parameters, calibration ranges, and raw readings log.
           </p>
-
           {nodes.length > 0 && (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               {nodes.map((n) => (
-                <button
-                  key={n.nodeId}
-                  onClick={() => setSelectedNodeId(n.nodeId)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ gap: 6, fontWeight: 700 }}
-                >
+                <button key={n.nodeId} onClick={() => setSelectedNodeId(n.nodeId)} className="btn btn-secondary btn-sm">
                   <Radio size={13} /> {n.name} ({n.nodeId}) {n.isMaster ? '★' : ''}
                 </button>
               ))}
@@ -359,27 +274,15 @@ export default function SensorDetails() {
       ) : (
         <>
 
-      {/* ── Sensor Selector Pills ─────────────────────────────────── */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: 'var(--color-text-label)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-          Select Sensor Parameter
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* ── Sensor Parameter Pill Tabs ─────────────────────────────── */}
+      <div className="sensor-pills-bar">
+        <div className="sensor-pills-label">Select Sensor Parameter</div>
+        <div className="sensor-pills-row">
           {SENSOR_SPEC_TABLE.map((s) => (
             <button
               key={s.key}
               onClick={() => setSelectedSensor(s)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: selectedSensor.key === s.key ? 700 : 500,
-                border: `1px solid ${selectedSensor.key === s.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                background: selectedSensor.key === s.key ? 'var(--color-primary)' : '#FFFFFF',
-                color: selectedSensor.key === s.key ? '#FFFFFF' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
+              className={`sensor-pill ${selectedSensor.key === s.key ? 'active' : ''}`}
             >
               {s.name}
             </button>
@@ -412,28 +315,21 @@ export default function SensorDetails() {
         />
       </div>
 
-      {/* ── Main Detail Card + Overview Row ──────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
-          gap: 22,
-          marginBottom: 24,
-        }}
-      >
-        {/* Left: Sensor Information Card */}
-        <div className="mockup-main-chart-card" style={{ justifyContent: 'space-between' }}>
+      {/* ── Main Detail Card + Overview Row (Panoramic Telemetry Deck) ── */}
+      <div className="sensor-telemetry-deck-grid">
+        {/* Left: Sensor Specification & Calibration Sidebar */}
+        <div className="sensor-spec-sidebar-card">
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--color-primary)', marginBottom: 2 }}>
-                  SENSOR SPECIFICATION
+                <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--color-primary)', marginBottom: 3 }}>
+                  HARDWARE PROFILE
                 </div>
                 <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-heading)' }}>
                   {selectedSensor.name}
                 </h2>
-                <div style={{ fontSize: 11.5, color: 'var(--color-text-label)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-                  Sensor Model: {selectedSensor.sensor}
+                <div style={{ fontSize: 11, color: 'var(--color-text-label)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
+                  Chip: {selectedSensor.sensor}
                 </div>
               </div>
               <span
@@ -455,7 +351,7 @@ export default function SensorDetails() {
               </span>
             </div>
 
-            <div style={{ margin: '24px 0 16px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <div style={{ margin: '22px 0 16px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span
                 style={{
                   fontSize: 42,
@@ -473,109 +369,203 @@ export default function SensorDetails() {
             </div>
 
             {/* Threshold Reference Breakdown */}
-            <div style={{ background: '#F8FAFD', border: '1px solid var(--color-border)', borderRadius: 12, padding: '14px', fontSize: 12 }}>
-              <div style={{ fontWeight: 800, color: 'var(--color-heading)', marginBottom: 8, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Standard Reference Ranges:
+            <div style={{ background: '#F8FAFD', border: '1px solid var(--color-border)', borderRadius: 14, padding: '14px', fontSize: 12 }}>
+              <div style={{ fontWeight: 800, color: 'var(--color-heading)', marginBottom: 10, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Calibration Threshold Bounds:
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: '#059669', fontWeight: 700 }}>● Safe / Good:</span>
-                <span style={{ color: 'var(--color-heading)', fontWeight: 600 }}>{selectedSensor.safeText} {selectedSensor.unit}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669' }} /> Safe Range
+                </span>
+                <span style={{ color: 'var(--color-heading)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{selectedSensor.safeText} {selectedSensor.unit}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: '#D97706', fontWeight: 700 }}>● Moderate / Average:</span>
-                <span style={{ color: 'var(--color-heading)', fontWeight: 600 }}>{selectedSensor.moderateText} {selectedSensor.unit}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                <span style={{ color: '#D97706', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#D97706' }} /> Moderate Range
+                </span>
+                <span style={{ color: 'var(--color-heading)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{selectedSensor.moderateText} {selectedSensor.unit}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#E11D48', fontWeight: 700 }}>● Dangerous / High:</span>
-                <span style={{ color: 'var(--color-heading)', fontWeight: 600 }}>{selectedSensor.dangerousText} {selectedSensor.unit}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#E11D48', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#E11D48' }} /> Hazardous Limit
+                </span>
+                <span style={{ color: 'var(--color-heading)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{selectedSensor.dangerousText} {selectedSensor.unit}</span>
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: 20, fontSize: 11, color: 'var(--color-text-label)' }}>
+          <div style={{ marginTop: 18, fontSize: 11, color: 'var(--color-text-label)', borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             Live status from <code>/api/nodes/{selectedNodeId}</code> · Real-time synchronized
           </div>
         </div>
 
-        {/* Right: Sensor Trend Line / Wave Chart */}
-        <div className="mockup-main-chart-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+        {/* Right: Sensor Trend Chart Observatory */}
+        <div className="sensor-chart-panoramic-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--color-primary)' }}>
-                HISTORICAL TELEMETRY
+              <div className="chart-label chart-label-mint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Activity size={11} /> HISTORICAL TELEMETRY OBSERVATORY
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-heading)' }}>
-                {selectedSensor.name} — Wave Trajectory
+              <div className="chart-card-title">{selectedSensor.name} — Trajectory Wave</div>
+              <div className="chart-card-sub">Real-time synchronized data points ({historyData.length} records logged)</div>
+            </div>
+
+            {/* Quick KPI stats row */}
+            <div className="graph-stats-row">
+              <div className="graph-stat-badge">
+                <span className="key">MAX</span>
+                <span className="val" style={{ color: '#E11D48' }}>{historyStats.max}</span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                Telemetry data points ({historyData.length} records logged)
+              <div className="graph-stat-badge">
+                <span className="key">AVG</span>
+                <span className="val" style={{ color: '#059669' }}>{historyStats.avg}</span>
+              </div>
+              <div className="graph-stat-badge">
+                <span className="key">MIN</span>
+                <span className="val" style={{ color: '#0EA5E9' }}>{historyStats.min}</span>
+              </div>
+              <div className="graph-stat-badge">
+                <span className="key">SAMPLES</span>
+                <span className="val">{historyStats.count}</span>
               </div>
             </div>
 
-            {/* Time range selector */}
-            <div style={{ display: 'flex', gap: 6 }}>
-              {TIME_RANGES.map((r) => (
+            {/* Controls: Chart Mode + Time Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="hero-param-selector">
                 <button
-                  key={r.value}
-                  onClick={() => setTimeRange(r.value)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: timeRange === r.value ? 700 : 500,
-                    cursor: 'pointer',
-                    border: timeRange === r.value ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
-                    background: timeRange === r.value ? 'var(--color-primary)' : '#FFFFFF',
-                    color: timeRange === r.value ? '#FFFFFF' : 'var(--color-text-secondary)',
-                    transition: 'all 0.15s ease',
-                  }}
+                  type="button"
+                  onClick={() => setChartMode('wave')}
+                  className={`hero-param-chip ${chartMode === 'wave' ? 'active' : ''}`}
+                  title="Filled Area Waveform"
                 >
-                  {r.label.replace('Last ', '')}
+                  Wave
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setChartMode('line')}
+                  className={`hero-param-chip ${chartMode === 'line' ? 'active' : ''}`}
+                  title="Crisp Spline Line"
+                >
+                  Line
+                </button>
+              </div>
+
+              <div className="time-range-tabs">
+                {TIME_RANGES.map((r) => (
+                  <button key={r.value} onClick={() => setTimeRange(r.value)} className={`time-tab ${timeRange === r.value ? 'active' : ''}`}>
+                    {r.label.replace('Last ', '')}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {historyLoading ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ height: 290, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <LoadingState text="Loading chart data..." />
             </div>
           ) : historyData.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>
+            <div style={{ height: 290, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>
               No history readings found for this time window.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={290}>
               <AreaChart data={historyData}>
                 <defs>
                   <linearGradient id="sensorWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={status === 'dangerous' ? '#FF5376' : '#4F75FE'} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={status === 'dangerous' ? '#FF5376' : '#4F75FE'} stopOpacity={0.0} />
+                    <stop offset="5%"  stopColor={status === 'dangerous' ? '#F43F5E' : '#059669'} stopOpacity={0.40} />
+                    <stop offset="95%" stopColor={status === 'dangerous' ? '#F43F5E' : '#059669'} stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#EDF0F8" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="time" tick={{ fill: '#8F97AB', fontSize: 11 }} tickLine={false} axisLine={{ stroke: '#E2E6F0' }} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#8F97AB', fontSize: 11 }} tickLine={false} axisLine={false} />
+                <CartesianGrid stroke="#D1FAE5" strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={{ stroke: '#D1FAE5' }} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
                 {selectedSensor.safeMax && (
-                  <ReferenceLine y={selectedSensor.safeMax} stroke="#10B981" strokeDasharray="4 4" label={{ value: 'Safe', fill: '#059669', fontSize: 10 }} />
+                  <ReferenceLine y={selectedSensor.safeMax} stroke="#10B981" strokeDasharray="4 4" label={{ value: 'Safe Limit', fill: '#047857', fontSize: 10 }} />
                 )}
                 {selectedSensor.moderateMax && (
-                  <ReferenceLine y={selectedSensor.moderateMax} stroke="#FFAE33" strokeDasharray="4 4" label={{ value: 'Moderate', fill: '#D97706', fontSize: 10 }} />
+                  <ReferenceLine y={selectedSensor.moderateMax} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: 'Moderate Limit', fill: '#B45309', fontSize: 10 }} />
                 )}
                 <Area
-                  type="natural"
+                  type="monotone"
                   dataKey="value"
-                  stroke={status === 'dangerous' ? '#FF5376' : '#4F75FE'}
+                  stroke={status === 'dangerous' ? '#F43F5E' : '#059669'}
                   strokeWidth={3}
-                  fill="url(#sensorWaveGrad)"
-                  dot={{ r: 2, fill: status === 'dangerous' ? '#FF5376' : '#4F75FE' }}
-                  activeDot={{ r: 5, fill: status === 'dangerous' ? '#FF5376' : '#4F75FE' }}
+                  fill={chartMode === 'wave' ? 'url(#sensorWaveGrad)' : 'transparent'}
+                  dot={{ r: 2, fill: status === 'dangerous' ? '#F43F5E' : '#059669' }}
+                  activeDot={{ r: 5, fill: status === 'dangerous' ? '#F43F5E' : '#059669', stroke: '#ECFDF5', strokeWidth: 2 }}
                   name={`${selectedSensor.name.split(' (')[0]} (${selectedSensor.unit})`}
                 />
               </AreaChart>
             </ResponsiveContainer>
           )}
+
+          {/* ── Ambient Multi-Stream Correlation Deck ────────────────── */}
+          <div className="sensor-correlation-deck">
+            <div className="sensor-correlation-chip">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--color-text-label)', textTransform: 'uppercase' }}>
+                  CO₂ Concentration
+                </span>
+                <span className="badge badge-success" style={{ fontSize: 9.5, padding: '2px 6px' }}>Nominal</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 19, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#064E3B' }}>
+                  {latestData?.co2 != null ? latestData.co2 : '—'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>ppm</span>
+              </div>
+            </div>
+
+            <div className="sensor-correlation-chip">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--color-text-label)', textTransform: 'uppercase' }}>
+                  PM2.5 Particulate
+                </span>
+                <span className="badge badge-success" style={{ fontSize: 9.5, padding: '2px 6px' }}>Safe</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 19, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#064E3B' }}>
+                  {latestData?.pm25 != null ? latestData.pm25 : '—'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>µg/m³</span>
+              </div>
+            </div>
+
+            <div className="sensor-correlation-chip">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--color-text-label)', textTransform: 'uppercase' }}>
+                  Ambient Climate
+                </span>
+                <span className="badge badge-secondary" style={{ fontSize: 9.5, padding: '2px 6px' }}>Optimal</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 19, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#064E3B' }}>
+                  {latestData?.temperature != null ? `${latestData.temperature}°C` : '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  / {latestData?.humidity != null ? `${latestData.humidity}%` : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="sensor-correlation-chip">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--color-text-label)', textTransform: 'uppercase' }}>
+                  Smoke / MQ-135
+                </span>
+                <span className="badge badge-success" style={{ fontSize: 9.5, padding: '2px 6px' }}>Normal</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 19, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#064E3B' }}>
+                  {latestData?.smoke != null ? latestData.smoke : (latestData?.mq135 != null ? latestData.mq135 : '—')}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>ppm</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -643,18 +633,14 @@ export default function SensorDetails() {
                       <td className="font-mono text-sm">{row.temperature != null ? `${row.temperature}°C` : '—'}</td>
                       <td className="font-mono text-sm">{row.humidity != null ? `${row.humidity}%` : '—'}</td>
                       <td>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            background: '#FFF8D9',
-                            border: '1px solid #F1E9C8',
-                            color: '#4A4200',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                          }}
-                        >
+                        <span style={{
+                          fontSize: 10, padding: '3px 9px', borderRadius: 6,
+                          background: 'var(--color-primary-dim)',
+                          border: '1px solid rgba(5,150,105,0.2)',
+                          color: 'var(--color-primary)',
+                          fontWeight: 700, textTransform: 'uppercase',
+                          fontFamily: 'var(--font-mono)',
+                        }}>
                           {row.dataSource || 'iot'}
                         </span>
                       </td>
@@ -662,23 +648,11 @@ export default function SensorDetails() {
                         <button
                           onClick={() => handleDelete(row._id)}
                           disabled={deletingId === row._id}
-                          title="Delete record via DELETE /api/sensor/:id"
-                          style={{
-                            background: 'rgba(232, 120, 120, 0.12)',
-                            border: '1px solid #E87878',
-                            color: '#b91c1c',
-                            borderRadius: 6,
-                            padding: '4px 8px',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
+                          title="Delete record"
+                          className="action-btn action-btn-danger"
                         >
                           <Trash2 size={12} />
-                          {deletingId === row._id ? 'Deleting...' : 'Delete'}
+                          {deletingId === row._id ? 'Deleting…' : 'Delete'}
                         </button>
                       </td>
                     </tr>

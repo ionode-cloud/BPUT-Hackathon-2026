@@ -315,94 +315,42 @@ export default function Nodes() {
       </div>
 
       {/* ── Toolbar & View Switcher ──────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 20,
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-heading)' }}>
-            Node Network & Geo-Location Management
-          </h2>
-          <p className="text-xs text-muted" style={{ marginTop: 2 }}>
-            Manage telemetry nodes, update GPS latitude and longitude, designate the Master Node, and track stations on the interactive map.
-          </p>
+      <div className="node-mgmt-toolbar">
+        <div className="node-mgmt-title-group">
+          <div className="node-mgmt-avatar">
+            <Radio size={22} />
+          </div>
+          <div>
+            <h2 className="node-mgmt-title">
+              Node Network & Geo-Location Management
+            </h2>
+            <p className="node-mgmt-desc">
+              Manage telemetry nodes, update GPS latitude and longitude, designate Master Node, and track stations on live map.
+            </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* View Mode Toggle: Split / Map / Cards */}
-          <div
-            style={{
-              display: 'inline-flex',
-              background: '#FFFFFF',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              padding: 3,
-              gap: 2,
-            }}
-          >
+          <div className="node-view-switch">
             <button
               type="button"
+              className={`node-view-switch-btn ${viewMode === 'split' ? 'active' : ''}`}
               onClick={() => setViewMode('split')}
-              style={{
-                border: 'none',
-                background: viewMode === 'split' ? 'var(--color-primary)' : 'transparent',
-                color: viewMode === 'split' ? '#FFFFFF' : 'var(--color-text-secondary)',
-                fontWeight: 700,
-                fontSize: 11.5,
-                padding: '5px 10px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                transition: 'all 0.15s ease',
-              }}
             >
               <Layers size={13} /> Split View
             </button>
             <button
               type="button"
+              className={`node-view-switch-btn ${viewMode === 'map' ? 'active' : ''}`}
               onClick={() => setViewMode('map')}
-              style={{
-                border: 'none',
-                background: viewMode === 'map' ? 'var(--color-primary)' : 'transparent',
-                color: viewMode === 'map' ? '#FFFFFF' : 'var(--color-text-secondary)',
-                fontWeight: 700,
-                fontSize: 11.5,
-                padding: '5px 10px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                transition: 'all 0.15s ease',
-              }}
             >
               <Map size={13} /> Map View
             </button>
             <button
               type="button"
+              className={`node-view-switch-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
-              style={{
-                border: 'none',
-                background: viewMode === 'grid' ? 'var(--color-primary)' : 'transparent',
-                color: viewMode === 'grid' ? '#FFFFFF' : 'var(--color-text-secondary)',
-                fontWeight: 700,
-                fontSize: 11.5,
-                padding: '5px 10px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                transition: 'all 0.15s ease',
-              }}
             >
               <Grid size={13} /> Cards View
             </button>
@@ -420,11 +368,16 @@ export default function Nodes() {
               setAddShowMiniMap(false);
               setModalOpen(true);
             }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
           >
-            <Plus size={14} /> Add New Node
+            <Plus size={15} /> Add New Node
           </button>
 
-          <button className="btn btn-secondary btn-sm" onClick={fetchNodes}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={fetchNodes}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
             <RefreshCw size={13} /> Refresh
           </button>
         </div>
@@ -432,58 +385,22 @@ export default function Nodes() {
 
       {/* Action Notification Message */}
       {actionMessage && (
-        <div
-          style={{
-            background: 'rgba(98, 200, 155, 0.14)',
-            border: '1px solid #62C89B',
-            color: '#1e7e53',
-            borderRadius: 10,
-            padding: '10px 16px',
-            marginBottom: 20,
-            fontSize: 12.5,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <CheckCircle size={15} />
-          {actionMessage}
+        <div className="node-action-toast">
+          <CheckCircle size={17} color="#059669" />
+          <span>{actionMessage}</span>
         </div>
       )}
 
       {/* ── Node Cards Grid (1st: Station Cards) ──────────────────── */}
+      {/* ── Node Cards Grid (1st: Station Cards) ──────────────────── */}
       {viewMode !== 'map' && (
         nodes.length === 0 ? (
-          <div
-            className="card"
-            style={{
-              padding: '50px 24px',
-              textAlign: 'center',
-              border: '2px dashed #F1E9C8',
-              borderRadius: 16,
-              background: '#FFFFFF',
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: '50%',
-                background: '#FFFBEA',
-                border: '1px solid #F4D35E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                color: '#8A6D00',
-              }}
-            >
-              <Radio size={28} />
+          <div className="node-empty-state">
+            <div className="node-empty-icon-ring">
+              <Radio size={32} />
             </div>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-heading)', marginBottom: 8 }}>
-              No Nodes Registered Yet
+              No Telemetry Nodes Registered Yet
             </h3>
             <p
               style={{
@@ -494,7 +411,7 @@ export default function Nodes() {
                 lineHeight: 1.6,
               }}
             >
-              Click below to register your first sensor station with latitude and longitude coordinates.
+              Deploy and register sensor stations with GPS latitude & longitude coordinates to monitor environmental telemetry in real time.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
               <button
@@ -520,9 +437,9 @@ export default function Nodes() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
-              gap: 20,
-              marginBottom: 24,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))',
+              gap: 22,
+              marginBottom: 28,
             }}
           >
             {nodes.map((node) => {
@@ -534,210 +451,121 @@ export default function Nodes() {
               return (
                 <div
                   key={node.nodeId}
-                  className="card"
-                  style={{
-                    padding: '22px',
-                    border: isSelectedOnMap
-                      ? '2px solid #7D70D8'
-                      : isCurrentMaster
-                      ? '2px solid #F4D35E'
-                      : '1px solid #F1E9C8',
-                    borderRadius: 16,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    boxShadow: isSelectedOnMap
-                      ? '0 6px 24px rgba(125, 112, 216, 0.22)'
-                      : isCurrentMaster
-                      ? '0 6px 24px rgba(244, 211, 94, 0.25)'
-                      : '0 4px 20px rgba(210, 190, 100, 0.08)',
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`node-station-card ${isCurrentMaster ? 'is-master' : ''} ${isSelectedOnMap ? 'is-selected' : ''}`}
                 >
-                  {/* Card Header: Node Name + Status Badge */}
+                  {/* Card Top: Avatar, Name, ID, Master Pill, Status Pill */}
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-heading)' }}>
-                            {node.name || `Node ${node.nodeNumber}`}
-                          </span>
-                          {isCurrentMaster && (
-                            <span
-                              style={{
-                                background: '#F4D35E',
-                                color: '#4A4200',
-                                fontSize: 10,
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: 999,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                              }}
-                            >
-                              <Star size={10} /> MASTER NODE
-                            </span>
-                          )}
+                    <div className="node-station-card-top">
+                      <div className="node-station-info-left">
+                        <div className={`node-station-icon-badge ${node.status === 'online' ? 'online' : 'offline'}`}>
+                          <Radio size={20} />
                         </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--color-text-label)', marginTop: 2, fontFamily: 'monospace' }}>
-                          ID: {node.nodeId}
+                        <div className="node-station-names">
+                          <div className="node-station-name-row">
+                            <span className="node-station-name-text">
+                              {node.name || `Node ${node.nodeNumber}`}
+                            </span>
+                            {isCurrentMaster && (
+                              <span className="node-station-master-pill">
+                                <Star size={10} /> MASTER NODE
+                              </span>
+                            )}
+                          </div>
+                          <span className="node-station-id-text">
+                            ID: {node.nodeId}
+                          </span>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '3px 9px',
-                          borderRadius: 999,
-                          background: node.status === 'online' ? 'rgba(98, 200, 155, 0.14)' : 'rgba(232, 120, 120, 0.14)',
-                          color: node.status === 'online' ? '#1e7e53' : '#a83232',
-                          border: `1px solid ${node.status === 'online' ? '#62C89B' : '#E87878'}`,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            background: node.status === 'online' ? '#62C89B' : '#E87878',
-                          }}
-                        />
+                      <div className={`node-station-status-pill ${node.status === 'online' ? 'online' : 'offline'}`}>
+                        <span className="node-station-status-dot" />
                         {node.status === 'online' ? 'ONLINE' : 'OFFLINE'}
                       </div>
                     </div>
 
-                    {/* Master Designation Strip */}
+                    {/* Master Telemetry Strip */}
                     {isCurrentMaster ? (
-                      <div
-                        style={{
-                          background: '#FFFBEA',
-                          border: '1px solid #F4D35E',
-                          borderRadius: 10,
-                          padding: '8px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: 14,
-                          fontSize: 11.5,
-                          color: '#4A4200',
-                          fontWeight: 700,
-                        }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Radio size={13} color="#9a6700" /> Active Telemetry Source for Dashboard
+                      <div className="node-station-master-banner active">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <Radio size={14} color="#059669" /> Active Telemetry Source
                         </span>
-                        <span style={{ fontSize: 10, background: '#F4D35E', padding: '1px 6px', borderRadius: 4 }}>
-                          LIVE
+                        <span style={{ fontSize: 10, background: '#10B981', color: '#FFFFFF', padding: '2px 8px', borderRadius: 999, fontWeight: 800 }}>
+                          LIVE STREAM
                         </span>
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          background: '#FFFFFF',
-                          border: '1px solid #F1E9C8',
-                          borderRadius: 10,
-                          padding: '8px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: 14,
-                          fontSize: 11.5,
-                          color: 'var(--color-text-secondary)',
-                        }}
-                      >
-                        <span>Secondary Node</span>
+                      <div className="node-station-master-banner inactive">
+                        <span>Secondary Station</span>
                         <button
-                          className="btn btn-secondary btn-sm"
+                          type="button"
+                          className="node-set-master-btn"
                           onClick={() => handleSetMaster(node.nodeId, node.name)}
                           disabled={actionLoading}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: 11,
-                            background: '#FFF8D9',
-                            color: '#4A4200',
-                            fontWeight: 700,
-                          }}
                         >
-                          <Star size={12} /> Set as Master
+                          <Star size={11} /> Set as Master
                         </button>
                       </div>
                     )}
 
                     {/* Live Sensor Metrics Preview */}
-                    <div style={{ background: '#FFFDF3', border: '1px solid #F1E9C8', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-heading)', marginBottom: 8 }}>
-                        Latest Sensor Reading:
+                    <div className="node-telemetry-quad">
+                      <div className="node-telemetry-quad-header">
+                        <span>Latest Telemetry Reading:</span>
+                        {lr?.timestamp && (
+                          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                            {timeAgo(lr.timestamp)}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, textAlign: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-label)' }}>Temp</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#F5B84B' }}>
+                      <div className="node-telemetry-quad-grid">
+                        <div className="node-telemetry-chip">
+                          <div className="node-telemetry-key">Temp</div>
+                          <div className="node-telemetry-val" style={{ color: '#F43F5E' }}>
                             {lr?.temperature != null ? `${lr.temperature}°C` : '—'}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-label)' }}>Humidity</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#5b9fa3' }}>
+                        <div className="node-telemetry-chip">
+                          <div className="node-telemetry-key">Humidity</div>
+                          <div className="node-telemetry-val" style={{ color: '#0EA5E9' }}>
                             {lr?.humidity != null ? `${lr.humidity}%` : '—'}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-label)' }}>PM2.5</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#62C89B' }}>
+                        <div className="node-telemetry-chip">
+                          <div className="node-telemetry-key">PM2.5</div>
+                          <div className="node-telemetry-val" style={{ color: '#10B981' }}>
                             {lr?.pm25 != null ? `${lr.pm25}` : '—'}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-label)' }}>CO₂</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#7D70D8' }}>
+                        <div className="node-telemetry-chip">
+                          <div className="node-telemetry-key">CO₂</div>
+                          <div className="node-telemetry-val" style={{ color: '#8B5CF6' }}>
                             {lr?.co2 != null ? `${lr.co2}` : '—'}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Node Meta Details including Latitude & Longitude */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 11.5, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <MapPin size={11} color="var(--color-text-label)" /> Location
+                    {/* Node Meta Details */}
+                    <div className="node-meta-rows">
+                      <div className="node-meta-row-item">
+                        <span className="label">
+                          <MapPin size={13} color="var(--color-text-label)" /> Location
                         </span>
-                        <span style={{ fontWeight: 600, color: 'var(--color-heading)' }}>{node.location || 'Station'}</span>
+                        <span className="val">{node.location || 'Station'}</span>
                       </div>
 
-                      {/* GPS Coordinates Row */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Compass size={11} color="var(--color-text-label)" /> Latitude & Longitude
+                      <div className="node-meta-row-item">
+                        <span className="label">
+                          <Compass size={13} color="var(--color-text-label)" /> Coordinates
                         </span>
                         {hasCoords ? (
                           <button
                             type="button"
+                            className="node-coords-tag"
                             onClick={() => {
                               setSelectedMapNodeId(node.nodeId);
                               if (viewMode === 'grid') setViewMode('split');
                               document.getElementById('node-map-section')?.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                            style={{
-                              background: isSelectedOnMap ? '#F4D35E' : '#F7F5FC',
-                              border: isSelectedOnMap ? '1px solid #C4A420' : '1px solid #E4E0F4',
-                              color: isSelectedOnMap ? '#4A4200' : '#7D70D8',
-                              borderRadius: 6,
-                              padding: '2px 8px',
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              fontFamily: 'monospace',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
                             }}
                             title="Click to view on Map"
                           >
@@ -750,50 +578,29 @@ export default function Nodes() {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Database size={11} color="var(--color-text-label)" /> Total Records
+                      <div className="node-meta-row-item">
+                        <span className="label">
+                          <Database size={13} color="var(--color-text-label)" /> Records
                         </span>
-                        <span style={{ fontWeight: 700, color: 'var(--color-heading)' }}>{node.totalReadings || 0}</span>
+                        <span className="val">{node.totalReadings || 0}</span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Clock size={11} color="var(--color-text-label)" /> Last Signal
+                      <div className="node-meta-row-item">
+                        <span className="label">
+                          <Clock size={13} color="var(--color-text-label)" /> Last Signal
                         </span>
-                        <span style={{ fontWeight: 500 }}>{timeAgo(node.lastSeen)}</span>
+                        <span className="val" style={{ fontWeight: 500 }}>{timeAgo(node.lastSeen)}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Footer: Edit Button + Actions */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingTop: 14,
-                      borderTop: '1px solid #F1E9C8',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {/* EDIT BUTTON */}
+                  {/* Footer Actions */}
+                  <div className="node-card-action-bar">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <button
-                        className="btn btn-secondary btn-sm"
+                        type="button"
+                        className="node-btn-edit"
                         onClick={() => handleOpenEdit(node)}
-                        style={{
-                          padding: '5px 11px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          background: '#FFFBEA',
-                          border: '1px solid #F4D35E',
-                          color: '#4A4200',
-                        }}
                         title="Edit Node, Location, and Coordinates"
                       >
                         <Edit3 size={12} /> Edit
@@ -801,43 +608,25 @@ export default function Nodes() {
 
                       {hasCoords && (
                         <button
-                          className="btn btn-secondary btn-sm"
+                          type="button"
+                          className="node-btn-locate"
                           onClick={() => {
                             setSelectedMapNodeId(node.nodeId);
                             if (viewMode === 'grid') setViewMode('split');
                             document.getElementById('node-map-section')?.scrollIntoView({ behavior: 'smooth' });
                           }}
-                          style={{
-                            padding: '5px 9px',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
                           title="Locate on Map"
                         >
-                          <Navigation size={11} /> Locate
+                          <Navigation size={12} /> Locate
                         </button>
                       )}
                     </div>
 
                     <button
+                      type="button"
+                      className="node-btn-delete"
                       onClick={() => handleDeleteNode(node.nodeId, node.name)}
                       disabled={actionLoading}
-                      style={{
-                        background: 'none',
-                        border: '1px solid rgba(232, 120, 120, 0.4)',
-                        color: '#E87878',
-                        borderRadius: 8,
-                        padding: '5px 10px',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
                       title="Delete this node and its telemetry"
                     >
                       <Trash2 size={12} /> Delete
@@ -852,15 +641,31 @@ export default function Nodes() {
 
       {/* ── Geo-Spatial Map Section (2nd: Map View) ─────────────────── */}
       {(viewMode === 'split' || viewMode === 'map') && (
-        <div id="node-map-section" style={{ marginBottom: 28, marginTop: viewMode === 'split' ? 10 : 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Map size={16} color="var(--color-heading)" />
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
-              Interactive Geo-Spatial Station Map
-            </h3>
-            <span className="text-xs text-muted" style={{ fontWeight: 500 }}>
-              (Live GPS coordinates of all deployed nodes)
-            </span>
+        <div id="node-map-section" style={{ marginBottom: 30, marginTop: viewMode === 'split' ? 12 : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#059669',
+              }}
+            >
+              <Map size={17} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+                Interactive Geo-Spatial Station Map
+              </h3>
+              <span className="text-xs text-muted" style={{ fontWeight: 500 }}>
+                Live GPS positioning & interactive coverage telemetry of all deployed nodes
+              </span>
+            </div>
           </div>
 
           <NodeMap
@@ -874,60 +679,67 @@ export default function Nodes() {
       )}
 
       {/* ── Add Node Modal ───────────────────────────────────────────── */}
+      {/* ── Add Node Modal ───────────────────────────────────────────── */}
       {modalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(52, 52, 52, 0.45)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '92vh',
-              overflowY: 'auto',
-              padding: 24,
-              boxShadow: '0 12px 32px rgba(210, 190, 100, 0.25)',
-              position: 'relative',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <div>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)' }}>
-                  Register New Sensor Node
-                </h3>
-                <p className="text-xs text-muted" style={{ marginTop: 2 }}>
-                  Add a new station with GPS latitude & longitude to your environmental network.
-                </p>
+        <div className="node-modal-backdrop">
+          <div className="node-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#059669',
+                  }}
+                >
+                  <Plus size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+                    Register New Sensor Node
+                  </h3>
+                  <p className="text-xs text-muted" style={{ marginTop: 2 }}>
+                    Add a new station with GPS latitude & longitude to your environmental network.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-label)' }}
+                style={{
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {modalError && (
               <div
                 style={{
-                  background: 'rgba(232, 120, 120, 0.14)',
-                  border: '1px solid #E87878',
+                  background: 'rgba(244, 63, 94, 0.12)',
+                  border: '1px solid rgba(244, 63, 94, 0.35)',
                   color: '#b91c1c',
-                  borderRadius: 8,
-                  padding: '8px 12px',
+                  borderRadius: 10,
+                  padding: '10px 14px',
                   marginBottom: 16,
-                  fontSize: 12,
+                  fontSize: 12.5,
+                  fontWeight: 600,
                 }}
               >
                 {modalError}
@@ -971,35 +783,33 @@ export default function Nodes() {
               </div>
 
               {/* Coordinates Section */}
-              <div style={{ background: '#FFFDF3', border: '1px solid #F1E9C8', borderRadius: 12, padding: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <MapPin size={13} color="#9a6700" /> Geographic Coordinates (Latitude & Longitude)
+              <div className="node-gps-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                    <MapPin size={14} color="#059669" /> Geographic Coordinates (GPS)
                   </label>
                   <button
                     type="button"
                     onClick={() => handleGetDeviceLocation(setNewNodeLat, setNewNodeLng)}
+                    className="btn btn-secondary btn-sm"
                     style={{
-                      background: '#FFF8D9',
-                      border: '1px solid #F4D35E',
-                      color: '#4A4200',
-                      borderRadius: 6,
-                      padding: '3px 8px',
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
+                      padding: '4px 9px',
+                      color: '#059669',
                     }}
                   >
-                    <Crosshair size={11} /> My GPS
+                    <Crosshair size={12} /> My GPS
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                   <div>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
                       Latitude (-90 to 90)
                     </span>
                     <input
@@ -1014,7 +824,7 @@ export default function Nodes() {
                     />
                   </div>
                   <div>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
                       Longitude (-180 to 180)
                     </span>
                     <input
@@ -1031,20 +841,20 @@ export default function Nodes() {
                 </div>
 
                 {/* Presets & Map Picker Toggle */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10.5, color: 'var(--color-text-label)', alignSelf: 'center' }}>Presets:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10.5, color: 'var(--color-text-label)', fontWeight: 600 }}>Presets:</span>
                     <button
                       type="button"
+                      className="node-city-chip"
                       onClick={() => applyPresetCoords(20.2961, 85.8245, 'Central Station', setNewNodeLat, setNewNodeLng, setNewNodeLocation)}
-                      style={{ fontSize: 10, padding: '2px 6px', background: '#FFFFFF', border: '1px solid #E4E0F4', borderRadius: 4, cursor: 'pointer' }}
                     >
                       Bhubaneswar Central
                     </button>
                     <button
                       type="button"
+                      className="node-city-chip"
                       onClick={() => applyPresetCoords(22.2536, 84.9012, 'BPUT Campus Rourkela', setNewNodeLat, setNewNodeLng, setNewNodeLocation)}
-                      style={{ fontSize: 10, padding: '2px 6px', background: '#FFFFFF', border: '1px solid #E4E0F4', borderRadius: 4, cursor: 'pointer' }}
                     >
                       BPUT Rourkela
                     </button>
@@ -1055,11 +865,11 @@ export default function Nodes() {
                     onClick={() => setAddShowMiniMap(!addShowMiniMap)}
                     style={{
                       fontSize: 11,
-                      color: '#7D70D8',
+                      color: '#059669',
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       textDecoration: 'underline',
                     }}
                   >
@@ -1069,7 +879,7 @@ export default function Nodes() {
 
                 {/* Embedded Mini Map Picker */}
                 {addShowMiniMap && (
-                  <div style={{ marginTop: 12 }}>
+                  <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
                     <NodeMap
                       isPickerMode={true}
                       pickerCoords={{
@@ -1086,7 +896,7 @@ export default function Nodes() {
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1094,7 +904,7 @@ export default function Nodes() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm">
+                <button type="submit" className="btn btn-primary btn-sm" style={{ fontWeight: 700 }}>
                   Register Node
                 </button>
               </div>
@@ -1105,59 +915,65 @@ export default function Nodes() {
 
       {/* ── Edit Node Modal ──────────────────────────────────────────── */}
       {editModalOpen && editingNode && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(52, 52, 52, 0.45)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '92vh',
-              overflowY: 'auto',
-              padding: 24,
-              boxShadow: '0 12px 32px rgba(210, 190, 100, 0.25)',
-              position: 'relative',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <div>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)' }}>
-                  Edit Node Configuration
-                </h3>
-                <p className="text-xs text-muted" style={{ marginTop: 2 }}>
-                  Update station name, location, online status, and GPS coordinates.
-                </p>
+        <div className="node-modal-backdrop">
+          <div className="node-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#059669',
+                  }}
+                >
+                  <Edit3 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+                    Edit Node Configuration
+                  </h3>
+                  <p className="text-xs text-muted" style={{ marginTop: 2 }}>
+                    Update station name, location, online status, and GPS coordinates.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-label)' }}
+                style={{
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {editModalError && (
               <div
                 style={{
-                  background: 'rgba(232, 120, 120, 0.14)',
-                  border: '1px solid #E87878',
+                  background: 'rgba(244, 63, 94, 0.12)',
+                  border: '1px solid rgba(244, 63, 94, 0.35)',
                   color: '#b91c1c',
-                  borderRadius: 8,
-                  padding: '8px 12px',
+                  borderRadius: 10,
+                  padding: '10px 14px',
                   marginBottom: 16,
-                  fontSize: 12,
+                  fontSize: 12.5,
+                  fontWeight: 600,
                 }}
               >
                 {editModalError}
@@ -1173,7 +989,7 @@ export default function Nodes() {
                   className="form-input"
                   value={editingNode.nodeId}
                   disabled
-                  style={{ background: '#F8F8F8', color: 'var(--color-text-secondary)', cursor: 'not-allowed', fontFamily: 'monospace' }}
+                  style={{ background: '#F8FAFC', color: 'var(--color-text-secondary)', cursor: 'not-allowed', fontFamily: 'monospace', fontWeight: 600 }}
                 />
               </div>
 
@@ -1217,35 +1033,33 @@ export default function Nodes() {
               </div>
 
               {/* Coordinates Section */}
-              <div style={{ background: '#FFFDF3', border: '1px solid #F1E9C8', borderRadius: 12, padding: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <MapPin size={13} color="#9a6700" /> GPS Coordinates (Latitude & Longitude)
+              <div className="node-gps-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                    <MapPin size={14} color="#059669" /> GPS Coordinates (Latitude & Longitude)
                   </label>
                   <button
                     type="button"
                     onClick={() => handleGetDeviceLocation(setEditNodeLat, setEditNodeLng)}
+                    className="btn btn-secondary btn-sm"
                     style={{
-                      background: '#FFF8D9',
-                      border: '1px solid #F4D35E',
-                      color: '#4A4200',
-                      borderRadius: 6,
-                      padding: '3px 8px',
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
+                      padding: '4px 9px',
+                      color: '#059669',
                     }}
                   >
-                    <Crosshair size={11} /> My GPS
+                    <Crosshair size={12} /> My GPS
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                   <div>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
                       Latitude (-90 to 90)
                     </span>
                     <input
@@ -1260,7 +1074,7 @@ export default function Nodes() {
                     />
                   </div>
                   <div>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
                       Longitude (-180 to 180)
                     </span>
                     <input
@@ -1277,20 +1091,20 @@ export default function Nodes() {
                 </div>
 
                 {/* Presets & Mini Map Picker */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10.5, color: 'var(--color-text-label)', alignSelf: 'center' }}>Presets:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10.5, color: 'var(--color-text-label)', fontWeight: 600 }}>Presets:</span>
                     <button
                       type="button"
+                      className="node-city-chip"
                       onClick={() => applyPresetCoords(20.2961, 85.8245, null, setEditNodeLat, setEditNodeLng, null)}
-                      style={{ fontSize: 10, padding: '2px 6px', background: '#FFFFFF', border: '1px solid #E4E0F4', borderRadius: 4, cursor: 'pointer' }}
                     >
                       Bhubaneswar (20.2961, 85.8245)
                     </button>
                     <button
                       type="button"
+                      className="node-city-chip"
                       onClick={() => applyPresetCoords(22.2536, 84.9012, null, setEditNodeLat, setEditNodeLng, null)}
-                      style={{ fontSize: 10, padding: '2px 6px', background: '#FFFFFF', border: '1px solid #E4E0F4', borderRadius: 4, cursor: 'pointer' }}
                     >
                       BPUT Rourkela (22.2536, 84.9012)
                     </button>
@@ -1301,11 +1115,11 @@ export default function Nodes() {
                     onClick={() => setEditShowMiniMap(!editShowMiniMap)}
                     style={{
                       fontSize: 11,
-                      color: '#7D70D8',
+                      color: '#059669',
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       textDecoration: 'underline',
                     }}
                   >
@@ -1315,7 +1129,7 @@ export default function Nodes() {
 
                 {/* Mini Map Picker */}
                 {editShowMiniMap && (
-                  <div style={{ marginTop: 12 }}>
+                  <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
                     <NodeMap
                       isPickerMode={true}
                       pickerCoords={{
@@ -1332,7 +1146,7 @@ export default function Nodes() {
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1340,7 +1154,7 @@ export default function Nodes() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm">
+                <button type="submit" className="btn btn-primary btn-sm" style={{ fontWeight: 700 }}>
                   Save Changes
                 </button>
               </div>

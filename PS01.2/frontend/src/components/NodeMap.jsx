@@ -184,19 +184,19 @@ export default function NodeMap({
           <div class="popup-metrics-grid">
             <div class="metric-pill">
               <span class="metric-key">Temp</span>
-              <span class="metric-val" style="color: #F5B84B">${lr?.temperature != null ? `${lr.temperature}°C` : '—'}</span>
+              <span class="metric-val" style="color: #F43F5E">${lr?.temperature != null ? `${lr.temperature}°C` : '—'}</span>
             </div>
             <div class="metric-pill">
               <span class="metric-key">Humidity</span>
-              <span class="metric-val" style="color: #5b9fa3">${lr?.humidity != null ? `${lr.humidity}%` : '—'}</span>
+              <span class="metric-val" style="color: #0EA5E9">${lr?.humidity != null ? `${lr.humidity}%` : '—'}</span>
             </div>
             <div class="metric-pill">
               <span class="metric-key">PM2.5</span>
-              <span class="metric-val" style="color: #62C89B">${lr?.pm25 != null ? `${lr.pm25}` : '—'}</span>
+              <span class="metric-val" style="color: #10B981">${lr?.pm25 != null ? `${lr.pm25}` : '—'}</span>
             </div>
             <div class="metric-pill">
               <span class="metric-key">CO₂</span>
-              <span class="metric-val" style="color: #7D70D8">${lr?.co2 != null ? `${lr.co2}` : '—'}</span>
+              <span class="metric-val" style="color: #8B5CF6">${lr?.co2 != null ? `${lr.co2}` : '—'}</span>
             </div>
           </div>
         </div>
@@ -311,9 +311,9 @@ export default function NodeMap({
       style={{
         position: 'relative',
         width: '100%',
-        borderRadius: 16,
+        borderRadius: 20,
         overflow: 'hidden',
-        border: '1px solid var(--color-border)',
+        border: '1.5px solid var(--color-border)',
         boxShadow: 'var(--shadow-card)',
         background: '#FFFFFF',
       }}
@@ -324,51 +324,52 @@ export default function NodeMap({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '12px 18px',
+          padding: '14px 20px',
           background: '#FFFFFF',
           borderBottom: '1px solid var(--color-border)',
           flexWrap: 'wrap',
-          gap: 10,
+          gap: 12,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'rgba(244, 211, 94, 0.25)',
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#9a6700',
+              color: '#059669',
             }}
           >
-            <MapPin size={17} />
+            <MapPin size={18} />
           </div>
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--color-heading)' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-heading)' }}>
               Geo-Spatial Node Network Map
             </div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
-              Showing {nodesWithCoordsCount} of {nodes.length} stations with GPS coordinates
+            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 1 }}>
+              Showing {nodesWithCoordsCount} of {nodes.length} stations with live GPS coordinates
             </div>
           </div>
         </div>
 
         {/* Legend / Quick controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--color-text-secondary)' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-primary)', border: '1px solid #2563EB' }}></span>
-              Master Station
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.25)' }}></span>
+              Master
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-safe)' }}></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)' }}></span>
               Online
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-danger)' }}></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F43F5E', boxShadow: '0 0 0 2px rgba(244, 63, 94, 0.2)' }}></span>
               Offline
             </span>
           </div>
@@ -377,9 +378,9 @@ export default function NodeMap({
             className="btn btn-secondary btn-sm"
             onClick={handleRecenter}
             title="Recenter and fit all nodes"
-            style={{ padding: '4px 10px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            style={{ padding: '5px 12px', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 8 }}
           >
-            <Maximize2 size={12} /> Fit All
+            <Maximize2 size={13} /> Fit All
           </button>
         </div>
       </div>

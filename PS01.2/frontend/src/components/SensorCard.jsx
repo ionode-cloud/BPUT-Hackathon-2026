@@ -8,48 +8,25 @@ import {
 
 const SENSOR_ICONS = {
   temperature: Thermometer,
-  humidity: Droplets,
-  pm25: Wind,
-  pm10: Wind,
-  co2: Activity,
-  co: Activity,
-  no2: Gauge,
-  so2: Gauge,
-  o3: Gauge,
-  voc: AlertCircle,
-  nh3: AlertCircle,
-  smoke: Flame,
+  humidity:    Droplets,
+  pm25:        Wind,
+  pm10:        Wind,
+  co2:         Activity,
+  co:          Activity,
+  no2:         Gauge,
+  so2:         Gauge,
+  o3:          Gauge,
+  voc:         AlertCircle,
+  nh3:         AlertCircle,
+  smoke:       Flame,
 };
 
-const STATUS_THEMES = {
-  safe: {
-    tabBg: '#ECFDF5',
-    iconColor: '#10B981',
-    borderColor: '#A7F3D0',
-    meterGrad: 'linear-gradient(90deg, #34D399, #10B981)',
-    glow: 'rgba(16, 185, 129, 0.18)',
-  },
-  moderate: {
-    tabBg: '#FFFBEB',
-    iconColor: '#F59E0B',
-    borderColor: '#FDE68A',
-    meterGrad: 'linear-gradient(90deg, #FCD34D, #FFAE33)',
-    glow: 'rgba(255, 174, 51, 0.2)',
-  },
-  dangerous: {
-    tabBg: '#FFF1F2',
-    iconColor: '#FF5376',
-    borderColor: '#FECDD3',
-    meterGrad: 'linear-gradient(90deg, #FDA4AF, #FF5376)',
-    glow: 'rgba(255, 83, 118, 0.22)',
-  },
-  unknown: {
-    tabBg: '#F8FAFC',
-    iconColor: '#94A3B8',
-    borderColor: '#E2E8F0',
-    meterGrad: 'linear-gradient(90deg, #CBD5E1, #94A3B8)',
-    glow: 'transparent',
-  },
+/* Status → CSS class for the left slab color */
+const STATUS_CLASS = {
+  safe:      'sc-safe',
+  moderate:  'sc-moderate',
+  dangerous: 'sc-dangerous',
+  unknown:   'sc-unknown',
 };
 
 export default function SensorCard({
@@ -60,95 +37,109 @@ export default function SensorCard({
   spec,
   thresholds = DEFAULT_THRESHOLDS
 }) {
-  const t = spec || thresholds[sensorType] || DEFAULT_THRESHOLDS[sensorType] || {};
-  const key = sensorType || spec?.key;
-  const status = getStatus(key, value, thresholds);
-  const sc = STATUS_COLORS[status] || STATUS_COLORS.unknown;
-  const theme = STATUS_THEMES[status] || STATUS_THEMES.unknown;
-  const label = STATUS_LABELS[status] || 'No Data';
+  const t            = spec || thresholds[sensorType] || DEFAULT_THRESHOLDS[sensorType] || {};
+  const key          = sensorType || spec?.key;
+  const status       = getStatus(key, value, thresholds);
+  const sc           = STATUS_COLORS[status] || STATUS_COLORS.unknown;
+  const label        = STATUS_LABELS[status] || 'No Data';
   const displayValue = formatValue(value, unit || t?.unit);
-  const pct = getThresholdPercentage(key, value, thresholds);
+  const pct          = getThresholdPercentage(key, value, thresholds);
+  const slabClass    = STATUS_CLASS[status] || 'sc-unknown';
 
   const Icon = SENSOR_ICONS[key] || Activity;
 
-  const safeRangeText = t?.safeText || (t?.safeMin !== undefined ? `${t.safeMin}–${t.safeMax}` : 'Optimal');
+  // Meter gradient per status
+  const meterGrads = {
+    safe:      'linear-gradient(90deg, #6EE7B7, #10B981, #059669)',
+    moderate:  'linear-gradient(90deg, #FCD34D, #F59E0B)',
+    dangerous: 'linear-gradient(90deg, #FDA4AF, #F43F5E, #E11D48)',
+    unknown:   'linear-gradient(90deg, #D1D5DB, #9CA3AF)',
+  };
+  const meterGlow = {
+    safe:      'rgba(16,185,129,0.25)',
+    moderate:  'rgba(245,158,11,0.25)',
+    dangerous: 'rgba(244,63,94,0.28)',
+    unknown:   'transparent',
+  };
+
+  const safeRangeText   = t?.safeText    || (t?.safeMin    !== undefined ? `${t.safeMin}–${t.safeMax}` : 'Optimal');
   const dangerRangeText = t?.dangerousText || (t?.dangerousMin !== undefined ? `>${t.dangerousMin}` : 'High Risk');
 
+  // Split the display value into number and unit
+  const numPart  = displayValue.split(' ')[0];
+  const unitPart = unit || t?.unit || '';
+
   return (
-    <div className="overview-sensor-card">
-      {/* Top Protruding Tab */}
-      <div
-        className="sensor-card-tab"
-        style={{
-          background: theme.tabBg,
-          borderColor: theme.borderColor,
-          boxShadow: `0 4px 12px ${theme.glow}`
-        }}
-        title={`${t?.name || 'Sensor'} icon`}
-      >
-        <Icon size={18} color={theme.iconColor} />
+    <div className={`overview-sensor-card ${slabClass}`}>
+
+      {/* ── Left colored slab: icon + value ─────── */}
+      <div className="sensor-card-tab">
+        {/* Icon circle */}
+        <div className="sensor-icon-circle">
+          <Icon size={18} color="#FFFFFF" />
+        </div>
+
+        {/* Value */}
+        <div style={{ textAlign: 'center' }}>
+          <div className="sensor-val-num">{numPart}</div>
+          <div className="sensor-val-unit">{unitPart}</div>
+        </div>
       </div>
 
-      {/* Header with Title & Status Pill */}
+      {/* ── Right white panel: name + status + meter ── */}
       <div className="sensor-card-header">
-        <div style={{ paddingLeft: 42 }}>
-          <div className="sensor-name">
-            {t?.name || t?.displayName || (sensorType ? sensorType.toUpperCase() : 'Sensor')}
+
+        {/* Top row: name + status pill */}
+        <div className="sensor-card-top-row">
+          <div>
+            <div className="sensor-name">
+              {t?.name || t?.displayName || (sensorType ? sensorType.toUpperCase() : 'Sensor')}
+            </div>
+            {t?.sensor && (
+              <span className="sensor-hardware-tag">{t.sensor}</span>
+            )}
           </div>
-          {t?.sensor && (
-            <span className="sensor-hardware-tag">
-              {t.sensor}
-            </span>
-          )}
-        </div>
 
-        <span
-          className="sensor-status-pill"
-          style={{
-            background: sc.bg,
-            color: sc.text,
-            borderColor: sc.border,
-          }}
-        >
-          <span className="status-dot" style={{ background: sc.dot }} />
-          {label}
-        </span>
-      </div>
-
-      {/* Measurement Value Display */}
-      <div className="sensor-metric-display">
-        <span className="sensor-val-num" style={{ color: sc.text }}>
-          {displayValue.split(' ')[0]}
-        </span>
-        <span className="sensor-val-unit">
-          {unit || t?.unit}
-        </span>
-      </div>
-
-      {/* Calibrated Threshold Meter Bar */}
-      <div className="sensor-meter-container">
-        <div className="sensor-meter-track">
-          <div
-            className="sensor-meter-fill"
+          <span
+            className="sensor-status-pill"
             style={{
-              width: `${Math.min(Math.max(pct, 5), 100)}%`,
-              background: theme.meterGrad,
+              background:  sc.bg,
+              color:       sc.text,
+              borderColor: sc.border,
             }}
-          />
+          >
+            <span className="status-dot" style={{ background: sc.dot }} />
+            {label}
+          </span>
         </div>
-        <div className="sensor-meter-limits">
-          <span>Safe: {safeRangeText}</span>
-          <span>Danger: {dangerRangeText}</span>
-        </div>
-      </div>
 
-      {/* Timestamp footer */}
-      {timestamp && (
-        <div className="sensor-card-footer">
-          <span className="sensor-live-dot" />
-          <span>Updated {timeAgo(timestamp)}</span>
+        {/* Meter bar */}
+        <div className="sensor-meter-container">
+          <div className="sensor-meter-track">
+            <div
+              className="sensor-meter-fill"
+              style={{
+                width:      `${Math.min(Math.max(pct, value !== null && value !== undefined ? 4 : 0), 100)}%`,
+                background: meterGrads[status] || meterGrads.unknown,
+                boxShadow:  `0 0 8px ${meterGlow[status] || 'transparent'}`,
+              }}
+            />
+          </div>
+          <div className="sensor-meter-limits">
+            <span>Safe: {safeRangeText}</span>
+            <span style={{ color: '#F43F5E' }}>Danger: {dangerRangeText}</span>
+          </div>
         </div>
-      )}
+
+        {/* Footer: live timestamp */}
+        {timestamp && (
+          <div className="sensor-card-footer">
+            <span className="sensor-live-dot" />
+            <span>Updated {timeAgo(timestamp)}</span>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
