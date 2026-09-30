@@ -67,7 +67,9 @@ def create_app() -> FastAPI:
                   docs_url="/docs", redoc_url=None)
     app.middleware("http")(http_middleware)
     app.add_middleware(GZipMiddleware, minimum_size=1024)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
+    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
+                       allow_origin_regex=r"https://.*\.vercel\.app",
+                       allow_credentials=True,
                        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                        allow_headers=["Authorization", "Content-Type", "X-Request-ID"])
 

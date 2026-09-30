@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = Field("", validation_alias=AliasChoices("GOOGLE_CLIENT_SECRET", "GOOGLE_SECRET"))
     SECRET_KEY: str = INSECURE_KEY
     ACCESS_TOKEN_MINUTES: int = 480
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:8000"   # comma-separated
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:8000,https://campuslink-ashy.vercel.app"   # comma-separated
 
     SEED_DEMO_DATA: bool = False                  # synthetic campus data + demo accounts
     DEMO_MODE: bool = False                       # show demo credentials on the login page
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     LLM_MAX_NEW_TOKENS: int = 200
     LLM_BACKEND: str = "transformers"             # transformers | ollama | none
     LLM_MODEL: str = "Qwen/Qwen2.5-0.5B-Instruct"
-    LLM_AUTOLOAD: bool = True
+    LLM_AUTOLOAD: bool = False
     OLLAMA_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2:3b"
 

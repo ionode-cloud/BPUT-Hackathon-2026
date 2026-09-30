@@ -1,4 +1,14 @@
-const BASE = import.meta.env.VITE_API_BASE || '/api'
+function getBaseUrl() {
+  const envUrl = (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || '').trim()
+  if (!envUrl) return '/api'
+  const clean = envUrl.replace(/\/+$/, '')
+  if (clean.startsWith('http') && !clean.endsWith('/api')) {
+    return `${clean}/api`
+  }
+  return clean
+}
+
+const BASE = getBaseUrl()
 const TOKEN_KEY = 'campuslink_token'
 
 export const tokenStore = {
