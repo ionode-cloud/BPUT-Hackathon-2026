@@ -1,0 +1,14 @@
+{
+  "name": "esg360",
+  "version": "1.0.0",
+  "description": "ESG360 — Smart BRSR Reporting & ESG Compliance Portal | BPUT Hackathon 2026 PS08",
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev"
+  },
+  "author": "BPUT Hackathon 2026",
+  "license": "MIT"
+}

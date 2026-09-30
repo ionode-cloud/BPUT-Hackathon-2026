@@ -1,0 +1,28 @@
+[project]
+name = "campuslink-backend"
+version = "2.0.0"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 150
+target-version = "py310"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM"]
+# SIM905: keep compact word lists as split strings
+ignore = [
+  "B008",   # FastAPI Depends() in defaults is idiomatic
+  "S101",   # asserts in tests
+  "S311",   # random for synthetic data generation, not crypto
+  "S608",   # SQL built only from ORM metadata table names
+  "E731", "SIM108", "UP007", "B905", "S105", "S106", "SIM905",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E402", "I001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

@@ -1,0 +1,36 @@
+# Environment
+.env
+.env.*
+*.env
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Databases
+campuslink.db
+test_campuslink.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Large data & caches
+data/models/
+data/uploads/
+data/hf-cache/
+.pytest_cache/
+.ruff_cache/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
