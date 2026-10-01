@@ -37,7 +37,8 @@ const getAnalytics = async (req, res) => {
     // By status
     ESGData.aggregate([
       { $match: filter },
-      { $group: { _id: '$status', count: { $sum: 1 } } },
+      { $group: { _id: '$status', count: { $sum: 1 }, value: { $sum: 1 } } },
+      { $sort: { count: -1 } },
     ]),
     // By organization (top 10)
     ESGData.aggregate([
@@ -82,8 +83,8 @@ const getAnalytics = async (req, res) => {
 const getConsolidation = async (req, res) => {
   const { year, targetOrgId } = req.query;
 
-  if (!year || !targetOrgId) {
-    return res.status(400).json({ success: false, message: 'year and targetOrgId are required' });
+  if (!year || !targetOrgId || !mongoose.Types.ObjectId.isValid(targetOrgId)) {
+    return res.status(400).json({ success: false, message: 'Valid year and targetOrgId are required' });
   }
 
   const accessibleIds = await getAccessibleOrgIds(req.user);
@@ -106,7 +107,7 @@ const getConsolidation = async (req, res) => {
   const consolidatedData = await ESGData.aggregate([
     {
       $match: {
-        organization: { $in: allOrgIds.map((id) => require('mongoose').Types.ObjectId.createFromHexString(id)) },
+        organization: { $in: allOrgIds.map((id) => new mongoose.Types.ObjectId(id)) },
         'reportingPeriod.year': year,
         status: 'Approved',
       },

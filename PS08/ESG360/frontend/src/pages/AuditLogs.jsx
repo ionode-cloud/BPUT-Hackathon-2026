@@ -74,7 +74,17 @@ const AuditLogs = () => {
     setLoading(true);
     try {
       const res = await api.get('/audit-logs', { params: { page, limit: 20, ...filters } });
-      setLogs(res.data.data);
+      const rawLogs = res.data.data || [];
+      // Deduplicate by userEmail so Super Admin and all other credentials only appear once
+      const seenEmails = new Set();
+      const uniqueLogs = rawLogs.filter(log => {
+        const email = (log.userEmail || log.user?.email || '').trim().toLowerCase();
+        if (!email) return true;
+        if (seenEmails.has(email)) return false;
+        seenEmails.add(email);
+        return true;
+      });
+      setLogs(uniqueLogs);
       setPagination(res.data.pagination);
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);

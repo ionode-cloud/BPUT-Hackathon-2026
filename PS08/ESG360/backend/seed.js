@@ -1,15 +1,3 @@
-/**
- * ESG360 — Comprehensive Seed Script
- * Populates complete, realistic dummy data for:
- * - 4-Tier Organization Hierarchy (Group -> Subsidiary -> Business Unit -> Project)
- * - Users with all 10 standard roles
- * - Comprehensive ESG Records across Environmental, Social, and Governance for 2026, 2025, and 2024
- * - BRSR Reports with section progress
- * - Notifications & Compliance Audit Logs
- *
- * Run: node seed.js
- */
-
 require('dotenv').config();
 const mongoose = require('mongoose');
 const {
@@ -25,11 +13,11 @@ const {
 const ADMIN_PASSWORD = 'Admin@123456';
 
 async function seed() {
-  console.log('🌱 Connecting to MongoDB Atlas...');
+  console.log('Connecting to MongoDB Atlas...');
   await mongoose.connect(process.env.MONGO_URI);
-  console.log('✅ Connected to MongoDB\n');
+  console.log('Connected to MongoDB\n');
 
-  console.log('🧹 Clearing existing demo data...');
+  console.log('Clearing existing demo data...');
   await Promise.all([
     User.deleteMany({}),
     Organization.deleteMany({}),
@@ -39,10 +27,10 @@ async function seed() {
     Notification.deleteMany({}),
     AuditLog.deleteMany({}),
   ]);
-  console.log('✅ Clean slate prepared.\n');
+  console.log('Clean slate prepared.\n');
 
   // 1. CREATE ORGANIZATIONS HIERARCHY
-  console.log('🏢 Creating 4-Tier Organization Structure...');
+  console.log('Creating 4-Tier Organization Structure...');
 
   // Level 1: Root Group
   const groupOrg = await Organization.create({
@@ -81,40 +69,6 @@ async function seed() {
     reportingYear: '2026',
   });
 
-  const logisticsSub = await Organization.create({
-    name: 'ESG360 Logistics & Freight Ltd.',
-    type: 'Subsidiary',
-    parent: groupOrg._id,
-    location: {
-      address: 'Port Logistics Park, Harbour Expressway',
-      city: 'Chennai',
-      state: 'Tamil Nadu',
-      country: 'India',
-      pincode: '600001',
-    },
-    cin: 'U60200TN2016PLC091823',
-    industry: 'Freight Rail & Port Terminals',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  const urbanInfraSub = await Organization.create({
-    name: 'ESG360 Urban Infrastructure Ltd.',
-    type: 'Subsidiary',
-    parent: groupOrg._id,
-    location: {
-      address: 'Metro Hub, Outer Ring Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      country: 'India',
-      pincode: '560103',
-    },
-    cin: 'U45203KA2017PLC102938',
-    industry: 'Urban Mobility & Highway EPC',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
   // Level 3: Business Units
   const solarBU = await Organization.create({
     name: 'Solar Parks Business Unit',
@@ -122,36 +76,6 @@ async function seed() {
     parent: cleanEnergySub._id,
     location: { city: 'Jodhpur', state: 'Rajasthan' },
     industry: 'Utility Scale Solar',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  const windBU = await Organization.create({
-    name: 'Wind & Hybrid Systems BU',
-    type: 'Business Unit',
-    parent: cleanEnergySub._id,
-    location: { city: 'Bhuj', state: 'Gujarat' },
-    industry: 'Wind & BESS Hybrid Power',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  const coldChainBU = await Organization.create({
-    name: 'Cold Chain & Warehouse BU',
-    type: 'Business Unit',
-    parent: logisticsSub._id,
-    location: { city: 'Nagpur', state: 'Maharashtra' },
-    industry: 'Cold Storage & Intermodal Warehousing',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  const highwaysBU = await Organization.create({
-    name: 'Highways & Bridges BU',
-    type: 'Business Unit',
-    parent: urbanInfraSub._id,
-    location: { city: 'Hyderabad', state: 'Telangana' },
-    industry: 'Expressway EPC',
     status: 'Active',
     reportingYear: '2026',
   });
@@ -167,37 +91,17 @@ async function seed() {
     reportingYear: '2026',
   });
 
-  const khavdaProject = await Organization.create({
-    name: 'Khavda 1GW Hybrid Site',
-    type: 'Project',
-    parent: windBU._id,
-    location: { city: 'Khavda', state: 'Gujarat' },
-    industry: 'Hybrid Wind & Solar Site',
-    status: 'Active',
-    reportingYear: '2026',
-  });
+  // Aliases for unified data seeding across the 4 tiers
+  const logisticsSub = cleanEnergySub;
+  const urbanInfraSub = cleanEnergySub;
+  const windBU = solarBU;
+  const coldChainBU = solarBU;
+  const highwaysBU = solarBU;
+  const khavdaProject = bhadlaProject;
+  const freightTerminal = bhadlaProject;
+  const metroProject = bhadlaProject;
 
-  const freightTerminal = await Organization.create({
-    name: 'Western Dedicated Freight Hub',
-    type: 'Project',
-    parent: coldChainBU._id,
-    location: { city: 'Vadodara', state: 'Gujarat' },
-    industry: 'Intermodal Freight Yard',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  const metroProject = await Organization.create({
-    name: 'Metro Line 3 Civil Package',
-    type: 'Project',
-    parent: highwaysBU._id,
-    location: { city: 'Pune', state: 'Maharashtra' },
-    industry: 'Mass Rapid Transit Infrastructure',
-    status: 'Active',
-    reportingYear: '2026',
-  });
-
-  console.log('✅ Created 12 Organizations across 4 tiers.\n');
+  console.log('✅ Created 4 Organizations across 4 tiers.\n');
 
   // 2. CREATE USERS ACROSS ROLES
   console.log('👥 Creating Demo Users across all roles...');
@@ -291,14 +195,22 @@ async function seed() {
   }
 
   const superAdmin = createdUsers[0];
+  const groupAdmin = createdUsers[1];
+  const energySubAdmin = createdUsers[2];
+  const logisticsSubAdmin = createdUsers[3];
+  const buManager = createdUsers[4];
+  const plantUser = createdUsers[5];
   const esgManager = createdUsers[6];
   const complianceOfficer = createdUsers[7];
-  const plantUser = createdUsers[5];
+  const auditorUser = createdUsers[8];
+  const mgmtUser = createdUsers[9];
+  const urbanSubAdmin = energySubAdmin;
 
   // Link admin users to orgs
   await Organization.updateOne({ _id: groupOrg._id }, { adminUser: superAdmin._id });
-  await Organization.updateOne({ _id: cleanEnergySub._id }, { adminUser: createdUsers[2]._id });
-  await Organization.updateOne({ _id: logisticsSub._id }, { adminUser: createdUsers[3]._id });
+  await Organization.updateOne({ _id: cleanEnergySub._id }, { adminUser: energySubAdmin._id });
+  await Organization.updateOne({ _id: solarBU._id }, { adminUser: buManager._id });
+  await Organization.updateOne({ _id: bhadlaProject._id }, { adminUser: plantUser._id });
 
   console.log(`✅ Created ${createdUsers.length} Users.\n`);
 
@@ -1036,10 +948,7 @@ async function seed() {
       approvedBy: superAdmin._id,
       approvedAt: new Date('2026-06-25'),
     },
-
-    // ══════════════════════════════════════════════════════
     // YEAR 2025 (HISTORICAL COMPARISON)
-    // ══════════════════════════════════════════════════════
     {
       category: 'Environmental',
       subcategory: 'Energy',
@@ -1267,7 +1176,7 @@ async function seed() {
         },
       ],
       consolidatedScope: {
-        organizations: [cleanEnergySub._id, logisticsSub._id, urbanInfraSub._id],
+        organizations: [cleanEnergySub._id, solarBU._id, bhadlaProject._id],
         includesSubsidiaries: true,
       },
     },
@@ -1718,12 +1627,8 @@ async function seed() {
   ];
 
   await Document.insertMany(dummyDocs);
-  console.log(`✅ Created ${dummyDocs.length} Compliance & Evidence Documents.\n`);
-
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🎉 SEED COMPLETED SUCCESSFULLY!');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📌 Login Credentials (All users share password: ' + ADMIN_PASSWORD + ')');
+  console.log(`Created ${dummyDocs.length} Compliance & Evidence Documents.\n`);
+  console.log('Login Credentials (All users share password: ' + ADMIN_PASSWORD + ')');
   console.log('   Super Admin         : admin@esg360.com');
   console.log('   Group ESG Admin     : group.admin@esg360.com');
   console.log('   Subsidiary Admin    : energy.sub@esg360.com');

@@ -344,11 +344,11 @@ const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) 
 };
 
 // ── Main Page ──
-const DataCollection = ({ category: fixedCategory }) => {
+const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
   const { isReviewer, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const urlStatus = searchParams.get('status') || '';
+  const urlStatus = searchParams.get('status') || defaultStatus || '';
   const urlYear = searchParams.get('year') || new Date().getFullYear().toString();
   const urlCategory = searchParams.get('category') || fixedCategory || '';
   const urlOrg = searchParams.get('organization') || '';

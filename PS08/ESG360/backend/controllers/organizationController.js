@@ -182,6 +182,17 @@ const deleteOrganization = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Cannot delete organization that has child units or projects' });
   }
 
+  const usersCount = await User.countDocuments({ organization: req.params.id });
+  if (usersCount > 0) {
+    return res.status(400).json({ success: false, message: `Cannot delete organization with ${usersCount} assigned user(s). Reassign them first.` });
+  }
+
+  const ESGData = require('../models/ESGData');
+  const esgCount = await ESGData.countDocuments({ organization: req.params.id });
+  if (esgCount > 0) {
+    return res.status(400).json({ success: false, message: `Cannot delete organization with ${esgCount} associated ESG record(s). Reassign them first.` });
+  }
+
   await org.deleteOne();
 
   await createAuditLog({

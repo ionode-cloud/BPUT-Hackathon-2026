@@ -1,7 +1,7 @@
 const AuditLog = require('../models/AuditLog');
 const Organization = require('../models/Organization');
 
-// @desc    Get audit logs
+// @desc    Get audit logs (deduplicated by user credential/email)
 // @route   GET /api/audit-logs
 // @access  Private (Admin/Auditor)
 const getAuditLogs = async (req, res) => {
@@ -25,18 +25,30 @@ const getAuditLogs = async (req, res) => {
     filter.organization = req.user.organization?._id;
   }
 
-  const total = await AuditLog.countDocuments(filter);
-  const logs = await AuditLog.find(filter)
+  const allLogs = await AuditLog.find(filter)
     .populate('user', 'name email role')
     .populate('organization', 'name type')
-    .skip(skip)
-    .limit(parseInt(limit))
     .sort({ createdAt: -1 });
+
+  // Deduplicate by userEmail to guarantee no duplicate credentials of Super Admin or any user
+  const seenEmails = new Set();
+  const dedupedLogs = [];
+  for (const log of allLogs) {
+    const email = (log.userEmail || log.user?.email || '').trim().toLowerCase();
+    if (email && seenEmails.has(email)) {
+      continue;
+    }
+    if (email) seenEmails.add(email);
+    dedupedLogs.push(log);
+  }
+
+  const total = dedupedLogs.length;
+  const pagedLogs = dedupedLogs.slice(skip, skip + parseInt(limit));
 
   res.status(200).json({
     success: true,
-    data: logs,
-    pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / limit) },
+    data: pagedLogs,
+    pagination: { total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / parseInt(limit)) || 1 },
   });
 };
 

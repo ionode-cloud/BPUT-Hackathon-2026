@@ -10,6 +10,14 @@ import { useAuth } from '../context/AuthContext';
 
 const COLORS = { Environmental: '#176B45', Social: '#3B5BDB', Governance: '#E8A23A' };
 const STATUS_COLORS = ['#176B45', '#3B5BDB', '#E8A23A', '#D9534F', '#168C83', '#7C3AED'];
+const WORKFLOW_COLORS = {
+  Approved: '#176B45',
+  Validated: '#0EA5E9',
+  'Under Review': '#8B5CF6',
+  Submitted: '#3B5BDB',
+  'Correction Required': '#E8A23A',
+  Draft: '#9DADA6',
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,7 +63,11 @@ const Dashboard = () => {
       ).map(([name, value]) => ({ name, value }))
     : [];
 
-  const statusChartData = analytics?.statusBreakdown?.map(s => ({ name: s._id, value: s.count })) || [];
+  const statusChartData = (analytics?.statusBreakdown && analytics.statusBreakdown.length > 0)
+    ? analytics.statusBreakdown.map(s => ({ name: s._id || 'Unknown', value: s.count || s.value || 0 }))
+    : stats?.byStatus
+    ? Object.entries(stats.byStatus).map(([name, value]) => ({ name, value }))
+    : [];
 
   const orgChartData = (analytics?.orgBreakdown || []).slice(0, 6).map(o => ({
     name: o.orgName?.length > 14 ? o.orgName.slice(0, 14) + '…' : o.orgName || 'N/A',
@@ -179,23 +191,25 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Status Breakdown */}
+        {/* Workflow Status */}
         <div className="chart-card">
-          <div className="chart-title">Status Distribution</div>
+          <div className="chart-title">Workflow Status</div>
           <div className="chart-subtitle">Current workflow status</div>
           {statusChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={statusChartData} cx="50%" cy="50%" outerRadius={75} dataKey="value" nameKey="name">
-                  {statusChartData.map((_, i) => <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />)}
+                <Pie data={statusChartData} cx="50%" cy="50%" outerRadius={75} dataKey="value" nameKey="name" paddingAngle={statusChartData.length > 1 ? 2 : 0}>
+                  {statusChartData.map((entry, i) => (
+                    <Cell key={i} fill={WORKFLOW_COLORS[entry.name] || STATUS_COLORS[i % STATUS_COLORS.length]} />
+                  ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v, n) => [`${v} records`, n]} />
                 <Legend iconSize={8} formatter={v => <span style={{ fontSize: '0.7rem' }}>{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              No data for selected period
+              No workflow records for selected period
             </div>
           )}
         </div>

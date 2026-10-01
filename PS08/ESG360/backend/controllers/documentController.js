@@ -58,7 +58,15 @@ const uploadDocument = async (req, res) => {
     organization,
     uploadedBy: req.user._id,
     reportingPeriod: { year: reportingYear, quarter: reportingQuarter },
-    tags: tags ? JSON.parse(tags) : [],
+    tags: (() => {
+      if (!tags) return [];
+      try {
+        const parsed = typeof tags === 'string' ? JSON.parse(tags) : tags;
+        return Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch {
+        return typeof tags === 'string' ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
+      }
+    })(),
   });
 
   // If linked to an ESG record, add evidence reference

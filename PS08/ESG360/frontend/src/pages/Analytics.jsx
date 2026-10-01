@@ -5,6 +5,14 @@ import { LoadingState } from '../components/common/States';
 import api from '../services/api';
 
 const COLORS = ['#176B45', '#3B5BDB', '#E8A23A', '#D9534F', '#168C83', '#7C3AED', '#10B981'];
+const STATUS_COLORS = {
+  Approved: '#176B45',
+  Validated: '#0EA5E9',
+  'Under Review': '#8B5CF6',
+  Submitted: '#3B5BDB',
+  'Correction Required': '#E8A23A',
+  Draft: '#9DADA6',
+};
 
 const YEARS = [];
 for (let y = 2020; y <= new Date().getFullYear() + 1; y++) YEARS.push(y.toString());
@@ -44,6 +52,12 @@ const Analytics = () => {
       return row;
     });
   })();
+
+  // Status breakdown chart data
+  const statusChartData = (data?.statusBreakdown || []).map(s => ({
+    name: s._id || 'Unknown',
+    value: s.count || s.value || 0,
+  }));
 
   const handleConsolidate = async () => {
     if (!filters.year || !filters.organization) {
@@ -120,19 +134,28 @@ const Analytics = () => {
             <div className="chart-card">
               <div className="chart-title">Workflow Status</div>
               <div className="chart-subtitle">Records by current status</div>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={data?.statusBreakdown || []}
-                    cx="50%" cy="50%" outerRadius={80}
-                    dataKey="value" nameKey="_id"
-                  >
-                    {(data?.statusBreakdown || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} />
-                  <Legend iconSize={8} formatter={v => <span style={{ fontSize: '0.7rem' }}>{v}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
+              {statusChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={statusChartData}
+                      cx="50%" cy="50%" outerRadius={80}
+                      dataKey="value" nameKey="name"
+                      paddingAngle={statusChartData.length > 1 ? 2 : 0}
+                    >
+                      {statusChartData.map((entry, i) => (
+                        <Cell key={i} fill={STATUS_COLORS[entry.name] || COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [`${v} records`, n]} />
+                    <Legend iconSize={8} formatter={v => <span style={{ fontSize: '0.7rem' }}>{v}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No workflow records found
+                </div>
+              )}
             </div>
 
             {/* Top Organizations */}
