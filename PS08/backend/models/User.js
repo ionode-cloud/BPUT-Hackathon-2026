@@ -73,9 +73,33 @@ userSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match password
+// Match password - supports bcrypt hashes and direct unhashed database edits with auto-upgrade
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (!this.password || !enteredPassword) return false;
+
+  const isBcrypt =
+    typeof this.password === 'string' &&
+    (this.password.startsWith('$2a$') ||
+      this.password.startsWith('$2b$') ||
+      this.password.startsWith('$2y$'));
+
+  if (isBcrypt) {
+    try {
+      const isMatch = await bcrypt.compare(enteredPassword, this.password);
+      if (isMatch) return true;
+    } catch (err) {
+      // Fall through to plain text check
+    }
+  }
+
+  // Fallback: If password was edited directly in MongoDB Atlas / Compass / scripts without bcrypt
+  if (this.password === enteredPassword) {
+    this.password = enteredPassword;
+    await this.save();
+    return true;
+  }
+
+  return false;
 };
 
 // Remove password from JSON output

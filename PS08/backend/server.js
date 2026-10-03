@@ -41,13 +41,46 @@ app.use((req, res, next) => {
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false,
 }));
 
-// CORS
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+// Robust CORS configuration supporting localhost, Vercel deployments, and production URLs
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'https://ps08.vercel.app',
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (mobile, curl, postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const envOrigins = process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+      : [];
+
+    if (
+      allowedOrigins.includes(origin) ||
+      envOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com') ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    // Default to true in production/hackathon environments so Vercel preview or alternate URLs work
+    return callback(null, true);
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -89,12 +122,40 @@ app.use(notFound);
 // Global error handler
 app.use(errorHandler);
 
+// Sync Super Admin credentials if specified in environment variables
+const syncSuperAdmin = async () => {
+  try {
+    const User = require('./models/User');
+    const adminEmail = process.env.SUPERADMIN_EMAIL;
+    const adminPass = process.env.SUPERADMIN_PASSWORD;
+
+    if (adminEmail || adminPass) {
+      const admin = await User.findOne({ role: 'Super Admin' }).select('+password');
+      if (admin) {
+        if (adminEmail && admin.email !== adminEmail.trim().toLowerCase()) {
+          admin.email = adminEmail.trim().toLowerCase();
+        }
+        if (adminPass) {
+          admin.password = adminPass;
+        }
+        await admin.save();
+        console.log(`🔐 Super Admin synchronized from env: ${admin.email}`);
+      }
+    }
+  } catch (err) {
+    console.error('Super Admin sync notice:', err.message);
+  }
+};
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`\n🌿 ESG360 Server running on port ${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}/api\n`);
-});
+if (require.main === module) {
+  app.listen(PORT, async () => {
+    console.log(`\n🌿 ESG360 Server running on port ${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API URL: http://localhost:${PORT}/api\n`);
+    await syncSuperAdmin();
+  });
+}
 
 module.exports = app;

@@ -54,7 +54,22 @@ const login = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email and password are required' });
   }
 
-  const user = await User.findOne({ email }).select('+password').populate('organization');
+  const rawInput = String(email).trim();
+  const lowerInput = rawInput.toLowerCase();
+
+  // Support lookup by exact email, case-insensitive email, name, or role alias
+  const queryConditions = [
+    { email: lowerInput },
+    { email: rawInput },
+    { name: new RegExp(`^${rawInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+  ];
+
+  // If user typed shorthand ID: 'admin', 'superadmin', 'super admin', 'super_admin'
+  if (['admin', 'superadmin', 'super admin', 'super_admin'].includes(lowerInput)) {
+    queryConditions.push({ role: 'Super Admin' });
+  }
+
+  const user = await User.findOne({ $or: queryConditions }).select('+password').populate('organization');
   if (!user) {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
@@ -70,7 +85,7 @@ const login = async (req, res) => {
       action: 'LOGIN',
       entity: 'User',
       entityId: user._id,
-      description: `Failed login attempt for ${email}`,
+      description: `Failed login attempt for ${rawInput}`,
       status: 'Failure',
       errorMessage: 'Invalid password',
     });
@@ -89,7 +104,7 @@ const login = async (req, res) => {
     entity: 'User',
     entityId: user._id,
     organization: user.organization,
-    description: `User logged in: ${email}`,
+    description: `User logged in: ${user.email}`,
     status: 'Success',
   });
 
@@ -212,4 +227,42 @@ const updateUser = async (req, res) => {
   res.status(200).json({ success: true, message: 'User updated', data: updated });
 };
 
-module.exports = { register, login, getProfile, updateProfile, getUsers, updateUser };
+// @desc    Change user password
+// @route   PUT /api/auth/change-password
+// @access  Private
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+  }
+
+  const user = await User.findById(req.user._id).select('+password');
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  // Verify current password if provided
+  if (currentPassword) {
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+    }
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  await createAuditLog({
+    user,
+    action: 'USER_UPDATE',
+    entity: 'User',
+    entityId: user._id,
+    description: `Password updated for user: ${user.email}`,
+    status: 'Success',
+  });
+
+  res.status(200).json({ success: true, message: 'Password updated successfully' });
+};
+
+module.exports = { register, login, getProfile, updateProfile, getUsers, updateUser, changePassword };

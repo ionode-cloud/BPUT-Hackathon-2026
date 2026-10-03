@@ -125,7 +125,15 @@ const Landing = () => {
       setLoginModalOpen(false);
       navigate('/dashboard');
     } catch (err) {
-      setLoginError(err.response?.data?.message || 'Invalid email or password. Please try again.');
+      if (!err.response) {
+        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+          setLoginError('Backend request timed out. The server on Render is likely spinning up from sleep; please try again in a few seconds.');
+        } else {
+          setLoginError('Unable to connect to backend server. If using Render free-tier, the server may take 30-50s to wake up. Please retry.');
+        }
+      } else {
+        setLoginError(err.response?.data?.message || 'Invalid email or password. Please try again.');
+      }
     } finally {
       setLoginLoading(false);
     }
