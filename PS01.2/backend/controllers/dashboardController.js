@@ -1,5 +1,6 @@
 const SensorReading = require('../models/SensorReading');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { computeActionDevice } = require('../services/actionDeviceService');
 
 // Exact threshold limits from user specification
 const THRESHOLDS = {
@@ -14,6 +15,7 @@ const THRESHOLDS = {
   humidity:    { safeMin: 30, safeMax: 50, moderateMin: 20, moderateMax: 60, dangerousMin: 70, dangerousMaxLow: 20 },
   voc:         { safeMax: 200,  moderateMax: 500,  dangerousMin: 501 },
   nh3:         { safeMax: 25,   moderateMax: 50,   dangerousMin: 50.1 },
+  smoke:       { safeMax: 200,  moderateMax: 500,  dangerousMin: 501 },
 };
 
 const computeStatus = (sensorKey, val) => {
@@ -59,12 +61,17 @@ exports.getSummary = asyncHandler(async (req, res) => {
   }
 
   let overallAirQuality = 'safe';
+  let actiondevice = true;
   if (latestReading) {
-    const statuses = ['co', 'co2', 'no2', 'so2', 'o3', 'pm25', 'pm10', 'temperature', 'humidity', 'voc', 'nh3'].map(k =>
+    const statuses = ['co', 'co2', 'no2', 'so2', 'o3', 'pm25', 'pm10', 'temperature', 'humidity', 'voc', 'nh3', 'smoke'].map(k =>
       computeStatus(k, latestReading[k]?.value)
     );
     if (statuses.includes('dangerous')) overallAirQuality = 'dangerous';
     else if (statuses.includes('moderate')) overallAirQuality = 'moderate';
+
+    actiondevice = (latestReading.actiondevice !== undefined && latestReading.actiondevice !== null)
+      ? latestReading.actiondevice
+      : computeActionDevice(latestReading);
   }
 
   res.json({
@@ -75,6 +82,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
       avgTemperature: avgTemp,
       avgHumidity,
       overallAirQuality,
+      actiondevice,
       lastDataReceived: latestReading?.timestamp || null,
       latestReading: latestReading ? {
         _id: latestReading._id,
@@ -91,6 +99,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
         smoke: latestReading.smoke?.value ?? null,
         voc: latestReading.voc?.value ?? null,
         nh3: latestReading.nh3?.value ?? null,
+        actiondevice,
       } : null,
       updatedAt: new Date(),
     },
@@ -103,6 +112,10 @@ exports.getNodeStatus = asyncHandler(async (req, res) => {
   if (!latest) {
     return res.json({ success: true, data: [] });
   }
+  const nodeActionDevice = (latest.actiondevice !== undefined && latest.actiondevice !== null)
+    ? latest.actiondevice
+    : computeActionDevice(latest);
+
   res.json({
     success: true,
     data: [
@@ -111,8 +124,12 @@ exports.getNodeStatus = asyncHandler(async (req, res) => {
         nodeName: 'Primary Environmental Sensor Unit',
         status: 'online',
         airQualityStatus: 'safe',
+        actiondevice: nodeActionDevice,
         lastSeen: latest.timestamp || new Date(),
-        latestReading: { timestamp: latest.timestamp },
+        latestReading: {
+          timestamp: latest.timestamp,
+          actiondevice: nodeActionDevice,
+        },
       },
     ],
   });
@@ -136,12 +153,17 @@ exports.getAirQualitySummary = asyncHandler(async (req, res) => {
     };
   });
 
+  const nodeActionDevice = (latest.actiondevice !== undefined && latest.actiondevice !== null)
+    ? latest.actiondevice
+    : computeActionDevice(latest);
+
   res.json({
     success: true,
     data: [
       {
         nodeId: latest.nodeId || 'SENSOR-01',
         timestamp: latest.timestamp,
+        actiondevice: nodeActionDevice,
         sensors,
       },
     ],

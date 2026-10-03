@@ -161,10 +161,29 @@ Content-Type: application/json
     "so2": 12.0,
     "o3": 25.0,
     "voc": 42.0,
-    "smoke": 18.0
+    "nh3": 5.2,
+    "smoke": 18.0,
+    "actiondevice": true
   }
 }
 ```
+
+> ⚡ **Action Device Automatic Evaluation (`actiondevice`):**
+> Evaluates the 10 target air quality & safety sensors:
+> - `co2` (safe ≤ 1000 ppm)
+> - `pm25` (safe ≤ 12 µg/m³)
+> - `pm10` (safe ≤ 54 µg/m³)
+> - `co` (safe ≤ 4.4 ppm)
+> - `no2` (safe ≤ 53 ppb)
+> - `so2` (safe ≤ 35 ppb)
+> - `o3` (safe ≤ 54 ppb)
+> - `voc` (safe ≤ 200 ppb)
+> - `nh3` (safe ≤ 25 ppm)
+> - `smoke` (safe ≤ 200 raw)
+> 
+> - **`true` (`True`):** When **ALL** 10 monitored sensors are in the normal (safe) range.
+> - **`false` (`False`):** When **ANY** of these 10 sensors exceed the normal threshold (show high).
+
 
 ---
 
@@ -539,8 +558,15 @@ The dashboard automatically classifies incoming values into **Safe / Good**, **M
 
 ## 6. Dashboard Overview Metric Cards
 
-The Overview page (`/overview`) features **13 Real-Time Metric Cards** dynamically scoped to the designated **Master Node**:
+The Overview page (`/overview`) features **Top KPI Cards** and **Sensor Detail Cards** dynamically scoped to the designated **Master Node**:
 
+### Top KPI Stat Cards:
+1. 📊 **Total Telemetry:** Real-time total records count received across the system.
+2. ⚠️ **Active Alerts:** Total count of active threshold breaches across monitored stations.
+3. ⚡ **Action Device:** Displays `True` / `False`. Shows `True` when all 10 monitored sensors (`co2`, `pm25`, `pm10`, `co`, `no2`, `so2`, `o3`, `voc`, `nh3`, `smoke`) are normal; displays `False` if any of these sensors show high levels.
+4. 🛰️ **Stream Engine:** Live WebSocket streaming status (`ONLINE` / `OFFLINE`).
+
+### Master Station Atmosphere Cards:
 1. 🍃 **Air Quality Status:** Overall assessment badge (`Safe / Good`, `Moderate / Average`, or `Dangerous / Unhealthy`).
 2. 🌡️ **Temperature:** Ambient temperature in `°C`.
 3. 💧 **Humidity:** Relative humidity in `% RH`.
@@ -553,4 +579,3 @@ The Overview page (`/overview`) features **13 Real-Time Metric Cards** dynamical
 10. ✨ **VOC (Volatile Organic):** Organic compounds measurement in `ppb`.
 11. ⚗️ **NH₃ (Ammonia):** Ammonia gas concentration in `ppm`.
 12. 🌫️ **Smoke Level:** Optical detector reading in `raw`.
-13. 📊 **Total Sensor Records:** Total stored readings count in the database.

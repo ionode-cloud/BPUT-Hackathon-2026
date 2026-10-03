@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Node = require('../models/Node');
 const SensorReading = require('../models/SensorReading');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { computeActionDevice } = require('../services/actionDeviceService');
 
 /**
  * Helper: parse numeric sensor value and pair with unit
@@ -35,8 +36,10 @@ const flatten = (doc) => {
   };
   sensors.forEach((s) => {
     flat[s] = doc[s]?.value ?? null;
-    flat[`${s}Unit`] = doc[s]?.unit ?? null;
   });
+  flat.actiondevice = (doc.actiondevice !== undefined && doc.actiondevice !== null)
+    ? doc.actiondevice
+    : computeActionDevice(flat);
   flat.createdAt = doc.createdAt;
   flat.updatedAt = doc.updatedAt;
   return flat;
@@ -226,10 +229,12 @@ exports.sendNodeSensorData = asyncHandler(async (req, res) => {
   } = req.body;
 
   // 1. Create the sensor reading
+  const actiondevice = computeActionDevice(req.body);
   const reading = await SensorReading.create({
     nodeId:      cleanId,
     timestamp:   timestamp ? new Date(timestamp) : new Date(),
     dataSource:  dataSource || 'iot',
+    actiondevice,
     co:          buildSensor(co,          'ppm'),
     co2:         buildSensor(co2,         'ppm'),
     o3:          buildSensor(o3,          'ppb'),
@@ -357,10 +362,12 @@ exports.createNode = asyncHandler(async (req, res) => {
   );
 
   if (hasSensorKeys) {
+    const actiondevice = computeActionDevice(sensorData);
     const reading = await SensorReading.create({
       nodeId: cleanId,
       timestamp: new Date(),
       dataSource: 'iot',
+      actiondevice,
       co:          buildSensor(sensorData.co,          'ppm'),
       co2:         buildSensor(sensorData.co2,         'ppm'),
       o3:          buildSensor(sensorData.o3,          'ppb'),
@@ -471,15 +478,18 @@ exports.updateNodeById = asyncHandler(async (req, res) => {
           latestDoc[key] = buildSensor(req.body[key], SENSOR_DEFAULT_UNITS[key]);
         }
       });
+      latestDoc.actiondevice = computeActionDevice(latestDoc);
       latestDoc.updatedAt = new Date();
       await latestDoc.save();
       updatedReading = flatten(latestDoc.toObject());
     } else {
       // If no reading existed yet, create the first reading for this existing node
+      const actiondevice = computeActionDevice(req.body);
       const newDoc = await SensorReading.create({
         nodeId: canonicalId,
         timestamp: new Date(),
         dataSource: req.body.dataSource || 'iot',
+        actiondevice,
         co:          buildSensor(req.body.co,          'ppm'),
         co2:         buildSensor(req.body.co2,         'ppm'),
         o3:          buildSensor(req.body.o3,          'ppb'),
@@ -698,6 +708,7 @@ exports.updateNodeReading = asyncHandler(async (req, res) => {
     }
   });
 
+  reading.actiondevice = computeActionDevice(reading);
   reading.updatedAt = new Date();
   await reading.save();
 

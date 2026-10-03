@@ -38,6 +38,7 @@ const generateReadings = (hours = 24, intervalMinutes = 15) => {
       voc:         { value: rand(30, 95, 0), unit: 'ppb' },
       nh3:         { value: rand(1.5, 14.0, 1), unit: 'ppm' },
       smoke:       { value: rand(15, 60, 0), unit: 'raw' },
+      actiondevice: true,
     });
   }
 

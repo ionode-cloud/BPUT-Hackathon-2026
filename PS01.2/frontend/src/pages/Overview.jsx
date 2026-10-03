@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  RefreshCw, Radio, ArrowRight, AlertTriangle, Activity, Cpu
+  RefreshCw, Radio, ArrowRight, AlertTriangle, Activity, Cpu, Power
 } from 'lucide-react';
 
 import {
@@ -16,7 +16,7 @@ import SensorCard from '../components/SensorCard';
 import { useAlerts } from '../context/AlertContext';
 import {
   SENSOR_SPEC_TABLE, getStatus, STATUS_COLORS, STATUS_LABELS,
-  timeAgo
+  timeAgo, getActionDeviceDetails
 } from '../utils/thresholds';
 
 const SENSOR_ORDER = [
@@ -46,6 +46,8 @@ export default function Overview() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
   const [justUpdated, setJustUpdated] = useState(false);
+
+  const actionDevice = getActionDeviceDetails(latestReading);
 
   const fetchData = useCallback(async () => {
     try {
@@ -318,11 +320,11 @@ export default function Overview() {
           sub={activeAlertsCount > 0 ? `${activeAlertsCount} active breaches` : 'All stations within safe limits'}
         />
         <ProtrudingStatCard
-          icon={Radio}
-          label="ONLINE STATIONS"
-          value={`${summary?.activeNodes ?? 1} / ${summary?.totalNodes ?? 1}`}
-          color="amber"
-          sub="Connected hardware nodes"
+          icon={Power}
+          label="ACTION DEVICE"
+          value={actionDevice.label}
+          color={actionDevice.status ? 'green' : 'pink'}
+          sub={actionDevice.subText}
         />
         <ProtrudingStatCard
           icon={Cpu}

@@ -71,6 +71,12 @@ const sensorReadingSchema = new mongoose.Schema(
       value: { type: Number, default: null }, // relative level 0-1023 — MQ2
       unit: { type: String, default: 'raw' },
     },
+    // ── Action Device ──────────────────────────
+    actiondevice: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

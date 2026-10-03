@@ -298,3 +298,88 @@ export const timeAgo = (ts) => {
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 };
+
+/**
+ * ── Action Device Utilities ──────────────────────────────────────────────────
+ * Monitored sensors: co2, pm25, pm10, co, no2, so2, o3, voc, nh3, smoke
+ * When all 10 are normal (<= safeMax): True
+ * If any of these show high (> safeMax): False
+ */
+export const ACTION_DEVICE_SENSOR_KEYS = [
+  'co2', 'pm25', 'pm10', 'co', 'no2', 'so2', 'o3', 'voc', 'nh3', 'smoke'
+];
+
+export const computeActionDevice = (reading) => {
+  if (!reading) return true;
+
+  for (const key of ACTION_DEVICE_SENSOR_KEYS) {
+    const rawVal = reading[key];
+    const val = (rawVal !== null && typeof rawVal === 'object' && rawVal.value !== undefined)
+      ? rawVal.value
+      : rawVal;
+
+    if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
+      const t = DEFAULT_THRESHOLDS[key];
+      if (t && Number(val) > t.safeMax) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
+export const getActionDeviceDetails = (reading) => {
+  if (!reading) {
+    return {
+      status: true,
+      highSensors: [],
+      label: 'True',
+      subText: 'All monitored sensors normal',
+    };
+  }
+
+  const highSensors = [];
+  for (const key of ACTION_DEVICE_SENSOR_KEYS) {
+    const rawVal = reading[key];
+    const val = (rawVal !== null && typeof rawVal === 'object' && rawVal.value !== undefined)
+      ? rawVal.value
+      : rawVal;
+
+    if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
+      const t = DEFAULT_THRESHOLDS[key];
+      if (t && Number(val) > t.safeMax) {
+        highSensors.push({
+          key,
+          name: t.name || key.toUpperCase(),
+          value: Number(val),
+          safeMax: t.safeMax,
+          unit: t.unit,
+        });
+      }
+    }
+  }
+
+  let status;
+  if (typeof reading.actiondevice === 'boolean') {
+    status = reading.actiondevice;
+  } else if (typeof reading.actionDevice === 'boolean') {
+    status = reading.actionDevice;
+  } else {
+    status = highSensors.length === 0;
+  }
+
+  const subText = status
+    ? 'All 10 monitored sensors normal'
+    : highSensors.length > 0
+      ? `High: ${highSensors.slice(0, 2).map((s) => `${s.key.toUpperCase()} (${s.value})`).join(', ')}${highSensors.length > 2 ? ` +${highSensors.length - 2} more` : ''}`
+      : 'Sensor threshold exceeded';
+
+  return {
+    status,
+    highSensors,
+    label: status ? 'True' : 'False',
+    subText,
+  };
+};
+

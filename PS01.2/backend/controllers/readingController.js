@@ -1,5 +1,6 @@
 const SensorReading = require('../models/SensorReading');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { computeActionDevice } = require('../services/actionDeviceService');
 
 // Flatten a reading document to a simpler structure for the frontend
 const flattenReading = (doc) => {
@@ -13,8 +14,10 @@ const flattenReading = (doc) => {
   const sensors = ['co', 'co2', 'o3', 'no2', 'voc', 'so2', 'pm25', 'pm10', 'temperature', 'humidity', 'nh3', 'smoke'];
   sensors.forEach((s) => {
     flat[s] = doc[s]?.value ?? null;
-    flat[`${s}Unit`] = doc[s]?.unit ?? null;
   });
+  flat.actiondevice = (doc.actiondevice !== undefined && doc.actiondevice !== null)
+    ? doc.actiondevice
+    : computeActionDevice(flat);
   flat.createdAt = doc.createdAt;
   flat.updatedAt = doc.updatedAt;
   return flat;
@@ -137,10 +140,12 @@ exports.createReading = asyncHandler(async (req, res) => {
     nh3,
   } = req.body;
 
+  const actiondevice = computeActionDevice(req.body);
   const reading = await SensorReading.create({
     nodeId:      (nodeId || 'NODE-01').toString().trim().toUpperCase(),
     timestamp:   timestamp ? new Date(timestamp) : new Date(),
     dataSource:  dataSource || 'iot',
+    actiondevice,
     co:          buildSensor(co,          'ppm'),
     co2:         buildSensor(co2,         'ppm'),
     o3:          buildSensor(o3,          'ppb'),
@@ -195,6 +200,7 @@ exports.updateReading = asyncHandler(async (req, res) => {
     }
   });
 
+  reading.actiondevice = computeActionDevice(reading);
   reading.updatedAt = new Date();
   await reading.save();
 
