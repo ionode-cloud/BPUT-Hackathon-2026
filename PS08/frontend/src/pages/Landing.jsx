@@ -417,24 +417,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ─── 7. FINAL CTA SECTION (ORANGE BANNER) ─── */}
-      <section className="lp-cta-section" id="cta">
-        <div className="lp-container container-fluid">
-          <div className="lp-cta-banner">
-            <div>
-              <h3 className="lp-cta-title">Ready to get started?</h3>
-              <p className="lp-cta-subtitle">
-                Launch the portal or sign in to begin collecting, validating, and filing ESG data.
-              </p>
-            </div>
-            <button onClick={() => openLoginModal()} className="lp-cta-action-btn">
-              Contact Us
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 8. FOOTER ─── */}
+      {/* ─── 7. FOOTER ─── */}
       <footer className="lp-footer" id="footer">
         <div className="lp-container container-fluid">
           <div className="lp-footer-grid">
