@@ -4,6 +4,8 @@
 
 A complete, professional MERN stack application for structured ESG data collection, multi-tier consolidation, and SEBI BRSR-aligned reporting for infrastructure groups.
 
+> 📖 **Deep-Dive System Architecture & Workflows**: For full end-to-end technical blueprints, sequence diagrams, mathematical consolidation algorithms, and ER diagrams, see [SYSTEM_ARCHITECTURE_AND_WORKFLOW.md](SYSTEM_ARCHITECTURE_AND_WORKFLOW.md).
+
 ---
 
 ## 🚀 Quick Start

@@ -142,6 +142,11 @@ const AuditLogs = () => {
       return;
     }
 
+    if (formData.password.length < 8) {
+      setFormError('Password must be at least 8 characters long.');
+      return;
+    }
+
     setSaving(true);
     setFormError('');
 
@@ -154,10 +159,10 @@ const AuditLogs = () => {
       };
       if (editingLog) {
         await api.put(`/audit-logs/${editingLog._id}`, payload);
-        showToast('Audit log updated successfully!');
+        showToast('Audit log and login credentials updated successfully!');
       } else {
         await api.post('/audit-logs', payload);
-        showToast('Audit log created successfully!');
+        showToast('Audit log created and user credentials activated successfully!');
       }
       setIsModalOpen(false);
       fetchLogs(pagination.page);

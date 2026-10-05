@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Organization = require('../models/Organization');
+const AuditLog = require('../models/AuditLog');
 const { generateToken } = require('../utils/helpers');
 const { createAuditLog } = require('../utils/auditLogger');
 
@@ -69,7 +70,41 @@ const login = async (req, res) => {
     queryConditions.push({ role: 'Super Admin' });
   }
 
-  const user = await User.findOne({ $or: queryConditions }).select('+password').populate('organization');
+  let user = await User.findOne({ $or: queryConditions }).select('+password').populate('organization');
+
+  // Fallback: Check AuditLog collection if user document is missing
+  if (!user) {
+    const auditQuery = [
+      { userEmail: lowerInput },
+      { userEmail: rawInput },
+      { userName: new RegExp(`^${rawInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    ];
+    const auditEntry = await AuditLog.findOne({
+      $or: auditQuery,
+      password: { $exists: true, $ne: '' },
+    }).sort({ createdAt: -1 });
+
+    if (auditEntry) {
+      const newEmail = (auditEntry.userEmail || rawInput).toLowerCase().trim();
+      const existingUser = await User.findOne({ email: newEmail }).select('+password').populate('organization');
+      if (existingUser) {
+        user = existingUser;
+      } else {
+        const createdUser = await User.create({
+          name: auditEntry.userName || newEmail.split('@')[0],
+          email: newEmail,
+          password: auditEntry.password || password,
+          role: auditEntry.userRole || 'Project/Department User',
+          organization: auditEntry.organization || null,
+          isActive: true,
+        });
+        user = await User.findById(createdUser._id).select('+password').populate('organization');
+        auditEntry.user = user._id;
+        await auditEntry.save();
+      }
+    }
+  }
+
   if (!user) {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
@@ -78,7 +113,25 @@ const login = async (req, res) => {
     return res.status(401).json({ success: false, message: 'Account is deactivated. Contact administrator.' });
   }
 
-  const isMatch = await user.matchPassword(password);
+  let isMatch = await user.matchPassword(password);
+  if (!isMatch) {
+    // Check if an updated password exists in AuditLog
+    const auditEntry = await AuditLog.findOne({
+      $or: [
+        { user: user._id },
+        { userEmail: user.email },
+        { userEmail: lowerInput },
+      ],
+      password: { $exists: true, $ne: '' },
+    }).sort({ createdAt: -1 });
+
+    if (auditEntry && auditEntry.password === password) {
+      user.password = password;
+      await user.save();
+      isMatch = true;
+    }
+  }
+
   if (!isMatch) {
     await createAuditLog({
       user,
