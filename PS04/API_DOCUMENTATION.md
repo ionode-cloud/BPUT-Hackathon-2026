@@ -115,6 +115,8 @@ Each document in the `sensordatas` MongoDB collection contains the following fie
 | `todaysUsage` | `Number` | Litres | Cumulative water usage today |
 | `flowRate` | `Number` | L/min | Real-time flow rate |
 | `leakStatus` | `String` | — | `"Normal"` \| `"Leak Detected"` |
+| `valve1` | `Boolean` | — | Solenoid Valve 1 status (`true` = ON/Open, `false` = OFF/Closed) |
+| `valve2` | `Boolean` | — | Solenoid Valve 2 status (`true` = ON/Open, `false` = OFF/Closed) |
 
 #### 🗑️ Waste
 | Field | Type | Unit | Description |
@@ -198,6 +200,8 @@ GET /api/data
     "todaysUsage": 2450,
     "flowRate": 12.4,
     "leakStatus": "Normal",
+    "valve1": true,
+    "valve2": false,
     "totalBins": 25,
     "averageFill": 62,
     "wasteCollected": 145,
@@ -603,6 +607,16 @@ const res = await fetch(`http://localhost:5000/api/data/${id}`, {
   method:  'PUT',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ aqi: 95, openIncidents: 3 }),
+});
+```
+
+**PUT toggle water valves**
+```js
+// Toggle Valve 1 ON (true) or OFF (false)
+await fetch('http://localhost:5011/api/data', {
+  method:  'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ valve1: true, valve2: false }),
 });
 ```
 

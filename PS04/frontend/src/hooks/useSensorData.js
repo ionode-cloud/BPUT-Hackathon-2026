@@ -163,19 +163,43 @@ export function useSensorData() {
 
   // Quick API sender helper to post real data to /api/data
   const sendData = useCallback(async (payload) => {
+    const res = await apiFetch('', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    await fetchData();
+    return json;
+  }, [fetchData]);
+
+  // Live IoT telemetry updater (uses PUT or fallback to POST)
+  const updateData = useCallback(async (payload) => {
+    let res;
     try {
-      const res = await apiFetch('', {
+      res = await apiFetch('', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      res = await apiFetch('', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      await fetchData();
-      return json;
-    } catch (err) {
-      throw err;
     }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json?.data) {
+      setData(prev => ({
+        ...(prev || {}),
+        ...json.data,
+      }));
+    }
+    fetchData();
+    return json;
   }, [fetchData]);
 
   useEffect(() => {
@@ -195,5 +219,6 @@ export function useSensorData() {
     clearSeedData,
     clearAllData,
     sendData,
+    updateData,
   };
 }

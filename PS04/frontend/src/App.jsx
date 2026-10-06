@@ -75,6 +75,7 @@ export default function App() {
     error,
     isEmpty,
     refetch,
+    updateData,
   } = useSensorData();
 
   const PageComponent = PAGE_MAP[page] || Overview;
@@ -165,7 +166,7 @@ export default function App() {
 
         {/* Active Page — Always rendered; displays '-' if API has no data */}
         {(!loading || data || isEmpty) && (
-          <PageComponent data={data || {}} history={history || []} />
+          <PageComponent data={data || {}} history={history || []} onUpdate={updateData} />
         )}
       </main>
     </div>

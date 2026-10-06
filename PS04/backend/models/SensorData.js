@@ -28,10 +28,12 @@ const sensorDataSchema = new mongoose.Schema(
     estimatedCost:    { type: Number, default: null }, // ₹
 
     // ── Water ─────────────────────────────────────────────────────────────
-    tankLevel:        { type: Number, default: null }, // %
-    todaysUsage:      { type: Number, default: null }, // Litres
-    flowRate:         { type: Number, default: null }, // L/min
-    leakStatus:       { type: String, default: null }, // "Normal" | "Leak Detected"
+    tankLevel:        { type: Number,  default: null }, // %
+    todaysUsage:      { type: Number,  default: null }, // Litres
+    flowRate:         { type: Number,  default: null }, // L/min
+    leakStatus:       { type: String,  default: null }, // "Normal" | "Leak Detected"
+    valve1:           { type: Boolean, default: false }, // Valve 1 status (true=ON, false=OFF)
+    valve2:           { type: Boolean, default: false }, // Valve 2 status (true=ON, false=OFF)
 
     // ── Waste ─────────────────────────────────────────────────────────────
     totalBins:        { type: Number, default: null },

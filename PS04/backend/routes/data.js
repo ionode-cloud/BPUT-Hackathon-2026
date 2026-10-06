@@ -3,6 +3,25 @@ const mongoose   = require('mongoose');
 const router     = express.Router();
 const SensorData = require('../models/SensorData');
 
+function normalizeValveFields(body) {
+  if (!body || typeof body !== 'object') return body;
+  if (body.Valve1 !== undefined) {
+    if (body.valve1 === undefined) body.valve1 = body.Valve1;
+    delete body.Valve1;
+  }
+  if (body.valve1 !== undefined) {
+    body.valve1 = body.valve1 === true || body.valve1 === 'true' || body.valve1 === 1 || body.valve1 === '1';
+  }
+  if (body.Valve2 !== undefined) {
+    if (body.valve2 === undefined) body.valve2 = body.Valve2;
+    delete body.Valve2;
+  }
+  if (body.valve2 !== undefined) {
+    body.valve2 = body.valve2 === true || body.valve2 === 'true' || body.valve2 === 1 || body.valve2 === '1';
+  }
+  return body;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    GET  /api/data          → latest record (default) OR all records with ?all=true
    GET  /api/data?all=true → array of all records, newest first
@@ -17,8 +36,19 @@ router.get('/', async (req, res) => {
       const lim    = parseInt(limit) || 0;           // 0 = no limit in mongoose
       const records = await SensorData.find()
         .sort({ timestamp: -1 })
-        .limit(lim);
-      return res.json({ success: true, count: records.length, data: records });
+        .limit(lim)
+        .lean();
+      const mapped = records.map(r => {
+        const v1 = r.valve1 !== undefined ? r.valve1 : (r.Valve1 !== undefined ? r.Valve1 : false);
+        const v2 = r.valve2 !== undefined ? r.valve2 : (r.Valve2 !== undefined ? r.Valve2 : false);
+        const { Valve1, Valve2, ...rest } = r;
+        return {
+          ...rest,
+          valve1: Boolean(v1),
+          valve2: Boolean(v2),
+        };
+      });
+      return res.json({ success: true, count: mapped.length, data: mapped });
     }
 
     // Default: return consolidated facility snapshot with most recent non-null telemetry
@@ -43,6 +73,14 @@ router.get('/', async (req, res) => {
     consolidated.createdAt = records[0].createdAt;
     consolidated.updatedAt = records[0].updatedAt;
 
+    // Ensure valve1 and valve2 default to boolean false if not defined in older records
+    const v1 = consolidated.valve1 !== undefined ? consolidated.valve1 : (consolidated.Valve1 !== undefined ? consolidated.Valve1 : false);
+    const v2 = consolidated.valve2 !== undefined ? consolidated.valve2 : (consolidated.Valve2 !== undefined ? consolidated.Valve2 : false);
+    consolidated.valve1 = Boolean(v1);
+    consolidated.valve2 = Boolean(v2);
+    delete consolidated.Valve1;
+    delete consolidated.Valve2;
+
     res.json({ success: true, data: consolidated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -54,10 +92,16 @@ router.get('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ success: false, message: 'Invalid record ID format.' });
     }
-    const record = await SensorData.findById(req.params.id);
+    const record = await SensorData.findById(req.params.id).lean();
     if (!record) {
       return res.status(404).json({ success: false, message: 'Record not found.' });
     }
+    const v1 = record.valve1 !== undefined ? record.valve1 : (record.Valve1 !== undefined ? record.Valve1 : false);
+    const v2 = record.valve2 !== undefined ? record.valve2 : (record.Valve2 !== undefined ? record.Valve2 : false);
+    record.valve1 = Boolean(v1);
+    record.valve2 = Boolean(v2);
+    delete record.Valve1;
+    delete record.Valve2;
     res.json({ success: true, data: record });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -74,6 +118,7 @@ router.post('/', async (req, res) => {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) {}
     }
+    normalizeValveFields(body);
 
     // If incoming body is partial, inherit previous known readings so different sensor channels don't blank each other out
     const latest = await SensorData.findOne().sort({ timestamp: -1 }).lean();
@@ -85,7 +130,10 @@ router.post('/', async (req, res) => {
     // Always assign fresh current timestamp so new Postman requests become the latest active snapshot
     payload.timestamp = new Date();
     const record = await SensorData.create(payload);
-    res.status(201).json({ success: true, message: 'Sensor data created.', data: record });
+    const postData = record.toObject ? record.toObject() : { ...record };
+    delete postData.Valve1;
+    delete postData.Valve2;
+    res.status(201).json({ success: true, message: 'Sensor data created.', data: postData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -101,12 +149,16 @@ router.put('/', async (req, res) => {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) {}
     }
+    normalizeValveFields(body);
 
     // Find the latest record to update, or create one if database is empty
     let record = await SensorData.findOne().sort({ timestamp: -1 });
     if (!record) {
       record = await SensorData.create({ ...body, timestamp: new Date() });
-      return res.status(201).json({ success: true, message: 'Sensor snapshot created.', data: record });
+      const createdData = record.toObject ? record.toObject() : { ...record };
+      delete createdData.Valve1;
+      delete createdData.Valve2;
+      return res.status(201).json({ success: true, message: 'Sensor snapshot created.', data: createdData });
     }
 
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
@@ -116,7 +168,10 @@ router.put('/', async (req, res) => {
       { $set: updateData },
       { new: true, runValidators: true }
     );
-    res.json({ success: true, message: 'Sensor data updated.', data: updated });
+    const putData = updated.toObject ? updated.toObject() : { ...updated };
+    delete putData.Valve1;
+    delete putData.Valve2;
+    res.json({ success: true, message: 'Sensor data updated.', data: putData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -135,6 +190,7 @@ router.put('/:id', async (req, res) => {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) {}
     }
+    normalizeValveFields(body);
 
     const updateData = { ...body };
     if (!body.timestamp) {
@@ -149,7 +205,10 @@ router.put('/:id', async (req, res) => {
     if (!record) {
       return res.status(404).json({ success: false, message: 'Record not found.' });
     }
-    res.json({ success: true, message: 'Sensor data updated.', data: record });
+    const resData = record.toObject ? record.toObject() : { ...record };
+    delete resData.Valve1;
+    delete resData.Valve2;
+    res.json({ success: true, message: 'Sensor data updated.', data: resData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

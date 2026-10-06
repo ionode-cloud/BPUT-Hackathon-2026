@@ -1,14 +1,91 @@
-import { MdWaterDrop, MdSpeed, MdWarningAmber, MdWater } from 'react-icons/md';
+import { useState, useTransition } from 'react';
+import {
+  MdWaterDrop,
+  MdSpeed,
+  MdWarningAmber,
+  MdWater,
+  MdCheckCircle,
+  MdCancel,
+  MdPowerSettingsNew,
+} from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getWaterTrendData, getTankStorageData } from '../utils/chartHelpers';
 
-export default function Water({ data, history = [] }) {
+export default function Water({ data, history = [], onUpdate }) {
   const d = data || {};
   const trendData = getWaterTrendData(d, history);
   const tankData = getTankStorageData(d);
 
   const tankLevel = d.tankLevel ?? 0;
   const isLeaking = d.leakStatus && d.leakStatus !== 'Normal';
+
+  // Read current valve state directly from API telemetry
+  const apiValve1 = Boolean(d.valve1 ?? false);
+  const apiValve2 = Boolean(d.valve2 ?? false);
+
+  // Local optimistic state for instant UI response
+  const [localValve1, setLocalValve1] = useState(null);
+  const [localValve2, setLocalValve2] = useState(null);
+  const [isUpdating1, setIsUpdating1] = useState(false);
+  const [isUpdating2, setIsUpdating2] = useState(false);
+  const [, startTransition] = useTransition();
+
+  const valve1 = localValve1 !== null ? localValve1 : apiValve1;
+  const valve2 = localValve2 !== null ? localValve2 : apiValve2;
+
+  // Toggle or set Valve 1 state
+  const handleValve1 = async (targetState) => {
+    const nextVal = typeof targetState === 'boolean' ? targetState : !valve1;
+    setLocalValve1(nextVal);
+    setIsUpdating1(true);
+    try {
+      if (onUpdate) {
+        await onUpdate({ valve1: nextVal });
+      } else {
+        await fetch('http://localhost:5011/api/data', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ valve1: nextVal }),
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update Valve 1:', err);
+      // Revert on failure
+      setLocalValve1(apiValve1);
+    } finally {
+      setIsUpdating1(false);
+      startTransition(() => {
+        setLocalValve1(null);
+      });
+    }
+  };
+
+  // Toggle or set Valve 2 state
+  const handleValve2 = async (targetState) => {
+    const nextVal = typeof targetState === 'boolean' ? targetState : !valve2;
+    setLocalValve2(nextVal);
+    setIsUpdating2(true);
+    try {
+      if (onUpdate) {
+        await onUpdate({ valve2: nextVal });
+      } else {
+        await fetch('http://localhost:5011/api/data', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ valve2: nextVal }),
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update Valve 2:', err);
+      // Revert on failure
+      setLocalValve2(apiValve2);
+    } finally {
+      setIsUpdating2(false);
+      startTransition(() => {
+        setLocalValve2(null);
+      });
+    }
+  };
 
   return (
     <>
@@ -84,6 +161,134 @@ export default function Water({ data, history = [] }) {
         </div>
       </div>
 
+      {/* ════ Water Valve Actuator Controls (Valve 1 & Valve 2) ════ */}
+      <div className="card valve-panel">
+        <div className="valve-header-row">
+          <div className="valve-header-title">
+            <MdPowerSettingsNew size={22} color="var(--primary)" />
+            <span>Water Actuator & Valve Management</span>
+          </div>
+        </div>
+
+        <div className="valve-grid">
+          {/* ── Valve 1 Card ── */}
+          <div className={`valve-card ${valve1 ? 'valve-card--on' : 'valve-card--off'}`}>
+            <div className="valve-card-top">
+              <div className="valve-info">
+                <div className="valve-icon-box">
+                  <MdWater />
+                </div>
+                <div>
+                  <div className="valve-name">Valve 1</div>
+                  <div className="valve-sub">Main Supply Pipeline • Solenoid Valve #1</div>
+                </div>
+              </div>
+              <div className={`valve-status-pill ${valve1 ? 'on' : 'off'}`}>
+                {valve1 ? <MdCheckCircle size={14} /> : <MdCancel size={14} />}
+                <span>{valve1 ? 'ON' : 'OFF'}</span>
+              </div>
+            </div>
+
+            <div className="valve-actions-row">
+              {/* Explicit ON / OFF Buttons */}
+              <div className="valve-btn-group">
+                <button
+                  type="button"
+                  className={`valve-btn ${valve1 ? 'active-on' : ''}`}
+                  onClick={() => handleValve1(true)}
+                  disabled={isUpdating1}
+                  id="valve1-on-btn"
+                >
+                  <MdCheckCircle size={15} />
+                  <span>ON</span>
+                </button>
+                <button
+                  type="button"
+                  className={`valve-btn ${!valve1 ? 'active-off' : ''}`}
+                  onClick={() => handleValve1(false)}
+                  disabled={isUpdating1}
+                  id="valve1-off-btn"
+                >
+                  <MdCancel size={15} />
+                  <span>OFF</span>
+                </button>
+              </div>
+
+              {/* Master Slider Toggle */}
+              <button
+                type="button"
+                className={`valve-toggle-switch ${valve1 ? 'on' : ''}`}
+                onClick={() => handleValve1(!valve1)}
+                disabled={isUpdating1}
+                title={`Toggle Valve 1 ${valve1 ? 'OFF' : 'ON'}`}
+                aria-label="Toggle Valve 1"
+                id="valve1-toggle-switch"
+              >
+                <div className="valve-toggle-thumb" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── Valve 2 Card ── */}
+          <div className={`valve-card ${valve2 ? 'valve-card--on' : 'valve-card--off'}`}>
+            <div className="valve-card-top">
+              <div className="valve-info">
+                <div className="valve-icon-box">
+                  <MdWaterDrop />
+                </div>
+                <div>
+                  <div className="valve-name">Valve 2</div>
+                  <div className="valve-sub">Auxiliary Branch Pipeline • Solenoid Valve #2</div>
+                </div>
+              </div>
+              <div className={`valve-status-pill ${valve2 ? 'on' : 'off'}`}>
+                {valve2 ? <MdCheckCircle size={14} /> : <MdCancel size={14} />}
+                <span>{valve2 ? 'ON' : 'OFF'}</span>
+              </div>
+            </div>
+
+            <div className="valve-actions-row">
+              {/* Explicit ON / OFF Buttons */}
+              <div className="valve-btn-group">
+                <button
+                  type="button"
+                  className={`valve-btn ${valve2 ? 'active-on' : ''}`}
+                  onClick={() => handleValve2(true)}
+                  disabled={isUpdating2}
+                  id="valve2-on-btn"
+                >
+                  <MdCheckCircle size={15} />
+                  <span>ON</span>
+                </button>
+                <button
+                  type="button"
+                  className={`valve-btn ${!valve2 ? 'active-off' : ''}`}
+                  onClick={() => handleValve2(false)}
+                  disabled={isUpdating2}
+                  id="valve2-off-btn"
+                >
+                  <MdCancel size={15} />
+                  <span>OFF</span>
+                </button>
+              </div>
+
+              {/* Master Slider Toggle */}
+              <button
+                type="button"
+                className={`valve-toggle-switch ${valve2 ? 'on' : ''}`}
+                onClick={() => handleValve2(!valve2)}
+                disabled={isUpdating2}
+                title={`Toggle Valve 2 ${valve2 ? 'OFF' : 'ON'}`}
+                aria-label="Toggle Valve 2"
+                id="valve2-toggle-switch"
+              >
+                <div className="valve-toggle-thumb" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Dynamic Visualizations */}
       <div className="two">
         <div className="card">
@@ -146,6 +351,30 @@ export default function Water({ data, history = [] }) {
               </td>
               <td>{d.leakStatus != null ? (isLeaking ? 'Dispatch plumber to block valve #4' : 'Zero pressure loss') : '-'}</td>
             </tr>
+            <tr>
+              <td>Solenoid Valve 1</td>
+              <td>
+                <b>{valve1 ? 'ON' : 'OFF'}</b>
+              </td>
+              <td>
+                <span className={`badge ${valve1 ? 'good' : 'medium'}`}>
+                  {valve1 ? 'Open / Flowing' : 'Closed / Isolated'}
+                </span>
+              </td>
+              <td>{valve1 ? 'Main intake active • telemetry verified' : 'Main pipeline shut off by operator'}</td>
+            </tr>
+            <tr>
+              <td>Solenoid Valve 2</td>
+              <td>
+                <b>{valve2 ? 'ON' : 'OFF'}</b>
+              </td>
+              <td>
+                <span className={`badge ${valve2 ? 'good' : 'medium'}`}>
+                  {valve2 ? 'Open / Flowing' : 'Closed / Isolated'}
+                </span>
+              </td>
+              <td>{valve2 ? 'Branch intake active • telemetry verified' : 'Auxiliary pipeline shut off by operator'}</td>
+            </tr>
           </tbody>
         </table>
 
@@ -156,7 +385,7 @@ export default function Water({ data, history = [] }) {
             </div>
           ) : d.tankLevel != null ? (
             <div className="recommendation">
-              <b>Hydraulic System Healthy:</b> Tank holding {d.tankLevel}% with average delivery flow of {d.flowRate ?? '-'} L/min.
+              <b>Hydraulic System Healthy:</b> Tank holding {d.tankLevel}% with average delivery flow of {d.flowRate ?? '-'} L/min. Valve 1 is {valve1 ? 'ON' : 'OFF'} and Valve 2 is {valve2 ? 'ON' : 'OFF'}.
             </div>
           ) : (
             <div className="small" style={{ color: 'var(--muted)' }}>-</div>
