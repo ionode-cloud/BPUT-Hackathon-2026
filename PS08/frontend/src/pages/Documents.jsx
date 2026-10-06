@@ -7,6 +7,9 @@ import { LoadingState, EmptyState } from '../components/common/States';
 import Pagination from '../components/common/Pagination';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ReviewActionModal from '../components/common/ReviewActionModal';
+import ExportDropdown from '../components/common/ExportDropdown';
+import DocumentViewModal from '../components/common/DocumentViewModal';
+import { exportDocumentsToExcel, exportDocumentsToPDF } from '../utils/exportUtils';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -47,6 +50,7 @@ const Documents = () => {
   const [filters, setFilters] = useState({ category: '', organization: '', search: '', status: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [reviewDocTarget, setReviewDocTarget] = useState(null);
+  const [viewDoc, setViewDoc] = useState(null);
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'list'
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadForm, setUploadForm] = useState({ category: 'ESG Evidence', description: '', organization: '' });
@@ -131,7 +135,14 @@ const Documents = () => {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
-          <span className="file-name" style={{ fontWeight: 600 }}>{doc.originalName}</span>
+          <span
+            className="file-name"
+            style={{ fontWeight: 600, cursor: 'pointer', color: 'var(--text-primary)' }}
+            onClick={() => setViewDoc(doc)}
+            title="Click to view document details"
+          >
+            {doc.originalName}
+          </span>
           {doc.organization && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
@@ -196,7 +207,7 @@ const Documents = () => {
             <CheckCircle2 size={13} /> Approve
           </button>
         )}
-        {isReviewer && (
+        {isSuperAdmin && (
           <button
             className="btn-secondary-esg btn-sm"
             style={{ padding: '0.28rem 0.6rem', fontSize: '0.75rem', color: '#087F5B', borderColor: '#C3FAE8', background: '#E6FCF5' }}
@@ -206,16 +217,15 @@ const Documents = () => {
             <ShieldCheck size={12} /> Review
           </button>
         )}
-        <a
-          href={doc.cloudinaryUrl}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
           className="topbar-action-btn"
-          style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          title="View / Download"
+          style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          onClick={() => setViewDoc(doc)}
+          title="View Document Details & Preview"
         >
           <Eye size={13} />
-        </a>
+        </button>
         <button
           className="topbar-action-btn"
           style={{ width: 30, height: 30, color: 'var(--danger)', borderColor: 'var(--danger)' }}
@@ -253,17 +263,19 @@ const Documents = () => {
         >
           <FileText size={15} /> Documents
         </button>
-        <button
-          onClick={() => navigate('/approvals')}
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}
-        >
-          <CheckCircle2 size={15} style={{ color: '#059669' }} /> Approvals
-        </button>
+        {isSuperAdmin && (
+          <button
+            onClick={() => navigate('/approvals')}
+            className="btn-secondary-esg"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.45rem',
+              padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
+              background: 'var(--surface)', color: 'var(--text-primary)',
+            }}
+          >
+            <CheckCircle2 size={15} style={{ color: '#059669' }} /> Approvals
+          </button>
+        )}
         <button
           onClick={() => navigate('/organizations')}
           className="btn-secondary-esg"
@@ -313,6 +325,12 @@ const Documents = () => {
                 </button>
               </div>
             </div>
+            <ExportDropdown
+              onExportExcel={() => exportDocumentsToExcel(documents, filters)}
+              onExportPDF={() => exportDocumentsToPDF(documents, filters)}
+              totalRecords={pagination.total || documents.length}
+              label="Download Manifest"
+            />
             <button className="btn-primary-esg" onClick={() => setShowUploadModal(true)}>
               <Upload size={14} /> Upload Document
             </button>
@@ -415,6 +433,14 @@ const Documents = () => {
         onCancel={() => setDeleteTarget(null)}
         confirmText="Delete"
       />
+
+      {viewDoc && (
+        <DocumentViewModal
+          doc={viewDoc}
+          onClose={() => setViewDoc(null)}
+          onReview={(d) => setReviewDocTarget(d)}
+        />
+      )}
 
       {reviewDocTarget && (
         <ReviewActionModal

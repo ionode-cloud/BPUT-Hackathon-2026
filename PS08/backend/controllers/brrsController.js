@@ -284,10 +284,16 @@ const reviewBRSRReport = async (req, res) => {
     entityId: report._id,
     organization: req.user.organization,
     description: `${action.toUpperCase()} on BRSR report: ${report.title}. Status: ${newStatus}`,
-    metadata: { comment },
   });
 
-  res.status(200).json({ success: true, message: `Report status updated to ${newStatus}`, data: report });
+  const updatedReport = await BRSRReport.findById(report._id)
+    .populate('organization', 'name type location cin gstin industry')
+    .populate('generatedBy', 'name email')
+    .populate('approvedBy', 'name email')
+    .populate('reviewedBy', 'name email')
+    .populate('includedESGRecords');
+
+  res.status(200).json({ success: true, message: `Report status updated to ${newStatus}`, data: updatedReport });
 };
 
 // @desc    Get all reports

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, Edit2, Trash2, Send, X, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit2, Trash2, Send, X, ShieldCheck, CheckCircle2, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import Pagination from '../components/common/Pagination';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ReviewActionModal from '../components/common/ReviewActionModal';
+import ExportDropdown from '../components/common/ExportDropdown';
+import { exportESGRecordsToExcel, exportESGRecordsToPDF, exportSingleRecordToPDF } from '../utils/exportUtils';
 import { LoadingState, EmptyState } from '../components/common/States';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -191,7 +193,7 @@ const RecordFormModal = ({ record, onClose, onSaved, organizations, category: de
 };
 
 // View Record Modal
-const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) => {
+const ViewModal = ({ record, onClose, onAction, isSuperAdmin, onEdit, onDelete }) => {
   const [comment, setComment] = useState('');
   const [acting, setActing] = useState(false);
 
@@ -264,7 +266,7 @@ const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) 
               </div>
             </div>
           )}
-          {isReviewer && (
+          {isSuperAdmin && (
             <div style={{ marginTop: '1rem' }}>
               <div className="form-group-esg" style={{ marginBottom: 0 }}>
                 <label className="form-label-esg">Reviewer Comment</label>
@@ -281,6 +283,31 @@ const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) 
         </div>
         <div className="modal-footer" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <button className="btn-secondary-esg" onClick={onClose}>Close</button>
+          <button
+            type="button"
+            className="btn-secondary-esg"
+            onClick={() => exportSingleRecordToPDF(record)}
+            title="Download PDF Audit Record Slip"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <FileText size={13} style={{ color: '#DC2626' }} /> PDF Slip
+          </button>
+          <button
+            type="button"
+            className="btn-secondary-esg"
+            onClick={() => {
+              const options = {
+                category: record.category,
+                year: record.reportingPeriod?.year,
+                organizationName: record.organization?.name || 'Organization',
+              };
+              exportESGRecordsToExcel([record], options);
+            }}
+            title="Download Excel Record"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <FileSpreadsheet size={13} style={{ color: '#137333' }} /> Excel
+          </button>
           {onEdit && (
             <button className="btn-secondary-esg" onClick={() => { onEdit(record); onClose(); }}>
               <Edit2 size={13} /> Edit
@@ -291,7 +318,7 @@ const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) 
               <Trash2 size={13} /> Delete
             </button>
           )}
-          {isReviewer && (
+          {isSuperAdmin && (
             <div style={{ display: 'flex', gap: '0.4rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
               <button
                 type="button"
@@ -345,7 +372,7 @@ const ViewModal = ({ record, onClose, onAction, isReviewer, onEdit, onDelete }) 
 
 // ── Main Page ──
 const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
-  const { isReviewer, user } = useAuth();
+  const { isReviewer, isSuperAdmin, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const urlStatus = searchParams.get('status') || defaultStatus || '';
@@ -385,6 +412,8 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [reviewTarget, setReviewTarget] = useState(null);
 
+  const [exporting, setExporting] = useState(false);
+
   const fetchRecords = async (page = 1) => {
     setLoading(true);
     try {
@@ -400,6 +429,43 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
   }, []);
 
   useEffect(() => { fetchRecords(1); }, [filters]);
+
+  const handleExport = async (format, scope = 'all') => {
+    setExporting(true);
+    try {
+      let exportData = records;
+      if (scope === 'all') {
+        const params = { page: 1, limit: 2000, ...filters };
+        if (fixedCategory) params.category = fixedCategory;
+        const res = await api.get('/esg', { params });
+        exportData = res.data.data;
+      }
+
+      if (!exportData || exportData.length === 0) {
+        alert('No records found to export with the current filters.');
+        return;
+      }
+
+      const orgObj = organizations.find(o => o._id === filters.organization);
+      const options = {
+        category: fixedCategory || filters.category || 'All ESG Domains',
+        year: filters.year,
+        organizationName: orgObj ? `${orgObj.name} (${orgObj.type})` : 'All Organizations',
+        status: filters.status || 'All Statuses',
+      };
+
+      if (format === 'excel') {
+        exportESGRecordsToExcel(exportData, options);
+      } else if (format === 'pdf') {
+        exportESGRecordsToPDF(exportData, options);
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to generate export file. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleDelete = async () => {
     try { await api.delete(`/esg/${deleteTarget._id}`); fetchRecords(); }
@@ -427,14 +493,23 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
       />
 
       <div className="page-header">
-        <div className="d-flex justify-between align-center">
+        <div className="d-flex justify-between align-center flex-wrap" style={{ gap: '0.75rem' }}>
           <div>
             <h1 className="page-title">{pageTitle}</h1>
             <p className="page-subtitle">Manage ESG records across your organizational scope</p>
           </div>
-          <button className="btn-primary-esg" onClick={() => { setEditRecord(null); setShowForm(true); }}>
-            <Plus size={16} /> New Record
-          </button>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <ExportDropdown
+              onExportExcel={(scope) => handleExport('excel', scope)}
+              onExportPDF={(scope) => handleExport('pdf', scope)}
+              loading={exporting}
+              totalRecords={pagination.total || records.length}
+              label="Download Report"
+            />
+            <button className="btn-primary-esg" onClick={() => { setEditRecord(null); setShowForm(true); }}>
+              <Plus size={16} /> New Record
+            </button>
+          </div>
         </div>
       </div>
 
@@ -545,6 +620,14 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
                         </button>
                         <button
                           className="btn-secondary-esg btn-sm"
+                          style={{ padding: '0.28rem 0.5rem', fontSize: '0.75rem', color: '#0284C7' }}
+                          onClick={() => exportSingleRecordToPDF(r)}
+                          title="Download Record PDF Slip"
+                        >
+                          <Download size={13} />
+                        </button>
+                        <button
+                          className="btn-secondary-esg btn-sm"
                           style={{ padding: '0.28rem 0.5rem', fontSize: '0.75rem' }}
                           onClick={() => { setEditRecord(r); setShowForm(true); }}
                           title="Edit Record"
@@ -561,7 +644,7 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
                             <Send size={12} />
                           </button>
                         )}
-                        {isReviewer && (
+                        {isSuperAdmin && (
                           <button
                             className="btn-secondary-esg btn-sm"
                             style={{ padding: '0.28rem 0.5rem', fontSize: '0.75rem', color: '#087F5B', borderColor: '#C3FAE8', background: '#E6FCF5' }}
@@ -608,7 +691,7 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
       {viewRecord && (
         <ViewModal
           record={viewRecord}
-          isReviewer={isReviewer}
+          isSuperAdmin={isSuperAdmin}
           onClose={() => setViewRecord(null)}
           onAction={handleReviewAction}
           onEdit={(r) => { setEditRecord(r); setShowForm(true); }}
@@ -625,7 +708,7 @@ const DataCollection = ({ category: fixedCategory, defaultStatus }) => {
         confirmText="Delete"
       />
 
-      {reviewTarget && (
+      {isSuperAdmin && reviewTarget && (
         <ReviewActionModal
           isOpen={!!reviewTarget}
           onClose={() => setReviewTarget(null)}

@@ -21,7 +21,7 @@ const WORKFLOW_COLORS = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [recentRecords, setRecentRecords] = useState([]);
@@ -105,20 +105,22 @@ const Dashboard = () => {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => navigate('/validation')}
-              className="btn-secondary-esg"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
-              title="Open ESG Validation & Review Queue"
-            >
-              <CheckSquare size={15} style={{ color: '#0284C7' }} />
-              <span>Validation</span>
-              {(stats?.byStatus?.['Submitted'] || 0) > 0 && (
-                <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '0.1rem 0.45rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700 }}>
-                  {stats.byStatus['Submitted']}
-                </span>
-              )}
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => navigate('/approvals')}
+                className="btn-secondary-esg"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+                title="Open Review & Approvals Sign-off Center"
+              >
+                <CheckCircle2 size={15} style={{ color: '#059669' }} />
+                <span>Approvals</span>
+                {(stats?.byStatus?.['Submitted'] || 0) > 0 && (
+                  <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '0.1rem 0.45rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700 }}>
+                    {stats.byStatus['Submitted']}
+                  </span>
+                )}
+              </button>
+            )}
             <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 0.25rem' }} />
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Reporting Year:</label>
             <select
@@ -249,49 +251,94 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Validation Hub Card */}
-        <div
-          className="esg-card"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderLeft: '4px solid #0284C7',
-            background: 'linear-gradient(135deg, var(--surface) 0%, #F0F9FF 100%)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(2, 132, 199, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckSquare size={22} style={{ color: '#0284C7' }} />
+        {/* Approvals Hub Card (Super Admin) or ESG Data Gateway (Other Roles) */}
+        {isSuperAdmin ? (
+          <div
+            className="esg-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderLeft: '4px solid #059669',
+              background: 'linear-gradient(135deg, var(--surface) 0%, #F0FDF4 100%)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(5, 150, 105, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle2 size={22} style={{ color: '#059669' }} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Approvals & Sign-off Center</h3>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Super Admin statutory review hub</div>
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Validation & Review Queue</h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Multi-tier workflow sign-off</div>
-                </div>
+                <span className={`badge-esg ${(stats?.byStatus?.['Submitted'] || 0) > 0 ? 'badge-submitted' : 'badge-approved'}`} style={{ fontSize: '0.75rem' }}>
+                  {(stats?.byStatus?.['Submitted'] || 0)} Awaiting Sign-off
+                </span>
               </div>
-              <span className={`badge-esg ${(stats?.byStatus?.['Submitted'] || 0) > 0 ? 'badge-submitted' : 'badge-approved'}`} style={{ fontSize: '0.75rem' }}>
-                {(stats?.byStatus?.['Submitted'] || 0)} Pending Review
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
+                Review, validate, and grant official Super Admin approvals for uploaded audit documentation, ESG disclosures, and corporate registrations.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/approvals')}
+                className="btn-primary-esg"
+                style={{ fontSize: '0.82rem', padding: '0.45rem 1rem', background: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <CheckCircle2 size={14} /> Open Approvals Center <ArrowRight size={13} />
+              </button>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {stats?.approved || 0} Records Approved
               </span>
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
-              Review, validate, or request corrections on submitted Environmental, Social, and Governance data points across all organizational tiers.
-            </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => navigate('/validation')}
-              className="btn-primary-esg"
-              style={{ fontSize: '0.82rem', padding: '0.45rem 1rem', background: '#0284C7', borderColor: '#0284C7', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <CheckSquare size={14} /> Open Validation Queue <ArrowRight size={13} />
-            </button>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {stats?.approved || 0} Records Already Approved
-            </span>
+        ) : (
+          <div
+            className="esg-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderLeft: '4px solid var(--primary)',
+              background: 'linear-gradient(135deg, var(--surface) 0%, #FFF5F1 100%)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(241, 90, 36, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Database size={22} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>ESG Data Collection</h3>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Submit sustainability metrics</div>
+                  </div>
+                </div>
+                <span className="badge-esg badge-approved" style={{ fontSize: '0.75rem' }}>
+                  {stats?.total || 0} Total Records
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
+                Submit quantitative and qualitative disclosures across Environmental, Social, and Governance pillars with supporting documentation.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/data-collection')}
+                className="btn-primary-esg"
+                style={{ fontSize: '0.82rem', padding: '0.45rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Database size={14} /> Enter ESG Metrics <ArrowRight size={13} />
+              </button>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {stats?.draft || 0} Drafts in progress
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Charts Row */}

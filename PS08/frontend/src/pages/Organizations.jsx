@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, ChevronRight, Building2, Edit2, Eye, X, Users, Trash2,
+  Plus, Building2, Edit2, Eye, X, Users, Trash2,
   CheckCircle2, ShieldCheck, Check, Clock, AlertCircle, FileCheck, Filter,
-  FolderOpen, CheckSquare
+  FolderOpen, CheckSquare, Search
 } from 'lucide-react';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
@@ -235,113 +235,18 @@ const OrgFormModal = ({ org, parents, onClose, onSaved }) => {
   );
 };
 
-// Recursive org tree node
-const OrgTreeNode = ({ org, allOrgs, depth = 0, onEdit, onView, onDelete, onApprove, onVerify, isAdmin }) => {
-  const [expanded, setExpanded] = useState(depth < 2);
-  const children = allOrgs.filter(o => o.parent?._id === org._id || o.parent === org._id);
-  const colors = TYPE_COLORS[org.type] || { bg: 'var(--bg)', color: 'var(--text-secondary)' };
-
-  const isApproved = org.status === 'Approved' || org.status === 'Active';
-  const isVerified = org.verificationStatus === 'Verified';
-
-  return (
-    <div style={{ marginLeft: depth > 0 ? '1.5rem' : 0 }}>
-      <div className="org-tree-item" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-        {children.length > 0 && (
-          <button
-            onClick={() => setExpanded(e => !e)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
-          >
-            <ChevronRight size={14} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'var(--transition)' }} />
-          </button>
-        )}
-        {children.length === 0 && <div style={{ width: 14 }} />}
-        <div style={{ width: 32, height: 32, background: colors.bg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Building2 size={15} style={{ color: colors.color }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{org.name}</span>
-            <span className="org-type-badge" style={{ background: colors.bg, color: colors.color }}>{org.type}</span>
-          </div>
-          {org.location?.city && (
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{org.location.city}{org.location.state ? `, ${org.location.state}` : ''}</div>
-          )}
-        </div>
-
-        {/* Status badges */}
-        <StatusBadge status={org.status || 'Submitted'} />
-        <VerificationBadge status={org.verificationStatus || 'Pending Verification'} />
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-          <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => onView(org)} title="View Details">
-            <Eye size={13} />
-          </button>
-
-          {isAdmin && (
-            <>
-              {!isApproved && (
-                <button
-                  className="topbar-action-btn"
-                  style={{ width: 28, height: 28, color: '#059669', background: 'rgba(5, 150, 105, 0.12)' }}
-                  onClick={() => onApprove(org._id)}
-                  title="Admin: Give Approval"
-                >
-                  <CheckCircle2 size={14} />
-                </button>
-              )}
-
-              {!isVerified && (
-                <button
-                  className="topbar-action-btn"
-                  style={{ width: 28, height: 28, color: '#0284C7', background: 'rgba(2, 132, 199, 0.12)' }}
-                  onClick={() => onVerify(org._id)}
-                  title="Admin: Verify Organization Credentials"
-                >
-                  <ShieldCheck size={14} />
-                </button>
-              )}
-
-              <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => onEdit(org)} title="Edit">
-                <Edit2 size={13} />
-              </button>
-              <button className="topbar-action-btn" style={{ width: 28, height: 28, color: 'var(--danger)' }} onClick={() => onDelete(org)} title="Delete">
-                <Trash2 size={13} />
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-      {expanded && children.map(child => (
-        <OrgTreeNode
-          key={child._id}
-          org={child}
-          allOrgs={allOrgs}
-          depth={depth + 1}
-          onEdit={onEdit}
-          onView={onView}
-          onDelete={onDelete}
-          onApprove={onApprove}
-          onVerify={onVerify}
-          isAdmin={isAdmin}
-        />
-      ))}
-    </div>
-  );
-};
-
 const Organizations = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editOrg, setEditOrg] = useState(null);
   const [viewOrg, setViewOrg] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [view, setView] = useState('tree'); // 'tree' or 'table'
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'pending' | 'verified'
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   const fetchOrgs = async () => {
     setLoading(true);
@@ -391,15 +296,28 @@ const Organizations = () => {
 
   const displayedOrgs = orgs.filter(o => {
     if (filterMode === 'pending') {
-      return o.status === 'Submitted' || o.verificationStatus !== 'Verified';
+      if (o.status !== 'Submitted' && o.verificationStatus === 'Verified') return false;
     }
     if (filterMode === 'verified') {
-      return o.verificationStatus === 'Verified';
+      if (o.verificationStatus !== 'Verified') return false;
+    }
+    if (typeFilter !== 'all' && o.type !== typeFilter) {
+      return false;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchName = o.name?.toLowerCase().includes(q);
+      const matchCity = o.location?.city?.toLowerCase().includes(q);
+      const matchState = o.location?.state?.toLowerCase().includes(q);
+      const matchCin = o.cin?.toLowerCase().includes(q);
+      const matchGstin = o.gstin?.toLowerCase().includes(q);
+      const matchIndustry = o.industry?.toLowerCase().includes(q);
+      if (!matchName && !matchCity && !matchState && !matchCin && !matchGstin && !matchIndustry) {
+        return false;
+      }
     }
     return true;
   });
-
-  const rootOrgs = displayedOrgs.filter(o => !o.parent);
 
   const pendingCount = orgs.filter(o => o.status === 'Submitted' || o.verificationStatus === 'Pending Verification').length;
   const verifiedCount = orgs.filter(o => o.verificationStatus === 'Verified').length;
@@ -451,49 +369,27 @@ const Organizations = () => {
         >
           <CheckSquare size={15} style={{ color: '#0284C7' }} /> Validation
         </button>
-        <button
-          onClick={() => navigate('/approvals')}
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}
-        >
-          <CheckCircle2 size={15} style={{ color: '#059669' }} /> Approvals
-        </button>
+        {isSuperAdmin && (
+          <button
+            onClick={() => navigate('/approvals')}
+            className="btn-secondary-esg"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.45rem',
+              padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
+              background: 'var(--surface)', color: 'var(--text-primary)',
+            }}
+          >
+            <CheckCircle2 size={15} style={{ color: '#059669' }} /> Approvals
+          </button>
+        )}
       </div>
       <div className="page-header">
         <div className="d-flex justify-between align-center" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h1 className="page-title">Organization Hierarchy & Verification</h1>
-            <p className="page-subtitle">Manage Group → Subsidiary → Business Unit structure with administrative verification & approval</p>
+            <h1 className="page-title">Organizations Directory</h1>
+            <p className="page-subtitle">Manage Group, Subsidiary, and Business Unit structure with administrative verification & approval</p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            {/* View Switcher */}
-            <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              {['tree', 'table'].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  style={{
-                    padding: '0.45rem 0.875rem',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    background: view === v ? 'var(--primary)' : 'transparent',
-                    color: view === v ? 'white' : 'var(--text-secondary)',
-                    transition: 'var(--transition)',
-                    fontFamily: 'var(--font)',
-                    textTransform: 'capitalize'
-                  }}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-
             <button className="btn-primary-esg" onClick={() => { setEditOrg(null); setShowForm(true); }}>
               <Plus size={15} /> Add / Submit Organization
             </button>
@@ -506,19 +402,38 @@ const Organizations = () => {
         {ORG_TYPES.map(type => {
           const colors = TYPE_COLORS[type];
           const count = orgs.filter(o => o.type === type).length;
+          const isSelected = typeFilter === type;
           return (
-            <div key={type} className="esg-card" style={{ borderLeft: `3px solid ${colors.color}`, padding: '1rem 1.25rem' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.color }}>{count}</div>
+            <div
+              key={type}
+              className="esg-card"
+              style={{
+                borderLeft: `3px solid ${colors.color}`,
+                padding: '1rem 1.25rem',
+                cursor: 'pointer',
+                background: isSelected ? 'var(--secondary)' : 'var(--surface)',
+                border: isSelected ? `1.5px solid ${colors.color}` : undefined,
+                transition: 'var(--transition)'
+              }}
+              onClick={() => setTypeFilter(t => t === type ? 'all' : type)}
+              title={`Click to filter by ${type}`}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.color }}>{count}</div>
+                {isSelected && (
+                  <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 99, background: colors.bg, color: colors.color, fontWeight: 700 }}>Filtered</span>
+                )}
+              </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{type}s</div>
             </div>
           );
         })}
       </div>
 
-      {/* Compliance Status Filters Bar */}
+      {/* Compliance Status Filters Bar & Search */}
       <div className="esg-card" style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Workflow Filter:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Workflow:</span>
           {[
             { id: 'all', label: `All Units (${orgs.length})` },
             { id: 'pending', label: `Pending Approval / Verification (${pendingCount})`, highlight: pendingCount > 0 },
@@ -541,15 +456,47 @@ const Organizations = () => {
               {f.label}
             </button>
           ))}
+          {typeFilter !== 'all' && (
+            <button
+              onClick={() => setTypeFilter('all')}
+              style={{
+                fontSize: '0.75rem',
+                padding: '0.25rem 0.6rem',
+                borderRadius: 99,
+                border: '1px dashed var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+              title="Clear type filter"
+            >
+              Type: {typeFilter} ✕
+            </button>
+          )}
         </div>
-        {isAdmin && pendingCount > 0 && (
-          <div style={{ fontSize: '0.78rem', color: '#F15A24', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Clock size={14} /> {pendingCount} organization(s) submitted awaiting admin approval & verification
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ position: 'relative', minWidth: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              className="form-control-esg"
+              style={{ paddingLeft: '2rem', fontSize: '0.8rem', height: 34 }}
+              placeholder="Search by name, city, CIN..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
-        )}
+          {isAdmin && pendingCount > 0 && (
+            <div style={{ fontSize: '0.78rem', color: '#F15A24', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Clock size={14} /> {pendingCount} awaiting admin action
+            </div>
+          )}
+        </div>
       </div>
 
-      {loading ? <LoadingState /> : orgs.length === 0 ? (
+      {loading ? (
+        <LoadingState />
+      ) : orgs.length === 0 ? (
         <div className="esg-card">
           <EmptyState
             icon={<Building2 size={48} />}
@@ -558,112 +505,134 @@ const Organizations = () => {
             action={<button className="btn-primary-esg" onClick={() => setShowForm(true)}><Plus size={14} /> Add Group</button>}
           />
         </div>
-      ) : view === 'tree' ? (
-        <div className="esg-card">
-          <div className="section-header" style={{ marginBottom: '1rem' }}>
-            <div className="section-title">Organization Tree & Approvals</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{displayedOrgs.length} displayed units</div>
-          </div>
-          <div className="org-tree">
-            {rootOrgs.map(org => (
-              <OrgTreeNode
-                key={org._id}
-                org={org}
-                allOrgs={displayedOrgs}
-                onEdit={o => { setEditOrg(o); setShowForm(true); }}
-                onView={setViewOrg}
-                onDelete={setDeleteTarget}
-                onApprove={handleApproveOrg}
-                onVerify={handleVerifyOrg}
-                isAdmin={isAdmin}
-              />
-            ))}
-          </div>
+      ) : displayedOrgs.length === 0 ? (
+        <div className="esg-card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+          <Building2 size={36} style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }} />
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>No matching organizations found</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Try clearing or adjusting your search keyword and filters.</div>
+          <button className="btn-secondary-esg btn-sm" onClick={() => { setSearch(''); setFilterMode('all'); setTypeFilter('all'); }}>
+            Reset Filters
+          </button>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="table-esg">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Parent</th>
-                <th>Location</th>
-                <th>Industry</th>
-                <th>Approval Status</th>
-                <th>Verification</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedOrgs.map(o => {
-                const isApproved = o.status === 'Approved' || o.status === 'Active';
-                const isVerified = o.verificationStatus === 'Verified';
+        <div className="esg-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-wrapper">
+            <table className="table-esg">
+              <thead>
+                <tr>
+                  <th>Organization Name</th>
+                  <th>Type</th>
+                  <th>Parent Entity</th>
+                  <th>Location</th>
+                  <th>Industry</th>
+                  <th>Approval Status</th>
+                  <th>Verification</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedOrgs.map(o => {
+                  const isApproved = o.status === 'Approved' || o.status === 'Active';
+                  const isVerified = o.verificationStatus === 'Verified';
 
-                return (
-                  <tr key={o._id}>
-                    <td style={{ fontWeight: 600 }}>{o.name}</td>
-                    <td>
-                      <span className="org-type-badge" style={{ background: TYPE_COLORS[o.type]?.bg, color: TYPE_COLORS[o.type]?.color }}>
-                        {o.type}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{o.parent?.name || '—'}</td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                      {[o.location?.city, o.location?.state].filter(Boolean).join(', ') || '—'}
-                    </td>
-                    <td style={{ fontSize: '0.8rem' }}>{o.industry || '—'}</td>
-                    <td>
-                      <StatusBadge status={o.status || 'Submitted'} />
-                    </td>
-                    <td>
-                      <VerificationBadge status={o.verificationStatus || 'Pending Verification'} />
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                        <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => setViewOrg(o)} title="View Details">
-                          <Eye size={13} />
-                        </button>
-
-                        {isAdmin && (
-                          <>
-                            {!isApproved && (
-                              <button
-                                className="topbar-action-btn"
-                                style={{ width: 28, height: 28, color: '#059669', background: 'rgba(5, 150, 105, 0.12)' }}
-                                onClick={() => handleApproveOrg(o._id, 'approve')}
-                                title="Admin: Give Approval"
-                              >
-                                <CheckCircle2 size={14} />
-                              </button>
+                  return (
+                    <tr key={o._id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: TYPE_COLORS[o.type]?.bg || 'var(--bg)',
+                              color: TYPE_COLORS[o.type]?.color || 'var(--text-secondary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            <Building2 size={16} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{o.name}</div>
+                            {o.cin && (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>CIN: {o.cin}</div>
                             )}
-
-                            {!isVerified && (
-                              <button
-                                className="topbar-action-btn"
-                                style={{ width: 28, height: 28, color: '#0284C7', background: 'rgba(2, 132, 199, 0.12)' }}
-                                onClick={() => handleVerifyOrg(o._id, 'verify')}
-                                title="Admin: Verify Credentials"
-                              >
-                                <ShieldCheck size={14} />
-                              </button>
-                            )}
-
-                            <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => { setEditOrg(o); setShowForm(true); }} title="Edit">
-                              <Edit2 size={13} />
-                            </button>
-                            <button className="topbar-action-btn" style={{ width: 28, height: 28, color: 'var(--danger)' }} onClick={() => setDeleteTarget(o)} title="Delete">
-                              <Trash2 size={13} />
-                            </button>
-                          </>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="org-type-badge" style={{ background: TYPE_COLORS[o.type]?.bg, color: TYPE_COLORS[o.type]?.color }}>
+                          {o.type}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        {o.parent?.name ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
+                            {o.parent.name}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>— Root Group</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        {[o.location?.city, o.location?.state].filter(Boolean).join(', ') || '—'}
+                      </td>
+                      <td style={{ fontSize: '0.8rem' }}>{o.industry || '—'}</td>
+                      <td>
+                        <StatusBadge status={o.status || 'Submitted'} />
+                      </td>
+                      <td>
+                        <VerificationBadge status={o.verificationStatus || 'Pending Verification'} />
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                          <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => setViewOrg(o)} title="View Details">
+                            <Eye size={13} />
+                          </button>
+
+                          {isAdmin && (
+                            <>
+                              {!isApproved && (
+                                <button
+                                  className="topbar-action-btn"
+                                  style={{ width: 28, height: 28, color: '#059669', background: 'rgba(5, 150, 105, 0.12)' }}
+                                  onClick={() => handleApproveOrg(o._id, 'approve')}
+                                  title="Admin: Give Approval"
+                                >
+                                  <CheckCircle2 size={14} />
+                                </button>
+                              )}
+
+                              {!isVerified && (
+                                <button
+                                  className="topbar-action-btn"
+                                  style={{ width: 28, height: 28, color: '#0284C7', background: 'rgba(2, 132, 199, 0.12)' }}
+                                  onClick={() => handleVerifyOrg(o._id, 'verify')}
+                                  title="Admin: Verify Organization Credentials"
+                                >
+                                  <ShieldCheck size={14} />
+                                </button>
+                              )}
+
+                              <button className="topbar-action-btn" style={{ width: 28, height: 28 }} onClick={() => { setEditOrg(o); setShowForm(true); }} title="Edit">
+                                <Edit2 size={13} />
+                              </button>
+                              <button className="topbar-action-btn" style={{ width: 28, height: 28, color: 'var(--danger)' }} onClick={() => setDeleteTarget(o)} title="Delete">
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

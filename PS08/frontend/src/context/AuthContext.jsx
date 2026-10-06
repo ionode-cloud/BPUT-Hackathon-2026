@@ -11,15 +11,15 @@ export const useAuth = () => {
 
 // Role permission map
 const ROLE_PERMISSIONS = {
-  'Super Admin': ['all'], // Only Super Admin can see and modify audit logs
-  'Group ESG Admin': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications', 'users'],
-  'Subsidiary Admin': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
-  'Business Unit Manager': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
-  'Project/Department User': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'notifications'],
-  'ESG Manager': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
-  'Compliance Officer': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
-  'Management': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
-  'Auditor/Reviewer': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'approvals', 'reports', 'analytics', 'notifications'],
+  'Super Admin': ['all'], // Only Super Admin has authority for Approvals and Audit Logs
+  'Group ESG Admin': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications', 'users'],
+  'Subsidiary Admin': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
+  'Business Unit Manager': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
+  'Project/Department User': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'notifications'],
+  'ESG Manager': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
+  'Compliance Officer': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
+  'Management': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
+  'Auditor/Reviewer': ['dashboard', 'organizations', 'esg', 'environmental', 'social', 'governance', 'brsr', 'validation', 'documents', 'reports', 'analytics', 'notifications'],
 };
 
 export const AuthProvider = ({ children }) => {

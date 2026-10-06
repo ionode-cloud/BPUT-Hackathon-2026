@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import Breadcrumbs from '../components/common/Breadcrumbs';
+import ExportDropdown from '../components/common/ExportDropdown';
+import { exportAnalyticsToExcel, exportAnalyticsToPDF } from '../utils/exportUtils';
 import { LoadingState } from '../components/common/States';
 import api from '../services/api';
 
@@ -22,8 +24,6 @@ const Analytics = () => {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ year: '', category: '', organization: '' });
-  const [consolidation, setConsolidation] = useState(null);
-  const [consLoading, setConsLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -59,32 +59,18 @@ const Analytics = () => {
     value: s.count || s.value || 0,
   }));
 
-  const handleConsolidate = async () => {
-    if (!filters.year || !filters.organization) {
-      alert('Select a year and an organization to run consolidation.');
-      return;
-    }
-    setConsLoading(true);
-    try {
-      const res = await api.get('/analytics/consolidation', {
-        params: { year: filters.year, targetOrgId: filters.organization },
-      });
-      setConsolidation(res.data.data);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Consolidation failed');
-    } finally { setConsLoading(false); }
-  };
+
 
   return (
     <div className="fade-in">
       <Breadcrumbs items={[{ label: 'Analytics', path: '/analytics' }]} />
       <div className="page-header">
-        <div className="d-flex justify-between align-center">
+        <div className="d-flex justify-between align-center flex-wrap" style={{ gap: '0.75rem' }}>
           <div>
             <h1 className="page-title">ESG Analytics</h1>
             <p className="page-subtitle">Data-driven insights from approved ESG records</p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <select className="filter-select" value={filters.year} onChange={e => setFilters(f => ({ ...f, year: e.target.value }))}>
               <option value="">All Years</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -97,6 +83,12 @@ const Analytics = () => {
               <option value="">All Organizations</option>
               {orgs.map(o => <option key={o._id} value={o._id}>{o.name}</option>)}
             </select>
+            <ExportDropdown
+              onExportExcel={() => exportAnalyticsToExcel(data, filters, orgs)}
+              onExportPDF={() => exportAnalyticsToPDF(data, filters, orgs)}
+              totalRecords={data?.orgBreakdown?.length || 0}
+              label="Download Analytics"
+            />
           </div>
         </div>
       </div>
@@ -234,52 +226,6 @@ const Analytics = () => {
             </div>
           )}
 
-          {/* Consolidation Section */}
-          <div className="esg-card">
-            <div className="section-header" style={{ marginBottom: '1rem' }}>
-              <div>
-                <div className="section-title">Data Consolidation</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Aggregate approved ESG records across the organizational hierarchy</div>
-              </div>
-              <button className="btn-primary-esg" onClick={handleConsolidate} disabled={consLoading || !filters.organization || !filters.year}>
-                {consLoading ? 'Consolidating...' : 'Run Consolidation'}
-              </button>
-            </div>
-            {!filters.organization || !filters.year ? (
-              <div className="info-box">ℹ Select a year and an organization from the filters above to run consolidation.</div>
-            ) : null}
-            {consolidation && (
-              <div style={{ marginTop: '1rem' }}>
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Consolidation for FY {consolidation.reportingYear} • {consolidation.organizationsIncluded} organizations included
-                </div>
-                <div className="table-wrapper">
-                  <table className="table-esg">
-                    <thead>
-                      <tr><th>Category</th><th>Metric</th><th>Unit</th><th>Total Value</th><th>Records</th></tr>
-                    </thead>
-                    <tbody>
-                      {consolidation.consolidatedData.map((row, i) => (
-                        <tr key={i}>
-                          <td>
-                            <span style={{
-                              background: row._id.category === 'Environmental' ? 'var(--success-bg)' : row._id.category === 'Social' ? '#E8F0FE' : 'var(--warning-bg)',
-                              color: row._id.category === 'Environmental' ? 'var(--success)' : row._id.category === 'Social' ? '#3B5BDB' : 'var(--warning)',
-                              padding: '0.15rem 0.5rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 600,
-                            }}>{row._id.category}</span>
-                          </td>
-                          <td style={{ fontWeight: 500 }}>{row._id.metric}</td>
-                          <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{row._id.unit || '—'}</td>
-                          <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{row.totalValue?.toLocaleString() || '—'}</td>
-                          <td style={{ color: 'var(--text-secondary)' }}>{row.count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>

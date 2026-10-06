@@ -9,6 +9,10 @@ import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';
 import Pagination from '../components/common/Pagination';
 import ReviewActionModal from '../components/common/ReviewActionModal';
+import ExportDropdown from '../components/common/ExportDropdown';
+import DocumentViewModal from '../components/common/DocumentViewModal';
+import ESGRecordViewModal from '../components/common/ESGRecordViewModal';
+import { exportESGRecordsToExcel, exportESGRecordsToPDF, exportDocumentsToExcel, exportDocumentsToPDF } from '../utils/exportUtils';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,9 +59,11 @@ const Approvals = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Review Modals
+  // Review Modals & View Modals
   const [reviewModalItem, setReviewModalItem] = useState(null);
   const [reviewDocTarget, setReviewDocTarget] = useState(null);
+  const [viewDoc, setViewDoc] = useState(null);
+  const [viewESGRecord, setViewESGRecord] = useState(null);
 
   // Fetch Organizations list for filter
   useEffect(() => {
@@ -158,216 +164,228 @@ const Approvals = () => {
     return true;
   });
 
+  if (user && !isSuperAdmin) {
+    return (
+      <div className="fade-in">
+        <Breadcrumbs items={[{ label: 'Approvals', path: '/approvals' }]} />
+        <div className="esg-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', marginTop: '1.5rem' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(241, 90, 36, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <ShieldCheck size={36} style={{ color: 'var(--primary)' }} />
+          </div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Super Admin Authority Only</h2>
+          <p style={{ color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto 1.5rem', fontSize: '0.88rem', lineHeight: 1.5 }}>
+            The Approvals and Review sign-off center is strictly restricted to the <strong>Super Admin</strong>. Non-administrative roles do not have permission to review or approve audit records.
+          </p>
+          <button onClick={() => navigate('/dashboard')} className="btn-primary-esg" style={{ display: 'inline-flex', padding: '0.5rem 1.25rem' }}>
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in">
       <Breadcrumbs items={[{ label: 'Approvals', path: '/approvals' }]} />
 
-      {/* Administrative Compliance Navigation Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '1.25rem',
-          borderBottom: '1px solid var(--border)',
-          paddingBottom: '0.75rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <button
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 700,
-            background: 'var(--primary)', color: 'white', borderColor: 'var(--primary)',
-          }}
-        >
-          <CheckCircle2 size={15} /> Approvals
-        </button>
-        <button
-          onClick={() => navigate('/documents')}
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}
-        >
-          <FolderOpen size={15} style={{ color: 'var(--primary)' }} /> Documents
-        </button>
-        <button
-          onClick={() => navigate('/organizations')}
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}
-        >
-          <Building2 size={15} style={{ color: 'var(--success, #059669)' }} /> Organizations
-        </button>
-        <button
-          onClick={() => navigate('/validation')}
-          className="btn-secondary-esg"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.5rem 1rem', fontSize: '0.84rem', fontWeight: 500,
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}
-        >
-          <CheckSquare size={15} style={{ color: '#0284C7' }} /> Validation
-        </button>
-      </div>
-
-      <div className="page-header">
+      {/* Page Header */}
+      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div className="d-flex justify-between align-center" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h1 className="page-title">Approvals & Workflow Review</h1>
-            <p className="page-subtitle">
-              Administrator sign-off center for uploaded documents, ESG records, and organizational registrations
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+              <h1 className="page-title" style={{ margin: 0 }}>Approvals & Workflow Review</h1>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: 99,
+                  background: 'rgba(241, 90, 36, 0.12)',
+                  color: 'var(--primary)',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid rgba(241, 90, 36, 0.3)',
+                }}
+              >
+                <ShieldCheck size={13} /> Super Admin Authority Active
+              </span>
+            </div>
+            <p className="page-subtitle" style={{ margin: 0 }}>
+              Official administrative sign-off center for uploaded documents, ESG metric disclosures, and corporate entities
             </p>
           </div>
-          {isSuperAdmin && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.85rem',
-                borderRadius: 99,
-                background: 'rgba(241, 90, 36, 0.12)',
-                color: 'var(--primary)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                border: '1px solid rgba(241, 90, 36, 0.25)',
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <ExportDropdown
+              onExportExcel={() => {
+                if (activeTab === 'esg') {
+                  exportESGRecordsToExcel(records, { status: esgStatus, category: 'All' });
+                } else if (activeTab === 'documents') {
+                  exportDocumentsToExcel(documents, { status: docStatus });
+                }
               }}
-            >
-              <ShieldCheck size={14} /> Super Admin Approval Authority Active
-            </span>
-          )}
+              onExportPDF={() => {
+                if (activeTab === 'esg') {
+                  exportESGRecordsToPDF(records, { status: esgStatus, category: 'All' });
+                } else if (activeTab === 'documents') {
+                  exportDocumentsToPDF(documents, { status: docStatus });
+                }
+              }}
+              totalRecords={activeTab === 'esg' ? esgPagination.total : activeTab === 'documents' ? docPagination.total : orgs.length}
+              label="Download Queue"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Main Approval Hub Category Switcher */}
+      {/* Main Approval Category Tabs (Executive Styled Grid) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        {[
+          {
+            id: 'documents',
+            title: 'Uploaded Documents',
+            desc: 'Verification evidence & certificates',
+            icon: FolderOpen,
+            count: docPagination.total,
+            color: 'var(--primary)',
+            bg: 'rgba(241, 90, 36, 0.12)',
+            activeGradient: 'linear-gradient(135deg, #FFF6F2 0%, #FFFFFF 100%)',
+          },
+          {
+            id: 'esg',
+            title: 'ESG Metric Records',
+            desc: 'Reported sustainability values',
+            icon: FileText,
+            count: esgPagination.total,
+            color: '#0284C7',
+            bg: 'rgba(2, 132, 199, 0.12)',
+            activeGradient: 'linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%)',
+          },
+          {
+            id: 'orgs',
+            title: 'Organization Registrations',
+            desc: 'Subsidiaries & business entities',
+            icon: Building2,
+            count: orgs.length,
+            color: '#059669',
+            bg: 'rgba(5, 150, 105, 0.12)',
+            activeGradient: 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)',
+          },
+        ].map(item => {
+          const Icon = item.icon;
+          const isSelected = activeTab === item.id;
+          return (
+            <div
+              key={item.id}
+              onClick={() => { setActiveTab(item.id); setSearch(''); }}
+              style={{
+                cursor: 'pointer',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.1rem 1.25rem',
+                border: isSelected ? `2px solid ${item.color}` : '1.5px solid var(--border)',
+                background: isSelected ? item.activeGradient : 'var(--surface)',
+                boxShadow: isSelected ? 'var(--shadow-md)' : 'none',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.85rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: isSelected ? item.color : item.bg,
+                    color: isSelected ? 'white' : item.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Icon size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                    {item.title}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {item.desc}
+                  </div>
+                </div>
+              </div>
+              <span
+                style={{
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 99,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  background: isSelected ? item.color : 'var(--bg)',
+                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                  border: isSelected ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {item.count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sub Status Workflow Filter Pills */}
       <div
         style={{
           display: 'flex',
-          gap: '0.5rem',
+          alignItems: 'center',
+          gap: '0.45rem',
           marginBottom: '1.25rem',
-          borderBottom: '1px solid var(--border)',
-          paddingBottom: '0.75rem',
-          flexWrap: 'wrap',
+          overflowX: 'auto',
+          paddingBottom: '0.25rem',
         }}
       >
-        <button
-          className={`btn-secondary-esg ${activeTab === 'documents' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('documents'); setSearch(''); }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.55rem 1.1rem',
-            fontSize: '0.875rem',
-            fontWeight: activeTab === 'documents' ? 700 : 500,
-            background: activeTab === 'documents' ? 'var(--primary)' : 'var(--surface)',
-            color: activeTab === 'documents' ? 'white' : 'var(--text-primary)',
-            borderColor: activeTab === 'documents' ? 'var(--primary)' : 'var(--border)',
-          }}
-        >
-          <FolderOpen size={16} />
-          <span>Uploaded Documents Approval</span>
-          {activeTab === 'documents' && docPagination.total > 0 && (
-            <span style={{ background: 'rgba(255,255,255,0.25)', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontSize: '0.72rem' }}>
-              {docPagination.total}
-            </span>
-          )}
-        </button>
-
-        <button
-          className={`btn-secondary-esg ${activeTab === 'esg' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('esg'); setSearch(''); }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.55rem 1.1rem',
-            fontSize: '0.875rem',
-            fontWeight: activeTab === 'esg' ? 700 : 500,
-            background: activeTab === 'esg' ? 'var(--primary)' : 'var(--surface)',
-            color: activeTab === 'esg' ? 'white' : 'var(--text-primary)',
-            borderColor: activeTab === 'esg' ? 'var(--primary)' : 'var(--border)',
-          }}
-        >
-          <FileText size={16} />
-          <span>ESG Data Records</span>
-          {activeTab === 'esg' && esgPagination.total > 0 && (
-            <span style={{ background: 'rgba(255,255,255,0.25)', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontSize: '0.72rem' }}>
-              {esgPagination.total}
-            </span>
-          )}
-        </button>
-
-        <button
-          className={`btn-secondary-esg ${activeTab === 'orgs' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('orgs'); setSearch(''); }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.55rem 1.1rem',
-            fontSize: '0.875rem',
-            fontWeight: activeTab === 'orgs' ? 700 : 500,
-            background: activeTab === 'orgs' ? 'var(--primary)' : 'var(--surface)',
-            color: activeTab === 'orgs' ? 'white' : 'var(--text-primary)',
-            borderColor: activeTab === 'orgs' ? 'var(--primary)' : 'var(--border)',
-          }}
-        >
-          <Building2 size={16} />
-          <span>Organization Registrations</span>
-        </button>
+        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '0.35rem', whiteSpace: 'nowrap' }}>
+          Workflow Status:
+        </span>
+        {(activeTab === 'documents' ? DOC_REVIEW_STATUSES : activeTab === 'esg' ? ESG_REVIEW_STATUSES : ORG_REVIEW_STATUSES).map(s => {
+          const currentVal = activeTab === 'documents' ? docStatus : activeTab === 'esg' ? esgStatus : orgStatus;
+          const isSelected = currentVal === s;
+          return (
+            <button
+              key={s}
+              onClick={() => {
+                if (activeTab === 'documents') setDocStatus(s);
+                else if (activeTab === 'esg') setEsgStatus(s);
+                else setOrgStatus(s);
+              }}
+              style={{
+                padding: '0.35rem 0.8rem',
+                borderRadius: 99,
+                fontSize: '0.78rem',
+                fontWeight: isSelected ? 600 : 500,
+                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                background: isSelected ? 'var(--primary)' : 'var(--surface)',
+                color: isSelected ? 'white' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'var(--transition)',
+              }}
+            >
+              {s}
+            </button>
+          );
+        })}
       </div>
-
-      {/* Sub Status Tabs */}
-      {activeTab === 'documents' && (
-        <div className="tabs-esg" style={{ marginBottom: '1.25rem' }}>
-          {DOC_REVIEW_STATUSES.map(s => (
-            <button
-              key={s}
-              className={`tab-btn ${docStatus === s ? 'active' : ''}`}
-              onClick={() => setDocStatus(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'esg' && (
-        <div className="tabs-esg" style={{ marginBottom: '1.25rem' }}>
-          {ESG_REVIEW_STATUSES.map(s => (
-            <button
-              key={s}
-              className={`tab-btn ${esgStatus === s ? 'active' : ''}`}
-              onClick={() => setEsgStatus(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'orgs' && (
-        <div className="tabs-esg" style={{ marginBottom: '1.25rem' }}>
-          {ORG_REVIEW_STATUSES.map(s => (
-            <button
-              key={s}
-              className={`tab-btn ${orgStatus === s ? 'active' : ''}`}
-              onClick={() => setOrgStatus(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Filters Bar */}
       <div className="filters-bar" style={{ marginBottom: '1.25rem' }}>
@@ -437,15 +455,13 @@ const Approvals = () => {
                                 {getFileIcon(doc.fileType)}
                               </div>
                               <div>
-                                <a
-                                  href={doc.cloudinaryUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none' }}
-                                  title="Click to view file"
+                                <span
+                                  style={{ fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}
+                                  onClick={() => setViewDoc(doc)}
+                                  title="Click to view document details"
                                 >
                                   {doc.originalName}
-                                </a>
+                                </span>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                                   {formatSize(doc.fileSize)} {doc.reportingPeriod?.year ? `• FY ${doc.reportingPeriod.year}` : ''}
                                 </div>
@@ -477,16 +493,15 @@ const Approvals = () => {
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                              <a
-                                href={doc.cloudinaryUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
                                 className="topbar-action-btn"
-                                style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                title="Open / Download Document"
+                                style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                onClick={() => setViewDoc(doc)}
+                                title="View Document Details & Preview"
                               >
                                 <Eye size={13} />
-                              </a>
+                              </button>
 
                               {!isApproved ? (
                                 isSuperAdmin ? (
@@ -504,7 +519,7 @@ const Approvals = () => {
                                     onClick={() => handleReviewDoc(doc._id, 'approve', 'Approved by Super Admin')}
                                     title="Grant Super Admin Official Approval"
                                   >
-                                    <CheckCircle2 size={13} /> Approve (Super Admin)
+                                    <CheckCircle2 size={13} /> Approve
                                   </button>
                                 ) : (
                                   <span
@@ -599,7 +614,13 @@ const Approvals = () => {
                   <tbody>
                     {records.map(r => (
                       <tr key={r._id}>
-                        <td style={{ fontWeight: 500 }}>{r.metric}</td>
+                        <td
+                          style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text-primary)' }}
+                          onClick={() => setViewESGRecord(r)}
+                          title="Click to view record details"
+                        >
+                          {r.metric}
+                        </td>
                         <td><StatusBadge status={r.category} /></td>
                         <td style={{ fontSize: '0.8rem' }}>{r.organization?.name}</td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{r.submittedBy?.name || '—'}</td>
@@ -607,6 +628,15 @@ const Approvals = () => {
                         <td><StatusBadge status={r.status} /></td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              className="btn-secondary-esg btn-sm"
+                              style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
+                              onClick={() => setViewESGRecord(r)}
+                              title="View Record Details"
+                            >
+                              <Eye size={12} /> View
+                            </button>
                             <button
                               className="btn-secondary-esg btn-sm"
                               style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: '#087F5B', borderColor: '#C3FAE8', background: '#E6FCF5' }}
@@ -816,6 +846,25 @@ const Approvals = () => {
             await handleReviewDoc(reviewDocTarget._id, action, comment);
             setReviewDocTarget(null);
           }}
+        />
+      )}
+
+      {/* In-App Document View Modal */}
+      {viewDoc && (
+        <DocumentViewModal
+          doc={viewDoc}
+          onClose={() => setViewDoc(null)}
+          onReview={(d) => setReviewDocTarget(d)}
+        />
+      )}
+
+      {/* In-App ESG Record View Modal */}
+      {viewESGRecord && (
+        <ESGRecordViewModal
+          record={viewESGRecord}
+          onClose={() => setViewESGRecord(null)}
+          onReview={(r) => setReviewModalItem(r)}
+          onAction={handleAction}
         />
       )}
     </div>

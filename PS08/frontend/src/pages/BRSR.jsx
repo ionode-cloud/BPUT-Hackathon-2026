@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Plus, FileText, RefreshCw, CheckCircle2, AlertCircle, X, Eye, ShieldCheck } from 'lucide-react';
+import { Plus, FileText, RefreshCw, CheckCircle2, AlertCircle, X, Eye, ShieldCheck, Download, FileSpreadsheet } from 'lucide-react';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';
 import Pagination from '../components/common/Pagination';
 import ReviewActionModal from '../components/common/ReviewActionModal';
+import ExportDropdown from '../components/common/ExportDropdown';
+import {
+  exportBRSRReportToExcel,
+  exportBRSRReportToPDF,
+  exportBRSRReportsListToExcel,
+  exportBRSRReportsListToPDF,
+} from '../utils/exportUtils';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,7 +34,7 @@ const BRSR_SECTIONS = [
 ];
 
 const BRSR = () => {
-  const { isReviewer } = useAuth();
+  const { isReviewer, isSuperAdmin } = useAuth();
   const [reports, setReports] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,16 +113,24 @@ const BRSR = () => {
     <div className="fade-in">
       <Breadcrumbs items={[{ label: 'BRSR Reporting', path: '/brsr' }]} />
       <div className="page-header">
-        <div className="d-flex justify-between align-center">
+        <div className="d-flex justify-between align-center flex-wrap" style={{ gap: '0.75rem' }}>
           <div>
             <h1 className="page-title">BRSR Reporting</h1>
             <p className="page-subtitle">SEBI BRSR 2023-24 — Map ESG data to reporting sections</p>
           </div>
-          {isReviewer && (
-            <button className="btn-primary-esg" onClick={() => setShowForm(true)}>
-              <Plus size={15} /> New Report
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <ExportDropdown
+              onExportExcel={() => exportBRSRReportsListToExcel(reports, filters)}
+              onExportPDF={() => exportBRSRReportsListToPDF(reports, filters)}
+              totalRecords={reports.length}
+              label="Download Register"
+            />
+            {isReviewer && (
+              <button className="btn-primary-esg" onClick={() => setShowForm(true)}>
+                <Plus size={15} /> New Report
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -189,24 +204,40 @@ const BRSR = () => {
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <StatusBadge status={r.status} />
                     <button className="btn-secondary-esg btn-sm" onClick={() => { setViewReport(r); setViewReportComment(''); }}><Eye size={12} /> View</button>
+                    <button
+                      className="btn-secondary-esg btn-sm"
+                      style={{ color: '#137333', borderColor: '#C6F6D5', background: '#F0FFF4' }}
+                      onClick={() => exportBRSRReportToExcel(r)}
+                      title="Download SEBI BRSR Excel"
+                    >
+                      <FileSpreadsheet size={12} /> Excel
+                    </button>
+                    <button
+                      className="btn-secondary-esg btn-sm"
+                      style={{ color: '#C53030', borderColor: '#FED7D7', background: '#FFF5F5' }}
+                      onClick={() => exportBRSRReportToPDF(r)}
+                      title="Download SEBI BRSR PDF"
+                    >
+                      <FileText size={12} /> PDF
+                    </button>
+                    {isSuperAdmin && (
+                      <button
+                        className="btn-secondary-esg btn-sm"
+                        style={{ color: '#087F5B', borderColor: '#C3FAE8', background: '#E6FCF5' }}
+                        onClick={() => setReviewReportTarget(r)}
+                        title="Review BRSR Report (Super Admin)"
+                      >
+                        <ShieldCheck size={12} /> Review
+                      </button>
+                    )}
                     {isReviewer && (
-                      <>
-                        <button
-                          className="btn-secondary-esg btn-sm"
-                          style={{ color: '#087F5B', borderColor: '#C3FAE8', background: '#E6FCF5' }}
-                          onClick={() => setReviewReportTarget(r)}
-                          title="Review & Workflow Action"
-                        >
-                          <ShieldCheck size={12} /> Review
-                        </button>
-                        <button
-                          className="btn-primary-esg btn-sm"
-                          onClick={() => handleGenerate(r._id)}
-                          disabled={generating === r._id}
-                        >
-                          <RefreshCw size={12} /> {generating === r._id ? 'Generating...' : 'Generate'}
-                        </button>
-                      </>
+                      <button
+                        className="btn-primary-esg btn-sm"
+                        onClick={() => handleGenerate(r._id)}
+                        disabled={generating === r._id}
+                      >
+                        <RefreshCw size={12} /> {generating === r._id ? 'Generating...' : 'Generate'}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -352,7 +383,7 @@ const BRSR = () => {
                   <strong>Review Comment:</strong> {viewReport.reviewComment}
                 </div>
               )}
-              {isReviewer && (
+              {isSuperAdmin && (
                 <div style={{ marginTop: '1rem' }}>
                   <label className="form-label-esg">Reviewer Notes / Instructions</label>
                   <textarea
@@ -367,8 +398,26 @@ const BRSR = () => {
             </div>
             <div className="modal-footer" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
               <button className="btn-secondary-esg" onClick={() => setViewReport(null)}>Close</button>
-              {isReviewer && (
-                <div style={{ display: 'flex', gap: '0.4rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn-secondary-esg"
+                style={{ color: '#137333', borderColor: '#C6F6D5', background: '#F0FFF4' }}
+                onClick={() => exportBRSRReportToExcel(viewReport)}
+                title="Download full statutory Excel"
+              >
+                <FileSpreadsheet size={13} /> Download Excel
+              </button>
+              <button
+                type="button"
+                className="btn-secondary-esg"
+                style={{ color: '#C53030', borderColor: '#FED7D7', background: '#FFF5F5' }}
+                onClick={() => exportBRSRReportToPDF(viewReport)}
+                title="Download full statutory PDF"
+              >
+                <FileText size={13} /> Download PDF
+              </button>
+              <div style={{ display: 'flex', gap: '0.4rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                {isReviewer && (
                   <button
                     className="btn-primary-esg btn-sm"
                     onClick={() => handleGenerate(viewReport._id)}
@@ -377,48 +426,52 @@ const BRSR = () => {
                   >
                     <RefreshCw size={12} /> {generating === viewReport._id ? 'Generating...' : 'Regenerate'}
                   </button>
-                  <button
-                    className="btn-secondary-esg btn-sm"
-                    onClick={() => handleReviewReport(viewReport._id, 'under_review', viewReportComment)}
-                    disabled={acting}
-                  >
-                    Under Review
-                  </button>
-                  <button
-                    className="btn-secondary-esg btn-sm"
-                    onClick={() => handleReviewReport(viewReport._id, 'validate', viewReportComment)}
-                    disabled={acting}
-                  >
-                    Validate
-                  </button>
-                  <button
-                    className="btn-danger-esg btn-sm"
-                    onClick={() => {
-                      if (!viewReportComment.trim()) {
-                        alert('Please enter a review comment specifying what correction is needed.');
-                        return;
-                      }
-                      handleReviewReport(viewReport._id, 'correction', viewReportComment);
-                    }}
-                    disabled={acting}
-                  >
-                    Correction Required
-                  </button>
-                  <button
-                    className="btn-primary-esg btn-sm"
-                    onClick={() => handleReviewReport(viewReport._id, 'approve', viewReportComment)}
-                    disabled={acting}
-                  >
-                    <CheckCircle2 size={12} /> Approve
-                  </button>
-                </div>
-              )}
+                )}
+                {isSuperAdmin && (
+                  <>
+                    <button
+                      className="btn-secondary-esg btn-sm"
+                      onClick={() => handleReviewReport(viewReport._id, 'under_review', viewReportComment)}
+                      disabled={acting}
+                    >
+                      Under Review
+                    </button>
+                    <button
+                      className="btn-secondary-esg btn-sm"
+                      onClick={() => handleReviewReport(viewReport._id, 'validate', viewReportComment)}
+                      disabled={acting}
+                    >
+                      Validate
+                    </button>
+                    <button
+                      className="btn-danger-esg btn-sm"
+                      onClick={() => {
+                        if (!viewReportComment.trim()) {
+                          alert('Please enter a review comment specifying what correction is needed.');
+                          return;
+                        }
+                        handleReviewReport(viewReport._id, 'correction', viewReportComment);
+                      }}
+                      disabled={acting}
+                    >
+                      Correction Required
+                    </button>
+                    <button
+                      className="btn-primary-esg btn-sm"
+                      onClick={() => handleReviewReport(viewReport._id, 'approve', viewReportComment)}
+                      disabled={acting}
+                    >
+                      <CheckCircle2 size={12} /> Approve
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {reviewReportTarget && (
+      {isSuperAdmin && reviewReportTarget && (
         <ReviewActionModal
           isOpen={!!reviewReportTarget}
           onClose={() => setReviewReportTarget(null)}
