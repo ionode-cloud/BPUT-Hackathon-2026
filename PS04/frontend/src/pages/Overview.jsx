@@ -1,21 +1,10 @@
-import { MdWarning, MdDelete, MdOpacity, MdElectricBolt, MdAir, MdScience, MdGrain } from 'react-icons/md';
+import { MdDelete, MdOpacity, MdAir, MdScience, MdGrain } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getOverviewChartData } from '../utils/chartHelpers';
 
 export default function Overview({ data, history = [] }) {
   const d = data || {};
   const chartData = getOverviewChartData(d, history);
-
-  // Live Facility Zones derived from real sensor parameters
-  const zones = [
-    { name: 'Academic Block', stat: d.aqi != null ? `AQI: ${d.aqi}` : '-', pct: d.aqi ?? 0, color: d.aqi > 100 ? 'var(--orange)' : 'var(--primary)' },
-    { name: 'Health Center', stat: d.pm25 != null ? `PM2.5: ${d.pm25} µg/m³` : '-', pct: Math.min((d.pm25 ?? 0) * 1.5, 100), color: d.pm25 > 35 ? 'var(--orange)' : 'var(--green)' },
-    { name: 'Environmental & Chemistry Lab', stat: d.nh3 != null ? `NH3: ${d.nh3} ppm • VOC: ${d.voc ?? '-'} ppm` : '-', pct: Math.min(((d.nh3 ?? 0) / 25) * 100, 100), color: (d.nh3 > 25 || d.voc > 0.5) ? 'var(--orange)' : 'var(--green)' },
-    { name: 'Smart Parking', stat: d.parkingOccupancy != null ? `${d.parkingOccupancy}% occupied` : '-', pct: d.parkingOccupancy ?? 0, color: d.parkingOccupancy > 80 ? 'var(--red)' : 'var(--primary)' },
-    { name: 'Industrial Substation', stat: d.livePower != null ? `Live: ${d.livePower} kW` : '-', pct: d.utilization ?? 0, color: 'var(--primary)' },
-    { name: 'Main Reservoir', stat: d.tankLevel != null ? `${d.tankLevel}% capacity` : '-', pct: d.tankLevel ?? 0, color: d.tankLevel < 30 ? 'var(--red)' : 'var(--green)' },
-    { name: 'Waste Processing Zone', stat: d.averageFill != null ? `Avg fill: ${d.averageFill}%` : '-', pct: d.averageFill ?? 0, color: d.averageFill > 75 ? 'var(--red)' : 'var(--primary)' },
-  ];
 
   // Dynamic Sustainability Scorecard
   const energyEff = d.todaysEnergy ? Math.min(Math.round((1 - d.todaysEnergy / 220) * 100 + 40), 100) : 0;
@@ -82,33 +71,13 @@ export default function Overview({ data, history = [] }) {
         </div>
       </div>
 
-      {/* Dynamic Graph + Live Zones */}
-      <div className="two">
-        <div className="card">
-          <h3>
-            <span>Real-time Energy & Water Trends</span>
-            <span className="card-tag">Live Sensor Feed</span>
-          </h3>
-          <ChartBox id="overviewChart" type="line" labels={chartData.labels} datasets={chartData.datasets} />
-        </div>
-
-        <div className="card">
-          <h3>
-            <span>Live Facility Zones</span>
-            <span className="card-tag">{zones.length} Zones Active</span>
-          </h3>
-          <div className="map">
-            {zones.map(z => (
-              <div key={z.name} className="zone">
-                <strong>{z.name}</strong>
-                <span>{z.stat}</span>
-                <div className="progress">
-                  <i style={{ width: `${z.pct}%`, background: z.color }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Real-time Energy & Water Trends Graph (Full Width) */}
+      <div className="card card-full">
+        <h3>
+          <span>Real-time Energy & Water Trends</span>
+          <span className="card-tag">Live Sensor Feed</span>
+        </h3>
+        <ChartBox id="overviewChart" type="line" labels={chartData.labels} datasets={chartData.datasets} />
       </div>
 
       {/* Alerts, Scorecard, and Recommendations */}

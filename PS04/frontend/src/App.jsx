@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './index.css';
 
 import {
@@ -7,26 +7,26 @@ import {
   MdElectricBolt,
   MdWaterDrop,
   MdDelete,
-  MdDirectionsCar,
-  MdPrecisionManufacturing,
-  MdShield,
-  MdAutoAwesome,
   MdRefresh,
   MdSignalWifiOff,
+  MdLogout,
+  MdShield,
+  MdHome,
+  MdNotificationsActive,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
 import { useSensorData } from './hooks/useSensorData';
+import { loadPersistedAlerts, countActiveAlerts } from './utils/alertEngine';
 
-import Overview   from './pages/Overview';
-import AirQuality from './pages/AirQuality';
-import Energy     from './pages/Energy';
-import Water      from './pages/Water';
-import Waste      from './pages/Waste';
-import Traffic    from './pages/Traffic';
-import Assets     from './pages/Assets';
-import Safety     from './pages/Safety';
-import AIInsights from './pages/AIInsights';
+import LandingPage     from './pages/LandingPage';
+import AdminLoginModal from './components/AdminLoginModal';
+import Overview        from './pages/Overview';
+import AirQuality      from './pages/AirQuality';
+import Energy          from './pages/Energy';
+import Water           from './pages/Water';
+import Waste           from './pages/Waste';
+import AlertHistory    from './pages/AlertHistory';
 
 const PAGE_MAP = {
   overview: Overview,
@@ -34,23 +34,71 @@ const PAGE_MAP = {
   energy:   Energy,
   water:    Water,
   waste:    Waste,
-  traffic:  Traffic,
-  assets:   Assets,
-  safety:   Safety,
-  ai:       AIInsights,
+  alerts:   AlertHistory,
 };
 
 const NAV_ICONS = {
-  overview: <MdApartment              size={18} />,
-  air:      <MdAir                    size={18} />,
-  energy:   <MdElectricBolt           size={18} />,
-  water:    <MdWaterDrop              size={18} />,
-  waste:    <MdDelete                 size={18} />,
-  traffic:  <MdDirectionsCar          size={18} />,
-  assets:   <MdPrecisionManufacturing size={18} />,
-  safety:   <MdShield                 size={18} />,
-  ai:       <MdAutoAwesome            size={18} />,
+  overview: <MdApartment            size={18} />,
+  air:      <MdAir                  size={18} />,
+  energy:   <MdElectricBolt         size={18} />,
+  water:    <MdWaterDrop            size={18} />,
+  waste:    <MdDelete               size={18} />,
+  alerts:   <MdNotificationsActive  size={18} />,
 };
+
+// Parse active view and page from URL hash
+function parseRouteFromLocation() {
+  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+
+  if (hash === 'landing' || hash === '') {
+    return { view: 'landing', page: 'overview' };
+  }
+
+  if (PAGE_MAP[hash]) {
+    return { view: 'dashboard', page: hash };
+  }
+
+  if (hash.startsWith('dashboard/')) {
+    const sub = hash.replace('dashboard/', '');
+    if (PAGE_MAP[sub]) {
+      return { view: 'dashboard', page: sub };
+    }
+  }
+
+  if (hash === 'dashboard') {
+    return { view: 'dashboard', page: 'overview' };
+  }
+
+  return null;
+}
+
+// Determine initial route on page load / refresh
+function getInitialRoute() {
+  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+  if (hash) {
+    const hashRoute = parseRouteFromLocation();
+    if (hashRoute) {
+      return hashRoute;
+    }
+  }
+
+  // Fallback to localStorage so refresh keeps user on current page even without hash
+  try {
+    const savedView = localStorage.getItem('facility_ai_view');
+    const savedPage = localStorage.getItem('facility_ai_page');
+    if (savedView === 'dashboard') {
+      const validPage = PAGE_MAP[savedPage] ? savedPage : 'overview';
+      return { view: 'dashboard', page: validPage };
+    }
+    if (savedView === 'landing') {
+      return { view: 'landing', page: 'overview' };
+    }
+  } catch (err) {
+    console.error('Error reading localStorage for route:', err);
+  }
+
+  return { view: 'landing', page: 'overview' };
+}
 
 function useClock() {
   const [time, setTime] = useState('');
@@ -65,7 +113,19 @@ function useClock() {
 }
 
 export default function App() {
-  const [page, setPage] = useState('overview');
+  const [initialRoute] = useState(() => getInitialRoute());
+  const [view, setView] = useState(initialRoute.view); // 'landing' | 'dashboard'
+  const [page, setPage] = useState(initialRoute.page);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('facility_ai_admin') || sessionStorage.getItem('facility_ai_admin');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const clock = useClock();
 
   const {
@@ -78,13 +138,145 @@ export default function App() {
     updateData,
   } = useSensorData();
 
+  const isAdmin = Boolean(adminUser);
+
+  // Compute active unresolved high alerts count for sidebar notification badge
+  const activeAlertCount = useMemo(() => {
+    try {
+      const alertList = loadPersistedAlerts(data);
+      return countActiveAlerts(alertList);
+    } catch {
+      return 0;
+    }
+  }, [data]);
+
+  // Unified navigation helper updating state, storage, and URL hash
+  const navigateTo = (newView, newPage = page) => {
+    const targetPage = PAGE_MAP[newPage] ? newPage : 'overview';
+    setView(newView);
+    setPage(targetPage);
+
+    try {
+      localStorage.setItem('facility_ai_view', newView);
+      localStorage.setItem('facility_ai_page', targetPage);
+    } catch (e) {
+      console.error(e);
+    }
+
+    const targetHash = newView === 'landing' ? '#/' : `#/${targetPage}`;
+    if (window.location.hash !== targetHash) {
+      window.location.hash = targetHash;
+    }
+  };
+
+  // Sync hash in address bar silently when state changes
+  useEffect(() => {
+    const targetHash = view === 'landing' ? '#/' : `#/${page}`;
+    if (window.location.hash !== targetHash && window.location.hash !== `#${page}`) {
+      window.history.replaceState(null, '', targetHash);
+    }
+    try {
+      localStorage.setItem('facility_ai_view', view);
+      localStorage.setItem('facility_ai_page', page);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [view, page]);
+
+  // Handle browser back/forward buttons (hashchange event)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+      if (!hash || hash === 'landing') {
+        setView('landing');
+        try {
+          localStorage.setItem('facility_ai_view', 'landing');
+        } catch {}
+      } else {
+        const route = parseRouteFromLocation();
+        if (route) {
+          setView(route.view);
+          setPage(route.page);
+          try {
+            localStorage.setItem('facility_ai_view', route.view);
+            localStorage.setItem('facility_ai_page', route.page);
+          } catch {}
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleOpenLogin = () => {
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = (session) => {
+    setAdminUser(session);
+    setShowLoginModal(false);
+    navigateTo('dashboard', page);
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('facility_ai_admin');
+      sessionStorage.removeItem('facility_ai_admin');
+      localStorage.setItem('facility_ai_view', 'landing');
+      localStorage.setItem('facility_ai_page', 'overview');
+    } catch (e) {
+      console.error(e);
+    }
+    setAdminUser(null);
+    navigateTo('landing');
+  };
+
+  const handleGoToDashboard = (targetPage = 'overview') => {
+    const dest = typeof targetPage === 'string' && PAGE_MAP[targetPage] ? targetPage : 'overview';
+    if (isAdmin) {
+      navigateTo('dashboard', dest);
+    } else {
+      setPage(dest);
+      try {
+        localStorage.setItem('facility_ai_page', dest);
+      } catch {}
+      handleOpenLogin();
+    }
+  };
+
+  // If in landing view, render the single-page landing page
+  if (view === 'landing') {
+    return (
+      <>
+        <LandingPage
+          data={data}
+          isAdmin={isAdmin}
+          onOpenLogin={handleOpenLogin}
+          onGoToDashboard={handleGoToDashboard}
+        />
+        <AdminLoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </>
+    );
+  }
+
+  // Dashboard View (Operations Console)
   const PageComponent = PAGE_MAP[page] || Overview;
 
   return (
     <div className="app">
       {/* ════ Sidebar ════ */}
       <aside className="sidebar">
-        <div className="brand">
+        <div
+          className="brand"
+          onClick={() => navigateTo('landing')}
+          style={{ cursor: 'pointer' }}
+          title="Return to Public Landing Page"
+        >
           <span className="brand-dot" />
           <span>Facility AI</span>
         </div>
@@ -94,13 +286,44 @@ export default function App() {
             <button
               key={item.id}
               className={page === item.id ? 'active' : ''}
-              onClick={() => setPage(item.id)}
+              onClick={() => navigateTo('dashboard', item.id)}
             >
               <span className="nav-icon">{NAV_ICONS[item.id]}</span>
-              {item.label}
+              <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+              {item.id === 'alerts' && activeAlertCount > 0 && (
+                <span className="nav-badge-pill" title={`${activeAlertCount} Active High Alerts`}>
+                  {activeAlertCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
+
+        {/* Sidebar Bottom (Return to Landing & Logout Buttons) */}
+        <div className="sidebar-bottom">
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            style={{ marginBottom: '8px' }}
+            onClick={() => navigateTo('landing')}
+            title="Return to Landing Page"
+          >
+            <MdHome size={16} />
+            <span>Landing Page</span>
+          </button>
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Log out of Admin Console"
+          >
+            <MdLogout size={16} />
+            <span>Logout</span>
+          </button>
+          <div className="sidebar-version-tag">
+            Facility AI • PS04 Console
+          </div>
+        </div>
       </aside>
 
       {/* ════ Main Content ════ */}
@@ -114,6 +337,12 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            {/* Admin Badge */}
+            <div className="admin-status-pill" title={adminUser?.email || adminUser?.id || 'admin@gmail.com'}>
+              <MdShield size={14} color="#38bdf8" />
+              <span>{adminUser?.email || adminUser?.id ? `${adminUser.email || adminUser.id} (${adminUser?.role || 'Admin'})` : (adminUser?.name || 'admin@gmail.com')}</span>
+            </div>
+
             {/* Refresh Button */}
             <button
               className="btn-action"
@@ -127,7 +356,7 @@ export default function App() {
             {error ? (
               <div className="status status--error">
                 <MdSignalWifiOff size={14} />
-                API Connection Error
+                API Error
               </div>
             ) : isEmpty || !data ? (
               <div className="status status--empty">
@@ -169,6 +398,13 @@ export default function App() {
           <PageComponent data={data || {}} history={history || []} onUpdate={updateData} />
         )}
       </main>
+
+      {/* Admin Login Modal (in case requested within dashboard) */}
+      <AdminLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
