@@ -928,7 +928,7 @@ $$\text{Composite Score} = (E \times 0.40) + (S \times 0.30) + (G \times 0.30)$$
    ```bash
    npm run seed
    ```
-   *Purges dummy data and sets up the clean Super Admin account (`admin@esg360.com` / `Admin@123456`) ready for custom user input.*
+   *Purges dummy data and sets up the clean Super Admin account (`admin@esg360.com` / `Admin@12345`) ready for custom user input.*
 
 5. **Run the Development Servers**:
    In two separate terminals:
