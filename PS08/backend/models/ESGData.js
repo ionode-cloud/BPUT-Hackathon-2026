@@ -11,6 +11,7 @@ const WORKFLOW_STATUS = [
   'Approved',
   'Consolidated',
   'Reported',
+  'Rejected',
 ];
 
 const ENV_METRICS = [
@@ -133,7 +134,37 @@ const esgDataSchema = new mongoose.Schema(
     reportingPeriod: {
       year: { type: String, required: true },
       quarter: { type: String, enum: ['Q1', 'Q2', 'Q3', 'Q4', 'Annual'], default: 'Annual' },
+      month: { type: String, trim: true },
     },
+    // Common Fields for Every ESG Form
+    projectId: { type: String, trim: true },
+    projectName: { type: String, trim: true },
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+    },
+    organizationName: { type: String, trim: true },
+    organizationId: { type: String, trim: true },
+    groupCompany: { type: String, trim: true, default: 'MEIL Group (Megha Engineering & Infrastructures Ltd.)' },
+    subsidiaryName: { type: String, trim: true },
+    businessUnitName: { type: String, trim: true },
+    sectorType: { type: String, trim: true },
+    location: {
+      state: { type: String, trim: true },
+      district: { type: String, trim: true },
+      city: { type: String, trim: true },
+      address: { type: String, trim: true },
+    },
+    department: {
+      type: String,
+      enum: ['Environmental', 'HR', 'Safety', 'Compliance', 'Governance', 'General'],
+      default: 'Environmental',
+    },
+    submittedByName: { type: String, trim: true },
+    employeeId: { type: String, trim: true },
+    designation: { type: String, trim: true },
+    dateOfSubmission: { type: Date },
+    lastUpdatedDate: { type: Date, default: Date.now },
     organization: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
@@ -160,6 +191,26 @@ const esgDataSchema = new mongoose.Schema(
       trim: true,
     },
     evidence: [evidenceSchema],
+    supportingDocuments: [
+      {
+        fileName: String,
+        url: String,
+        fileSize: Number,
+        fileType: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+    aiValidationResults: [
+      {
+        type: { type: String },
+        severity: { type: String, enum: ['HIGH', 'MEDIUM', 'LOW', 'WARNING', 'INFO'] },
+        message: String,
+        suggestion: String,
+        field: String,
+        details: mongoose.Schema.Types.Mixed,
+        detectedAt: { type: Date, default: Date.now },
+      },
+    ],
     responsibleUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

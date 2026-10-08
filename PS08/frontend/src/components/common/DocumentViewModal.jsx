@@ -1,8 +1,21 @@
 import { useState } from 'react';
 import {
-  X, FileText, Download, ExternalLink, ShieldCheck, CheckCircle2,
-  Clock, AlertCircle, Building2, Tag, Calendar, User, File, Image, FileSpreadsheet
-} from 'lucide-react';
+  LuX as X,
+  LuFileText as FileText,
+  LuDownload as Download,
+  LuExternalLink as ExternalLink,
+  LuShieldCheck as ShieldCheck,
+  LuCircleCheck as CheckCircle2,
+  LuClock as Clock,
+  LuBuilding2 as Building2,
+  LuTag as Tag,
+  LuCalendar as Calendar,
+  LuUser as User,
+  LuFile as File,
+  LuImage as Image,
+  LuFileSpreadsheet as FileSpreadsheet
+} from 'react-icons/lu';
+import { FiAlertCircle as AlertCircle } from 'react-icons/fi';
 import StatusBadge from './StatusBadge';
 import { exportDocumentsToPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';

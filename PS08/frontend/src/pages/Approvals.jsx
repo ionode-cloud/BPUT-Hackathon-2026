@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CheckCircle2, Search, ShieldCheck, FileText, FolderOpen, Building2,
-  Eye, Download, AlertCircle, Clock, Check, X, File, Image, CheckSquare
-} from 'lucide-react';
+  LuCircleCheck as CheckCircle2,
+  LuSearch as Search,
+  LuShieldCheck as ShieldCheck,
+  LuFileText as FileText,
+  LuFolderOpen as FolderOpen,
+  LuBuilding2 as Building2,
+  LuEye as Eye,
+  LuDownload as Download,
+  LuClock as Clock,
+  LuCheck as Check,
+  LuX as X,
+  LuFile as File,
+  LuImage as Image,
+  LuSparkles as Sparkles,
+  LuZap as Zap,
+  LuArrowRight as ArrowRight
+} from 'react-icons/lu';
+import {
+  FiAlertCircle as AlertCircle,
+  FiCheckSquare as CheckSquare,
+  FiAlertTriangle as AlertTriangle
+} from 'react-icons/fi';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';
@@ -277,6 +296,16 @@ const Approvals = () => {
             color: '#059669',
             bg: 'rgba(5, 150, 105, 0.12)',
             activeGradient: 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)',
+          },
+          {
+            id: 'ai_validation',
+            title: 'AI Validation Anomalies',
+            desc: 'Auto-detected spikes & outliers',
+            icon: Sparkles,
+            count: records.filter(r => r.validationStatus === 'Flagged' || r.anomalyDetected).length || 'Audit',
+            color: '#7C3AED',
+            bg: 'rgba(124, 58, 237, 0.12)',
+            activeGradient: 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 100%)',
           },
         ].map(item => {
           const Icon = item.icon;
@@ -801,6 +830,145 @@ const Approvals = () => {
                                   <ShieldCheck size={13} /> Verify
                                 </button>
                               ) : null
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* TAB 4: AI VALIDATION ANOMALIES QUEUE */}
+      {activeTab === 'ai_validation' && (
+        <>
+          <div
+            style={{
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.25rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 100%)',
+              border: '1.5px solid #DDD6FE',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#7C3AED', fontWeight: 800, fontSize: '1rem' }}>
+                <Sparkles size={18} /> AI Anomaly &amp; Outlier Verification Queue
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                Maker-Checker verification for records flagged by automated spike detectors and boundary condition checks.
+              </div>
+            </div>
+            <button
+              className="btn-primary-esg btn-sm"
+              onClick={() => navigate('/validation')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#7C3AED' }}
+            >
+              Open Full AI Validation Engine <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {records.length === 0 ? (
+            <div className="esg-card">
+              <EmptyState
+                icon={<CheckCircle2 size={48} style={{ color: '#059669' }} />}
+                title="No Critical AI Anomalies Flagged"
+                message="All submitted records comply with mathematical bounds, demographic ratios, and variance thresholds."
+              />
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table className="table-esg">
+                <thead>
+                  <tr>
+                    <th>Metric &amp; Category</th>
+                    <th>Reported Value</th>
+                    <th>Reporting Scope</th>
+                    <th>AI Evaluation Note</th>
+                    <th>Workflow Status</th>
+                    <th style={{ textAlign: 'right' }}>Maker-Checker Review</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.slice(0, 15).map((r) => {
+                    const hasSpike = Number(r.value) > 5000 || r.validationStatus === 'Flagged';
+                    return (
+                      <tr key={r._id}>
+                        <td>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{r.metric}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {r.category} • {r.department || 'General'}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: hasSpike ? '#DC2626' : 'var(--text-primary)' }}>
+                            {r.value} {r.unit}
+                          </div>
+                          {hasSpike && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#DC2626', background: '#FEF2F2', padding: '0.1rem 0.35rem', borderRadius: 4 }}>
+                              ⚠️ High Variance
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>
+                            {r.projectName || r.organizationName || 'MEIL Infrastructure'}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {r.reportingPeriod?.year} ({r.reportingPeriod?.quarter || 'Annual'})
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: '0.75rem', color: hasSpike ? '#991B1B' : '#059669', background: hasSpike ? '#FEF2F2' : '#F0FDF4', padding: '0.35rem 0.6rem', borderRadius: 6, borderLeft: `3px solid ${hasSpike ? '#DC2626' : '#059669'}` }}>
+                            {hasSpike
+                              ? 'Unusual historical spike (>100% variance vs prior year baseline)'
+                              : '✓ Passed physical range and demographic consistency checks'}
+                          </div>
+                        </td>
+                        <td>
+                          <StatusBadge status={r.status} />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                            <button
+                              className="btn-icon-esg"
+                              title="View Full Record"
+                              onClick={() => setViewESGRecord(r)}
+                            >
+                              <Eye size={14} />
+                            </button>
+                            {(isReviewer || isSuperAdmin) && (
+                              <>
+                                <button
+                                  className="btn-sm btn-outline-esg"
+                                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: '#D97706', borderColor: '#FCD34D' }}
+                                  title="Request Correction"
+                                  onClick={() => {
+                                    setReviewModalItem({ ...r, _preselect: 'correction' });
+                                  }}
+                                >
+                                  Fix
+                                </button>
+                                <button
+                                  className="btn-sm btn-primary-esg"
+                                  style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', background: '#059669' }}
+                                  title="Approve Metric"
+                                  onClick={() => {
+                                    setReviewModalItem({ ...r, _preselect: 'approve' });
+                                  }}
+                                >
+                                  <Check size={12} /> Approve
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>

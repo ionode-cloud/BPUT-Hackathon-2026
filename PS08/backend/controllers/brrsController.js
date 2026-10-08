@@ -4,19 +4,34 @@ const { getAccessibleOrgIds } = require('./organizationController');
 const { createAuditLog } = require('../utils/auditLogger');
 const { BRSR_SECTIONS } = require('../models/BRSRReport');
 
-// Map ESG categories and metrics to BRSR sections/principles
 const getBRSRMapping = () => ({
   'Section A: General Disclosures': {
     categories: ['Environmental', 'Social', 'Governance'],
-    metrics: [],
+    metrics: ['Total Employees', 'Female Employees', 'Total Waste Generated', 'Total Energy Consumption'],
+  },
+  'Section B: Management and Process Disclosures': {
+    categories: ['Governance'],
+    metrics: ['Ethics Policy Coverage', 'Anti-Corruption Training Completion', 'Whistleblower Complaints Received'],
+  },
+  'Section C: Principle-wise Performance Disclosures': {
+    categories: ['Environmental', 'Social', 'Governance'],
+    metrics: ['Total Water Withdrawal', 'Scope 1 GHG Emissions', 'Lost Time Injury Rate', 'Training Hours'],
   },
   'Principle 1: Ethics and Transparency': {
     categories: ['Governance'],
     metrics: ['Ethics Policy Coverage', 'Anti-Corruption Training Completion', 'Corruption Cases Reported'],
   },
+  'Principle 2: Sustainable Products and Services': {
+    categories: ['Environmental', 'Governance'],
+    metrics: ['Renewable Energy Generated', 'Waste Recycled'],
+  },
   'Principle 3: Employee Well-being': {
     categories: ['Social'],
-    metrics: ['Total Employees', 'Employees with Health Insurance', 'Employees with Provident Fund', 'Training Hours'],
+    metrics: ['Total Employees', 'Female Employees', 'Employees with Health Insurance', 'Training Hours', 'Lost Time Injury Rate'],
+  },
+  'Principle 4: Stakeholder Interests': {
+    categories: ['Social'],
+    metrics: ['Grievances Received', 'Grievances Resolved'],
   },
   'Principle 5: Human Rights': {
     categories: ['Social'],
@@ -25,6 +40,10 @@ const getBRSRMapping = () => ({
   'Principle 6: Environmental Responsibility': {
     categories: ['Environmental'],
     metrics: ['Total Energy Consumption', 'Total Water Withdrawal', 'Scope 1 GHG Emissions', 'Scope 2 GHG Emissions', 'Total Waste Generated'],
+  },
+  'Principle 7: Policy Advocacy': {
+    categories: ['Governance'],
+    metrics: ['Ethics Policy Coverage'],
   },
   'Principle 8: Inclusive Growth': {
     categories: ['Social'],

@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit2, Trash2, Eye, EyeOff, X, CheckCircle2, Shield } from 'lucide-react';
+import {
+  LuSearch as Search,
+  LuFilter as Filter,
+  LuPlus as Plus,
+  LuTrash2 as Trash2,
+  LuEye as Eye,
+  LuEyeOff as EyeOff,
+  LuX as X,
+  LuCircleCheck as CheckCircle2,
+  LuShield as Shield
+} from 'react-icons/lu';
+import { FiEdit2 as Edit2 } from 'react-icons/fi';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { LoadingState, EmptyState } from '../components/common/States';
 import Pagination from '../components/common/Pagination';

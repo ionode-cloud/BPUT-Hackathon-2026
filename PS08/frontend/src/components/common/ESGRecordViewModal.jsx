@@ -1,8 +1,20 @@
 import { useState } from 'react';
 import {
-  X, FileText, Download, ShieldCheck, CheckCircle2,
-  AlertCircle, Building2, Calendar, FileSpreadsheet, Send, Edit2, Trash2
-} from 'lucide-react';
+  LuX as X,
+  LuFileText as FileText,
+  LuDownload as Download,
+  LuShieldCheck as ShieldCheck,
+  LuCircleCheck as CheckCircle2,
+  LuBuilding2 as Building2,
+  LuCalendar as Calendar,
+  LuFileSpreadsheet as FileSpreadsheet,
+  LuSend as Send,
+  LuTrash2 as Trash2
+} from 'react-icons/lu';
+import {
+  FiAlertCircle as AlertCircle,
+  FiEdit2 as Edit2
+} from 'react-icons/fi';
 import StatusBadge from './StatusBadge';
 import { exportSingleRecordToPDF, exportESGRecordsToExcel } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';

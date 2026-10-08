@@ -1,6 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Trash2, Eye, X, File, FileText, Image, Search, ShieldCheck, Building2, Layers, List, Clock, CheckCircle2, CheckSquare } from 'lucide-react';
+import {
+  LuUpload as Upload,
+  LuTrash2 as Trash2,
+  LuEye as Eye,
+  LuX as X,
+  LuFile as File,
+  LuFileText as FileText,
+  LuImage as Image,
+  LuSearch as Search,
+  LuShieldCheck as ShieldCheck,
+  LuBuilding2 as Building2,
+  LuLayers as Layers,
+  LuList as List,
+  LuClock as Clock,
+  LuCircleCheck as CheckCircle2
+} from 'react-icons/lu';
+import { FiCheckSquare as CheckSquare } from 'react-icons/fi';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';

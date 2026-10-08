@@ -1,4 +1,7 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  LuChevronLeft as ChevronLeft,
+  LuChevronRight as ChevronRight
+} from 'react-icons/lu';
 
 const Pagination = ({ page, pages, total, limit, onPageChange }) => {
   if (pages <= 1) return null;

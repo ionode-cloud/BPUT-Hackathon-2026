@@ -23,6 +23,7 @@ const organizationSchema = new mongoose.Schema(
     location: {
       address: { type: String, trim: true },
       city: { type: String, trim: true },
+      district: { type: String, trim: true },
       state: { type: String, trim: true },
       country: { type: String, trim: true, default: 'India' },
       pincode: { type: String, trim: true },
@@ -30,6 +31,10 @@ const organizationSchema = new mongoose.Schema(
     cin: { type: String, trim: true }, // Corporate Identification Number
     gstin: { type: String, trim: true },
     industry: { type: String, trim: true },
+    sector: { type: String, trim: true },
+    projectId: { type: String, trim: true },
+    subsidiaryName: { type: String, trim: true },
+    businessUnitName: { type: String, trim: true },
     description: { type: String, trim: true },
     status: {
       type: String,

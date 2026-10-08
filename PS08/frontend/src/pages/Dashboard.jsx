@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Database, CheckCircle2, Clock, AlertCircle, FileText, Leaf, Users, Shield, TrendingUp, Building2, FolderOpen, CheckSquare, ArrowRight } from 'lucide-react';
+import {
+  LuDatabase as Database,
+  LuCircleCheck as CheckCircle2,
+  LuClock as Clock,
+  LuFileText as FileText,
+  LuLeaf as Leaf,
+  LuUsers as Users,
+  LuShield as Shield,
+  LuTrendingUp as TrendingUp,
+  LuBuilding2 as Building2,
+  LuFolderOpen as FolderOpen,
+  LuArrowRight as ArrowRight
+} from 'react-icons/lu';
+import {
+  FiAlertCircle as AlertCircle,
+  FiCheckSquare as CheckSquare
+} from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import KPICard from '../components/common/KPICard';
 import { LoadingState } from '../components/common/States';
@@ -166,6 +182,7 @@ const Dashboard = () => {
           onClick={() => navigate(`/data-collection?status=Correction Required&year=${year}`)}
         />
       </div>
+
 
       {/* Completion Row */}
       <div className="esg-card" style={{ marginBottom: '1.75rem' }}>

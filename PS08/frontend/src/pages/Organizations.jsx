@@ -1,10 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Building2, Edit2, Eye, X, Users, Trash2,
-  CheckCircle2, ShieldCheck, Check, Clock, AlertCircle, FileCheck, Filter,
-  FolderOpen, CheckSquare, Search
-} from 'lucide-react';
+  LuPlus as Plus,
+  LuBuilding2 as Building2,
+  LuEye as Eye,
+  LuX as X,
+  LuUsers as Users,
+  LuTrash2 as Trash2,
+  LuCircleCheck as CheckCircle2,
+  LuShieldCheck as ShieldCheck,
+  LuCheck as Check,
+  LuClock as Clock,
+  LuFileCheck as FileCheck,
+  LuFilter as Filter,
+  LuFolderOpen as FolderOpen,
+  LuSearch as Search
+} from 'react-icons/lu';
+import {
+  FiEdit2 as Edit2,
+  FiAlertCircle as AlertCircle,
+  FiCheckSquare as CheckSquare
+} from 'react-icons/fi';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';
@@ -98,11 +114,14 @@ const OrgFormModal = ({ org, parents, onClose, onSaved }) => {
     type: org?.type || 'Group',
     parent: org?.parent?._id || org?.parent || '',
     city: org?.location?.city || '',
+    district: org?.location?.district || '',
     state: org?.location?.state || '',
     country: org?.location?.country || 'India',
     cin: org?.cin || '',
     gstin: org?.gstin || '',
     industry: org?.industry || '',
+    sector: org?.sector || 'Transportation',
+    projectId: org?.projectId || '',
     description: org?.description || '',
     status: org?.status || (org?._id ? 'Active' : 'Submitted'),
     verificationStatus: org?.verificationStatus || 'Pending Verification',
@@ -127,10 +146,12 @@ const OrgFormModal = ({ org, parents, onClose, onSaved }) => {
         name: form.name,
         type: form.type,
         parent: form.parent || null,
-        location: { city: form.city, state: form.state, country: form.country },
+        location: { city: form.city, district: form.district, state: form.state, country: form.country },
         cin: form.cin,
         gstin: form.gstin,
-        industry: form.industry,
+        industry: form.industry || form.sector,
+        sector: form.sector,
+        projectId: form.projectId,
         description: form.description,
         status: form.status,
         verificationStatus: form.verificationStatus,
@@ -180,6 +201,22 @@ const OrgFormModal = ({ org, parents, onClose, onSaved }) => {
                   </select>
                 </div>
               )}
+              {form.type === 'Project' && (
+                <>
+                  <div className="form-group-esg" style={{ marginBottom: 0 }}>
+                    <label className="form-label-esg">Sector Type</label>
+                    <select name="sector" className="form-control-esg" value={form.sector} onChange={handleChange}>
+                      {['Transportation', 'Water', 'Irrigation', 'Power', 'Oil & Gas', 'Construction', 'Renewable Energy', 'Other'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group-esg" style={{ marginBottom: 0 }}>
+                    <label className="form-label-esg">Project ID</label>
+                    <input type="text" name="projectId" className="form-control-esg" placeholder="e.g. PRJ-TRA-26-001" value={form.projectId} onChange={handleChange} />
+                  </div>
+                </>
+              )}
               <div className="form-group-esg" style={{ marginBottom: 0 }}>
                 <label className="form-label-esg">Industry</label>
                 <input type="text" name="industry" className="form-control-esg" placeholder="e.g. Infrastructure, Manufacturing" value={form.industry} onChange={handleChange} />
@@ -187,6 +224,10 @@ const OrgFormModal = ({ org, parents, onClose, onSaved }) => {
               <div className="form-group-esg" style={{ marginBottom: 0 }}>
                 <label className="form-label-esg">City</label>
                 <input type="text" name="city" className="form-control-esg" placeholder="City" value={form.city} onChange={handleChange} />
+              </div>
+              <div className="form-group-esg" style={{ marginBottom: 0 }}>
+                <label className="form-label-esg">District</label>
+                <input type="text" name="district" className="form-control-esg" placeholder="e.g. Hyderabad, Krishna, Ahmedabad" value={form.district} onChange={handleChange} />
               </div>
               <div className="form-group-esg" style={{ marginBottom: 0 }}>
                 <label className="form-label-esg">State</label>

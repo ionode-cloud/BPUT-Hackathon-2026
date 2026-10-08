@@ -16,6 +16,7 @@ import BRSR from './pages/BRSR';
 import Validation from './pages/Validation';
 import Documents from './pages/Documents';
 import Approvals from './pages/Approvals';
+import ConsolidationScoring from './pages/ConsolidationScoring';
 import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
@@ -42,6 +43,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/organizations" element={<Organizations />} />
             <Route path="/data-collection" element={<DataCollection />} />
+            <Route path="/consolidation" element={<ConsolidationScoring />} />
             <Route path="/environmental" element={<Environmental />} />
             <Route path="/social" element={<Social />} />
             <Route path="/governance" element={<Governance />} />

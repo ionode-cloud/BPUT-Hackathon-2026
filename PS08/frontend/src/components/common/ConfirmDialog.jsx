@@ -1,4 +1,5 @@
-import { X, AlertTriangle } from 'lucide-react';
+import { LuX as X } from 'react-icons/lu';
+import { FiAlertTriangle as AlertTriangle } from 'react-icons/fi';
 
 const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', confirmVariant = 'danger' }) => {
   if (!isOpen) return null;

@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import {
+  LuLeaf as Leaf,
+  LuUsers as Users,
+  LuAward as Award,
+  LuShield as Shield,
+  LuArrowRight as ArrowRight,
+  LuCircleCheck as CheckCircle2,
+  LuClock as Clock,
+  LuChartBar as BarChart3,
+  LuTrendingUp as TrendingUp
+} from 'react-icons/lu';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import ExportDropdown from '../components/common/ExportDropdown';
 import { exportAnalyticsToExcel, exportAnalyticsToPDF } from '../utils/exportUtils';
@@ -20,6 +32,7 @@ const YEARS = [];
 for (let y = 2020; y <= new Date().getFullYear() + 1; y++) YEARS.push(y.toString());
 
 const Analytics = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +72,27 @@ const Analytics = () => {
     value: s.count || s.value || 0,
   }));
 
+  // Department-wise stats & breakdown
+  const deptStats = (() => {
+    const defaultDepts = [
+      { id: 'Environmental', title: 'Environmental Officer', icon: Leaf, color: '#059669', bg: 'rgba(5, 150, 105, 0.08)', metrics: 'GHG Emissions, Water, Energy, Waste' },
+      { id: 'HR', title: 'HR Officer', icon: Users, color: '#2563EB', bg: 'rgba(37, 99, 235, 0.08)', metrics: 'Headcount, Diversity, Training Hours' },
+      { id: 'Safety', title: 'Safety Officer', icon: Award, color: '#EA580C', bg: 'rgba(234, 88, 12, 0.08)', metrics: 'Accidents, Near Misses, OHS Drills' },
+      { id: 'Compliance', title: 'Compliance Officer', icon: Shield, color: '#7C3AED', bg: 'rgba(124, 58, 237, 0.08)', metrics: 'Policies, Audits, Whistleblower, CSR' },
+    ];
+
+    const raw = data?.departmentBreakdown || [];
+    return defaultDepts.map(dept => {
+      const records = raw.filter(r => r._id?.department === dept.id);
+      const total = records.reduce((sum, r) => sum + (r.count || 0), 0);
+      const approved = records.filter(r => r._id?.status === 'Approved').reduce((sum, r) => sum + (r.count || 0), 0);
+      const inReview = records.filter(r => ['Under Review', 'Validated'].includes(r._id?.status)).reduce((sum, r) => sum + (r.count || 0), 0);
+      const pending = records.filter(r => ['Submitted', 'Draft', 'Correction Required'].includes(r._id?.status)).reduce((sum, r) => sum + (r.count || 0), 0);
+      const pct = total > 0 ? Math.round((approved / total) * 100) : 0;
+      return { ...dept, total, approved, inReview, pending, pct };
+    });
+  })();
+
 
 
   return (
@@ -95,6 +129,115 @@ const Analytics = () => {
 
       {loading ? <LoadingState /> : (
         <>
+          {/* Department-wise Collection & Progress Overview */}
+          <div style={{ marginBottom: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }}></span>
+                  Department-wise ESG Collection &amp; Review Progress
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Distributed data collection across MEIL departments &amp; reporting officers
+                </span>
+              </div>
+              <button
+                className="btn-outline-esg btn-sm"
+                onClick={() => navigate('/data-collection')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
+              >
+                Go to Data Collection <ArrowRight size={13} />
+              </button>
+            </div>
+
+            <div className="grid-4" style={{ gap: '1rem' }}>
+              {deptStats.map(dept => {
+                const Icon = dept.icon;
+                return (
+                  <div
+                    key={dept.id}
+                    className="esg-card"
+                    style={{
+                      padding: '1.15rem',
+                      borderRadius: 'var(--radius)',
+                      borderTop: `3px solid ${dept.color}`,
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => navigate(`/data-collection?dept=${dept.id}`)}
+                    title={`Click to view data collection for ${dept.title}`}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 8,
+                          background: dept.bg, color: dept.color,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <Icon size={18} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                            {dept.title}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {dept.metrics}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
+                      <div>
+                        <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          {dept.total}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.3rem' }}>
+                          records
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: dept.pct === 100 ? '#059669' : dept.color,
+                      }}>
+                        {dept.pct}% approved
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 99, overflow: 'hidden', marginBottom: '0.65rem' }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${dept.pct}%`,
+                        background: dept.color,
+                        borderRadius: 99,
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+
+                    {/* Status Pill Counts */}
+                    <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.7rem', flexWrap: 'wrap' }}>
+                      <span style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '0.15rem 0.4rem', borderRadius: 4, fontWeight: 600 }}>
+                        ✓ {dept.approved} Appr
+                      </span>
+                      {dept.inReview > 0 && (
+                        <span style={{ background: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', padding: '0.15rem 0.4rem', borderRadius: 4, fontWeight: 600 }}>
+                          ⚡ {dept.inReview} Review
+                        </span>
+                      )}
+                      {dept.pending > 0 && (
+                        <span style={{ background: 'rgba(241, 90, 36, 0.1)', color: '#F15A24', padding: '0.15rem 0.4rem', borderRadius: 4, fontWeight: 600 }}>
+                          ⏳ {dept.pending} Pend
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid-3" style={{ marginBottom: '1.75rem' }}>
             {/* Category Distribution */}
             <div className="chart-card">

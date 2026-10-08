@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Clock, ShieldCheck, X } from 'lucide-react';
+import {
+  LuCircleCheck as CheckCircle2,
+  LuClock as Clock,
+  LuShieldCheck as ShieldCheck,
+  LuX as X
+} from 'react-icons/lu';
+import { FiAlertCircle as AlertCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 const ACTIONS = [

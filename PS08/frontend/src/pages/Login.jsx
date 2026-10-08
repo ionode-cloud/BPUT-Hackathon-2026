@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Eye, EyeOff, LogIn, Sparkles, Mail, Lock,
-  ArrowLeft, AlertCircle
-} from 'lucide-react';
+  LuEye as Eye,
+  LuEyeOff as EyeOff,
+  LuLogIn as LogIn,
+  LuSparkles as Sparkles,
+  LuMail as Mail,
+  LuLock as Lock,
+  LuArrowLeft as ArrowLeft
+} from 'react-icons/lu';
+import { FiAlertCircle as AlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 import processCharacterImg from '../assets/process-character.jpg';

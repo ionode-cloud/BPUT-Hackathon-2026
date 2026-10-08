@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, FileSpreadsheet, FileText, ChevronDown, Loader2 } from 'lucide-react';
+import {
+  LuDownload as Download,
+  LuFileSpreadsheet as FileSpreadsheet,
+  LuFileText as FileText,
+  LuChevronDown as ChevronDown,
+  LuLoaderCircle as Loader2
+} from 'react-icons/lu';
 
 const ExportDropdown = ({
   onExportExcel,

@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Plus, FileText, RefreshCw, CheckCircle2, AlertCircle, X, Eye, ShieldCheck, Download, FileSpreadsheet } from 'lucide-react';
+import {
+  LuPlus as Plus,
+  LuFileText as FileText,
+  LuRefreshCw as RefreshCw,
+  LuCircleCheck as CheckCircle2,
+  LuX as X,
+  LuEye as Eye,
+  LuShieldCheck as ShieldCheck,
+  LuDownload as Download,
+  LuFileSpreadsheet as FileSpreadsheet
+} from 'react-icons/lu';
+import { FiAlertCircle as AlertCircle } from 'react-icons/fi';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import { LoadingState, EmptyState } from '../components/common/States';

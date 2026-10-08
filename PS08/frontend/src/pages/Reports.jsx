@@ -1,5 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FileText, FileSpreadsheet, Download, RefreshCw, Filter, Sparkles, CheckCircle2, ShieldCheck, Database, Leaf, Users, Shield } from 'lucide-react';
+import {
+  LuFileText as FileText,
+  LuFileSpreadsheet as FileSpreadsheet,
+  LuDownload as Download,
+  LuRefreshCw as RefreshCw,
+  LuFilter as Filter,
+  LuSparkles as Sparkles,
+  LuCircleCheck as CheckCircle2,
+  LuShieldCheck as ShieldCheck,
+  LuDatabase as Database,
+  LuLeaf as Leaf,
+  LuUsers as Users,
+  LuShield as Shield
+} from 'react-icons/lu';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import StatusBadge from '../components/common/StatusBadge';
 import Pagination from '../components/common/Pagination';

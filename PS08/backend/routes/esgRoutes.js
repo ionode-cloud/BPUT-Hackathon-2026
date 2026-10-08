@@ -8,11 +8,20 @@ const {
   submitESGRecord,
   reviewESGRecord,
   deleteESGRecord,
+  runAIValidation,
+  getConsolidatedData,
+  getESGScore,
+  createProject,
   getDashboardStats,
 } = require('../controllers/esgController');
 const { protect, reviewerOnly } = require('../middleware/auth');
 
 router.get('/dashboard', protect, getDashboardStats);
+router.get('/consolidated', protect, getConsolidatedData);
+router.get('/score', protect, getESGScore);
+router.post('/validate', protect, runAIValidation);
+router.post('/projects', protect, createProject);
+
 router.get('/', protect, getESGRecords);
 router.post('/', protect, createESGRecord);
 router.get('/:id', protect, getESGRecord);

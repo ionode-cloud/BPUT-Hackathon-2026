@@ -1,11 +1,29 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Database, Leaf, Users, Shield,
-  FileText, CheckSquare, FolderOpen, ClipboardCheck, BarChart2,
-  TrendingUp, ScrollText, ChevronLeft, ChevronRight, LogOut,
-  Settings, Menu, Sparkles
-} from 'lucide-react';
+  LuLayoutDashboard as LayoutDashboard,
+  LuBuilding2 as Building2,
+  LuDatabase as Database,
+  LuLeaf as Leaf,
+  LuUsers as Users,
+  LuShield as Shield,
+  LuFileText as FileText,
+  LuFolderOpen as FolderOpen,
+  LuClipboardCheck as ClipboardCheck,
+  LuTrendingUp as TrendingUp,
+  LuScrollText as ScrollText,
+  LuChevronLeft as ChevronLeft,
+  LuChevronRight as ChevronRight,
+  LuLogOut as LogOut,
+  LuSettings as Settings,
+  LuMenu as Menu,
+  LuSparkles as Sparkles,
+  LuLayers as Layers
+} from 'react-icons/lu';
+import {
+  FiCheckSquare as CheckSquare,
+  FiBarChart2 as BarChart2
+} from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -13,13 +31,14 @@ const NAV_ITEMS = [
     section: 'Main',
     items: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard' },
-      { path: '/organizations', label: 'Organizations', icon: Building2, permission: 'organizations' },
+      { path: '/organizations', label: 'Organizations & Projects', icon: Building2, permission: 'organizations' },
     ],
   },
   {
     section: 'ESG Data',
     items: [
       { path: '/data-collection', label: 'Data Collection', icon: Database, permission: 'esg' },
+      { path: '/consolidation', label: 'Consolidation & Scoring', icon: Layers, permission: 'esg' },
       { path: '/environmental', label: 'Environmental', icon: Leaf, permission: 'environmental' },
       { path: '/social', label: 'Social', icon: Users, permission: 'social' },
       { path: '/governance', label: 'Governance', icon: Shield, permission: 'governance' },
@@ -29,7 +48,7 @@ const NAV_ITEMS = [
     section: 'Compliance',
     items: [
       { path: '/brsr', label: 'BRSR Reporting', icon: FileText, permission: 'brsr' },
-      { path: '/validation', label: 'Validation', icon: CheckSquare, permission: 'validation' },
+      { path: '/validation', label: 'AI Validation', icon: Sparkles, permission: 'validation' },
       { path: '/documents', label: 'Documents', icon: FolderOpen, permission: 'documents' },
       { path: '/approvals', label: 'Approvals', icon: ClipboardCheck, permission: 'approvals' },
     ],

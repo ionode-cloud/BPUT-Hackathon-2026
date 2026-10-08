@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Bell, CheckCheck, Eye } from 'lucide-react';
+import {
+  LuBell as Bell,
+  LuCheckCheck as CheckCheck,
+  LuEye as Eye
+} from 'react-icons/lu';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { LoadingState, EmptyState } from '../components/common/States';
 import Pagination from '../components/common/Pagination';

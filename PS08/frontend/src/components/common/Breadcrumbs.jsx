@@ -1,4 +1,5 @@
-import { ChevronRight, Home } from 'lucide-react';
+import { LuChevronRight as ChevronRight } from 'react-icons/lu';
+import { FiHome as Home } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
 const Breadcrumbs = ({ items }) => {

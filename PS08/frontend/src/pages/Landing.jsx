@@ -1,11 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Leaf, Users, Shield, ArrowRight, ArrowLeft,
-  Sparkles, FileText,
-  Menu, X, ArrowUpRight,
-  Lock, Globe, Mail, Eye, EyeOff, LogIn, AlertCircle
-} from 'lucide-react';
+  LuLeaf as Leaf,
+  LuUsers as Users,
+  LuShield as Shield,
+  LuArrowRight as ArrowRight,
+  LuArrowLeft as ArrowLeft,
+  LuSparkles as Sparkles,
+  LuFileText as FileText,
+  LuMenu as Menu,
+  LuX as X,
+  LuArrowUpRight as ArrowUpRight,
+  LuLock as Lock,
+  LuGlobe as Globe,
+  LuMail as Mail,
+  LuEye as Eye,
+  LuEyeOff as EyeOff,
+  LuLogIn as LogIn
+} from 'react-icons/lu';
+import { FiAlertCircle as AlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import '../styles/landing.css';
 import '../styles/auth.css';
@@ -101,6 +114,26 @@ const Landing = () => {
   const [loginShowPass, setLoginShowPass] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [timeoutNotice, setTimeoutNotice] = useState(() => {
+    const notice = sessionStorage.getItem('esg_timeout_notice');
+    if (notice) {
+      sessionStorage.removeItem('esg_timeout_notice');
+      return notice;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('timeout') === 'superadmin_inactivity') {
+      return 'Super Admin session terminated after 30 seconds of inactivity to protect sensitive ESG and BRSR data.';
+    }
+    return '';
+  });
+
+  // Auto-open login modal if timed out
+  useEffect(() => {
+    if (timeoutNotice) {
+      setLoginForm({ email: 'admin@esg360.com', password: 'Admin@123456' });
+      setLoginModalOpen(true);
+    }
+  }, [timeoutNotice]);
 
   // Open modal and optionally autofill
   const openLoginModal = (email = '', password = '') => {
@@ -590,6 +623,29 @@ const Landing = () => {
                       Sign in to your ESG360 enterprise compliance portal
                     </p>
                   </div>
+
+                  {/* Timeout Notice Alert */}
+                  {timeoutNotice && (
+                    <div style={{
+                      padding: '0.85rem 1rem',
+                      background: '#FFF7ED',
+                      border: '1.5px solid #F97316',
+                      borderRadius: '10px',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.65rem',
+                      fontSize: '0.82rem',
+                      color: '#9A3412',
+                      lineHeight: 1.45,
+                    }}>
+                      <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>🛡️</span>
+                      <div>
+                        <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Session Security Timeout</strong>
+                        {timeoutNotice}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Error Alert */}
                   {loginError && (

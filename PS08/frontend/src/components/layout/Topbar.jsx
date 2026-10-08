@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Menu, ChevronDown, LogOut, CheckCheck, X } from 'lucide-react';
+import {
+  LuBell as Bell,
+  LuMenu as Menu,
+  LuChevronDown as ChevronDown,
+  LuLogOut as LogOut,
+  LuCheckCheck as CheckCheck,
+  LuX as X,
+  LuShieldAlert as ShieldAlert,
+  LuClock as Clock
+} from 'react-icons/lu';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -16,7 +25,7 @@ const TYPE_ICONS = {
 };
 
 const Topbar = ({ onMobileMenuToggle, pageTitle, pageSubtitle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin, timeoutSecondsSetting, updateTimeoutSetting } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -354,6 +363,46 @@ const Topbar = ({ onMobileMenuToggle, pageTitle, pageSubtitle }) => {
           )}
         </div>
 
+        {/* Super Admin Inactivity Timeout Protection Pill */}
+        {isSuperAdmin && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.28rem 0.65rem',
+              borderRadius: '99px',
+              background: '#FFF7ED',
+              border: '1px solid #FDBA74',
+              fontSize: '0.74rem',
+              fontWeight: 600,
+              color: '#C2410C',
+            }}
+            title="Super Admin Auto Session Timeout Protection: Session auto-terminates after inactivity"
+          >
+            <ShieldAlert size={13} style={{ color: '#EA580C' }} />
+            <span>Timeout: {timeoutSecondsSetting === 30 ? '30s (Test)' : `${timeoutSecondsSetting / 60}m`}</span>
+            <select
+              value={timeoutSecondsSetting}
+              onChange={(e) => updateTimeoutSetting(Number(e.target.value))}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#9A3412',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+              aria-label="Super Admin Timeout Duration"
+            >
+              <option value={30}>30s (Test/Demo)</option>
+              <option value={300}>5 min</option>
+              <option value={900}>15 min</option>
+            </select>
+          </div>
+        )}
+
         {/* User menu */}
         <div style={{ position: 'relative' }} ref={userMenuRef}>
           <button
@@ -394,7 +443,7 @@ const Topbar = ({ onMobileMenuToggle, pageTitle, pageSubtitle }) => {
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-md)',
-                minWidth: 180,
+                minWidth: 200,
                 zIndex: 200,
                 overflow: 'hidden',
               }}
@@ -402,6 +451,11 @@ const Topbar = ({ onMobileMenuToggle, pageTitle, pageSubtitle }) => {
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{user?.name}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.role}</div>
+                {isSuperAdmin && (
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.7rem', color: '#EA580C', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <ShieldAlert size={12} /> Auto-Logout: {timeoutSecondsSetting}s
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleLogout}
