@@ -68,7 +68,10 @@ const createAuditLogRecord = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
   }
 
-  const targetOrgId = organization || req.user.organization?._id || req.user.organization;
+  const assignedRole = userRole || 'Project/Department User';
+  const isSuperAdmin = assignedRole === 'Super Admin';
+
+  const targetOrgId = isSuperAdmin ? null : (organization || req.user.organization?._id || req.user.organization || null);
   let targetOrgName = '';
   if (targetOrgId) {
     const orgDoc = await Organization.findById(targetOrgId);
@@ -77,14 +80,13 @@ const createAuditLogRecord = async (req, res) => {
 
   const normalizedEmail = String(userEmail).trim().toLowerCase();
   const displayName = (userName && userName.trim()) || normalizedEmail.split('@')[0];
-  const assignedRole = userRole || 'Project/Department User';
 
   // Synchronize with User collection so newly created credentials can immediately log in
   let targetUser = await User.findOne({ email: normalizedEmail }).select('+password');
   if (targetUser) {
     targetUser.name = displayName;
     targetUser.role = assignedRole;
-    if (targetOrgId) targetUser.organization = targetOrgId;
+    targetUser.organization = isSuperAdmin ? null : (targetOrgId || null);
     targetUser.password = cleanPassword; // pre('save') hook will hash with bcrypt
     targetUser.isActive = true;
     await targetUser.save();
@@ -94,7 +96,7 @@ const createAuditLogRecord = async (req, res) => {
       email: normalizedEmail,
       password: cleanPassword,
       role: assignedRole,
-      organization: targetOrgId || null,
+      organization: isSuperAdmin ? null : (targetOrgId || null),
       isActive: true,
     });
   }
@@ -107,8 +109,8 @@ const createAuditLogRecord = async (req, res) => {
     password: cleanPassword,
     action: action || 'LOGIN',
     entity: entity || 'User',
-    organization: targetOrgId || null,
-    organizationName: targetOrgName,
+    organization: isSuperAdmin ? null : (targetOrgId || null),
+    organizationName: isSuperAdmin ? '' : targetOrgName,
     status: status || 'Success',
     ipAddress: ipAddress || req.ip || '127.0.0.1',
   });
@@ -149,7 +151,13 @@ const updateAuditLog = async (req, res) => {
   if (action !== undefined) log.action = action;
   if (entity !== undefined) log.entity = entity;
   if (status !== undefined) log.status = status;
-  if (organization !== undefined) {
+  const effectiveRole = userRole !== undefined ? userRole : log.userRole;
+  const isSuperAdmin = effectiveRole === 'Super Admin';
+
+  if (isSuperAdmin) {
+    log.organization = null;
+    log.organizationName = '';
+  } else if (organization !== undefined) {
     log.organization = organization || null;
     if (organization) {
       const orgDoc = await Organization.findById(organization);
@@ -175,7 +183,11 @@ const updateAuditLog = async (req, res) => {
     if (userName) targetUser.name = userName.trim();
     if (newEmail) targetUser.email = newEmail;
     if (userRole) targetUser.role = userRole;
-    if (organization !== undefined) targetUser.organization = organization || null;
+    if (isSuperAdmin) {
+      targetUser.organization = null;
+    } else if (organization !== undefined) {
+      targetUser.organization = organization || null;
+    }
     if (password) targetUser.password = password; // triggers pre('save') hash
     targetUser.isActive = true;
     await targetUser.save();
@@ -186,7 +198,7 @@ const updateAuditLog = async (req, res) => {
       email: newEmail,
       password: password || log.password || 'Admin@123456',
       role: userRole || log.userRole || 'Project/Department User',
-      organization: organization || log.organization || null,
+      organization: isSuperAdmin ? null : (organization || log.organization || null),
       isActive: true,
     });
     log.user = targetUser._id;

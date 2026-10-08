@@ -163,27 +163,50 @@ const ConsolidationScoring = () => {
             style={{
               padding: '1.75rem',
               marginBottom: '1.75rem',
-              background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-              color: '#FFFFFF',
-              boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.25)',
-              border: 'none',
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
+            {/* Top Tri-Color Executive Accent Bar */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #F15A24 0%, #0284C7 50%, #059669 100%)',
+              }}
+            />
+
             <div className="grid-3" style={{ gap: '2rem', alignItems: 'center' }}>
               {/* Overall Score Dial */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', borderRight: '1px solid rgba(255, 255, 255, 0.1)', paddingRight: '1.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1.5rem',
+                  borderRight: '1px solid #E2E8F0',
+                  paddingRight: '1.5rem',
+                }}
+              >
                 <div
                   style={{
                     width: '100px',
                     height: '100px',
                     borderRadius: '50%',
-                    background: `conic-gradient(${ratingColor} ${scoreData?.finalScore || 0}%, rgba(255, 255, 255, 0.1) 0)`,
+                    background: `conic-gradient(${ratingColor} ${scoreData?.finalScore || 0}%, #F1F5F9 0)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
                     flexShrink: 0,
-                    boxShadow: `0 0 20px ${ratingColor}40`,
+                    boxShadow: `0 4px 14px ${ratingColor}25`,
+                    border: '1px solid #E2E8F0',
                   }}
                 >
                   <div
@@ -191,17 +214,18 @@ const ConsolidationScoring = () => {
                       width: '82px',
                       height: '82px',
                       borderRadius: '50%',
-                      background: '#0F172A',
+                      background: '#FFFFFF',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      boxShadow: 'inset 0 2px 5px rgba(0, 0, 0, 0.04)',
                     }}
                   >
-                    <span style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
+                    <span style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                       {scoreData?.finalScore || 0}
                     </span>
-                    <span style={{ fontSize: '0.62rem', color: '#94A3B8', fontWeight: 600, letterSpacing: '0.05em' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: 700, letterSpacing: '0.05em' }}>
                       OUT OF 100
                     </span>
                   </div>
@@ -213,66 +237,97 @@ const ConsolidationScoring = () => {
                       style={{
                         padding: '0.2rem 0.6rem',
                         borderRadius: '6px',
-                        background: ratingColor,
-                        color: '#FFFFFF',
+                        background: (scoreData?.recordsEvaluated || 0) > 0 ? `${ratingColor}15` : '#F1F5F9',
+                        color: (scoreData?.recordsEvaluated || 0) > 0 ? ratingColor : '#64748B',
+                        border: `1px solid ${(scoreData?.recordsEvaluated || 0) > 0 ? `${ratingColor}40` : '#CBD5E1'}`,
                         fontSize: '0.85rem',
                         fontWeight: 800,
                         letterSpacing: '0.05em',
                       }}
                     >
-                      {scoreData?.rating || 'AAA'}
+                      {scoreData?.rating || 'N/A'}
                     </span>
-                    <span style={{ fontSize: '0.8rem', color: '#CBD5E1', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>
                       ESG Rating Grade
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#F8FAFC' }}>
-                    {scoreData?.band || 'Leader - Top Quartile ESG Performer'}
+                  <div style={{ fontSize: '0.98rem', fontWeight: 700, color: '#0F172A' }}>
+                    {scoreData?.band || 'Awaiting Approved Operational Records'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.3rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.3rem' }}>
                     Calculated from {scoreData?.recordsEvaluated || 0} approved records
                   </div>
                 </div>
               </div>
 
               {/* Dimension Scores (E, S, G) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {/* Environmental */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                    <span style={{ color: '#86EFAC', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Leaf size={12} /> Environmental Score (40% Weight)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Leaf size={13} style={{ color: '#059669' }} /> Environmental Score (40% Weight)
                     </span>
-                    <span>{scoreData?.environmentalScore?.score || 0} / 100</span>
+                    <span style={{ color: '#0F172A', fontWeight: 700 }}>
+                      {scoreData?.environmentalScore?.score || 0} / 100
+                    </span>
                   </div>
-                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${scoreData?.environmentalScore?.score || 0}%`, background: '#22C55E' }} />
+                  <div style={{ height: '7px', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${scoreData?.environmentalScore?.score || 0}%`,
+                        background: 'linear-gradient(90deg, #10B981, #059669)',
+                        borderRadius: '99px',
+                        transition: 'width 0.4s ease',
+                      }}
+                    />
                   </div>
                 </div>
 
                 {/* Social */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                    <span style={{ color: '#93C5FD', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Users size={12} /> Social Score (30% Weight)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Users size={13} style={{ color: '#2563EB' }} /> Social Score (30% Weight)
                     </span>
-                    <span>{scoreData?.socialScore?.score || 0} / 100</span>
+                    <span style={{ color: '#0F172A', fontWeight: 700 }}>
+                      {scoreData?.socialScore?.score || 0} / 100
+                    </span>
                   </div>
-                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${scoreData?.socialScore?.score || 0}%`, background: '#3B82F6' }} />
+                  <div style={{ height: '7px', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${scoreData?.socialScore?.score || 0}%`,
+                        background: 'linear-gradient(90deg, #3B82F6, #2563EB)',
+                        borderRadius: '99px',
+                        transition: 'width 0.4s ease',
+                      }}
+                    />
                   </div>
                 </div>
 
                 {/* Governance */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                    <span style={{ color: '#D8B4FE', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Shield size={12} /> Governance Score (30% Weight)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#6B21A8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Shield size={13} style={{ color: '#7C3AED' }} /> Governance Score (30% Weight)
                     </span>
-                    <span>{scoreData?.governanceScore?.score || 0} / 100</span>
+                    <span style={{ color: '#0F172A', fontWeight: 700 }}>
+                      {scoreData?.governanceScore?.score || 0} / 100
+                    </span>
                   </div>
-                  <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${scoreData?.governanceScore?.score || 0}%`, background: '#A855F7' }} />
+                  <div style={{ height: '7px', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${scoreData?.governanceScore?.score || 0}%`,
+                        background: 'linear-gradient(90deg, #A855F7, #7C3AED)',
+                        borderRadius: '99px',
+                        transition: 'width 0.4s ease',
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -280,28 +335,46 @@ const ConsolidationScoring = () => {
               {/* Sector Benchmark Comparison */}
               <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  padding: '1rem',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
+                  padding: '1.15rem',
+                  borderRadius: '12px',
+                  border: '1px solid #E2E8F0',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
                 }}
               >
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F15A24', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#EA580C', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   MEIL Sector Benchmark
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '0.25rem', color: '#FFFFFF' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.3rem', color: '#0F172A' }}>
                   {scoreData?.sectorBenchmark?.industry || 'Infrastructure & Engineering'}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '0.4rem' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38BDF8' }}>
-                    +{Math.round(scoreData?.sectorBenchmark?.difference || 19.5)} pts
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', marginTop: '0.4rem' }}>
+                  <span
+                    style={{
+                      fontSize: '1.35rem',
+                      fontWeight: 800,
+                      color: (scoreData?.recordsEvaluated || 0) > 0 ? '#0284C7' : '#64748B',
+                    }}
+                  >
+                    {(scoreData?.recordsEvaluated || 0) > 0
+                      ? `${(scoreData?.sectorBenchmark?.difference || 0) >= 0 ? '+' : ''}${Math.round(scoreData?.sectorBenchmark?.difference || 0)} pts`
+                      : '0 pts'}
                   </span>
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                     vs. Peer Avg ({scoreData?.sectorBenchmark?.peerAverage || 62.5})
                   </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#22C55E', marginTop: '0.35rem', fontWeight: 600 }}>
-                  ✓ Outperforming sector average by ~31%
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    color: (scoreData?.recordsEvaluated || 0) > 0 ? '#059669' : '#64748B',
+                    marginTop: '0.35rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {(scoreData?.recordsEvaluated || 0) > 0
+                    ? '✓ Outperforming sector average'
+                    : 'Awaiting operational data for peer comparison'}
                 </div>
               </div>
             </div>

@@ -125,7 +125,7 @@ const AuditLogs = () => {
       userEmail: '',
       userRole: 'Super Admin',
       password: 'Admin@123456',
-      organization: organizations[0]?._id || '',
+      organization: '',
     });
     setFormError('');
     setShowModalPassword(false);
@@ -133,13 +133,14 @@ const AuditLogs = () => {
   };
 
   const openEditModal = (log) => {
+    const role = log.userRole || log.user?.role || 'Super Admin';
     setEditingLog(log);
     setFormData({
       userName: log.userName || log.user?.name || '',
       userEmail: log.userEmail || log.user?.email || '',
-      userRole: log.userRole || log.user?.role || 'Super Admin',
+      userRole: role,
       password: log.password || 'Admin@123456',
-      organization: log.organization?._id || log.organization || '',
+      organization: role === 'Super Admin' ? '' : (log.organization?._id || log.organization || ''),
     });
     setFormError('');
     setShowModalPassword(false);
@@ -148,8 +149,15 @@ const AuditLogs = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.userName || !formData.userEmail || !formData.password || !formData.organization) {
-      setFormError('Please fill in user name, email, password, and organization.');
+    const isSuperAdminRole = formData.userRole === 'Super Admin';
+
+    if (!formData.userName || !formData.userEmail || !formData.password) {
+      setFormError('Please fill in user name, email, and password.');
+      return;
+    }
+
+    if (!isSuperAdminRole && !formData.organization && organizations.length > 0) {
+      setFormError('Please select an organization for this user role.');
       return;
     }
 
@@ -164,6 +172,7 @@ const AuditLogs = () => {
     try {
       const payload = {
         ...formData,
+        organization: isSuperAdminRole ? null : (formData.organization || null),
         action: editingLog?.action || 'LOGIN',
         entity: editingLog?.entity || 'User',
         status: editingLog?.status || 'Success',
@@ -342,7 +351,26 @@ const AuditLogs = () => {
                         {log.userRole || log.user?.role || '—'}
                       </td>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {log.organization?.name || log.organizationName || '—'}
+                        {log.organization?.name || log.organizationName || (
+                          (log.userRole === 'Super Admin' || log.user?.role === 'Super Admin') ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '99px',
+                                background: '#ECFDF5',
+                                color: '#059669',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                border: '1px solid #A7F3D0',
+                              }}
+                            >
+                              <Shield size={11} /> Global (All Orgs)
+                            </span>
+                          ) : '—'
+                        )}
                       </td>
 
                       {/* Password Column with show/hide toggle */}
@@ -511,22 +539,53 @@ const AuditLogs = () => {
                     </div>
                   </div>
 
-                  {/* Organization dropdown */}
+                  {/* Organization field (Not required for Super Admin) */}
                   <div className="form-group-esg" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label-esg">Organization <span className="required">*</span></label>
-                    <select
-                      className="form-control-esg"
-                      value={formData.organization}
-                      onChange={e => setFormData({ ...formData, organization: e.target.value })}
-                      required
-                    >
-                      <option value="">Select Organization</option>
-                      {organizations.map(org => (
-                        <option key={org._id} value={org._id}>
-                          {org.name} ({org.type})
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                      <label className="form-label-esg" style={{ marginBottom: 0 }}>
+                        Organization {formData.userRole !== 'Super Admin' && <span className="required">*</span>}
+                      </label>
+                      {formData.userRole === 'Super Admin' && (
+                        <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          ✓ Platform-wide (No Organization Required)
+                        </span>
+                      )}
+                    </div>
+
+                    {formData.userRole === 'Super Admin' ? (
+                      <div
+                        style={{
+                          padding: '0.75rem 0.95rem',
+                          background: '#F8FAFC',
+                          border: '1px dashed #CBD5E1',
+                          borderRadius: '8px',
+                          color: '#64748B',
+                          fontSize: '0.82rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem',
+                        }}
+                      >
+                        <Shield size={16} style={{ color: '#059669', flexShrink: 0 }} />
+                        <span>
+                          <strong>Super Admin:</strong> Holds global platform-wide administrative authority across all operating entities and business units. Setting an organization is not required.
+                        </span>
+                      </div>
+                    ) : (
+                      <select
+                        className="form-control-esg"
+                        value={formData.organization}
+                        onChange={e => setFormData({ ...formData, organization: e.target.value })}
+                        required={formData.userRole !== 'Super Admin'}
+                      >
+                        <option value="">Select Organization</option>
+                        {organizations.map(org => (
+                          <option key={org._id} value={org._id}>
+                            {org.name} ({org.type})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
               </div>

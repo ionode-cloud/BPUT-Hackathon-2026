@@ -9,6 +9,28 @@
  */
 
 const calculateESGScore = (records = [], projectMetadata = {}) => {
+  if (!records || records.length === 0) {
+    return {
+      finalScore: 0,
+      rating: 'N/A',
+      band: 'Awaiting Approved Operational Records',
+      color: '#94A3B8',
+      environmentalScore: { score: 0, weight: '40%', factors: [] },
+      socialScore: { score: 0, weight: '30%', factors: [] },
+      governanceScore: { score: 0, weight: '30%', factors: [] },
+      sectorBenchmark: {
+        industry: projectMetadata.sector || 'Infrastructure & Engineering',
+        peerAverage: 62.5,
+        environmentalPeerAvg: 58.0,
+        socialPeerAvg: 64.0,
+        governancePeerAvg: 65.5,
+        difference: 0,
+      },
+      recordsEvaluated: 0,
+      calculatedAt: new Date().toISOString(),
+    };
+  }
+
   // Create quick lookup map for metrics
   const m = {};
   records.forEach((r) => {

@@ -14,13 +14,6 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 import processCharacterImg from '../assets/process-character.jpg';
 
-/* ─── DEMO CREDENTIALS FOR RAPID 1-CLICK TESTING ─── */
-const DEMO_ACCOUNT = {
-  label: 'Super Admin',
-  email: 'admin@esg360.com',
-  password: 'Admin@123456',
-};
-
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -38,15 +31,6 @@ const Login = () => {
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
-  };
-
-  // One-click demo credentials autofill
-  const handleFillDemo = () => {
-    setForm({
-      email: DEMO_ACCOUNT.email,
-      password: DEMO_ACCOUNT.password,
-    });
-    setError('');
   };
 
   // Handle Login submission
@@ -106,35 +90,11 @@ const Login = () => {
             Empower your organization with multi-tier operational ESG data collection, evidence verification, and automated SEBI BRSR Core reporting.
           </p>
 
-          <div className="auth-feature-list">
-            <div className="auth-feature-item">
-              <div className="auth-feature-check">✓</div>
-              <span>100% SEBI BRSR Core (Principles 1-9) Aligned</span>
-            </div>
-            <div className="auth-feature-item">
-              <div className="auth-feature-check">✓</div>
-              <span>GHG Protocol Scope 1, 2 & 3 Automated Accounting</span>
-            </div>
-            <div className="auth-feature-item">
-              <div className="auth-feature-check">✓</div>
-              <span>4-Tier Hierarchical Rollup Without Double Counting</span>
-            </div>
-            <div className="auth-feature-item">
-              <div className="auth-feature-check">✓</div>
-              <span>Verifiable Cloudinary Evidence & Immutable Audit Logs</span>
-            </div>
-          </div>
-
           <img
             src={processCharacterImg}
             alt="ESG360 Compliance Workflow"
             className="auth-left-illustration"
           />
-        </div>
-
-        {/* Footer info */}
-        <div className="auth-left-footer">
-          &copy; 2026 ESG360. All rights reserved. BPUT Hackathon 2026.
         </div>
       </div>
 
@@ -161,24 +121,6 @@ const Login = () => {
                 <span>{error}</span>
               </div>
             )}
-
-            {/* 1-Click Demo Fill Box */}
-            <div className="auth-demo-box">
-              <div className="auth-demo-info">
-                <div className="auth-demo-label">
-                  <Sparkles size={13} style={{ color: '#F15A24' }} />
-                  Demo Super Admin
-                </div>
-                <div className="auth-demo-val">admin@esg360.com &bull; Admin@123456</div>
-              </div>
-              <button
-                type="button"
-                className="auth-demo-btn"
-                onClick={handleFillDemo}
-              >
-                Fill Credentials
-              </button>
-            </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} noValidate>

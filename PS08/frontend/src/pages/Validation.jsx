@@ -243,151 +243,10 @@ const MODULE_STREAMS = [
 
 const STREAM_DEFINITIONS = [...DEPARTMENT_STREAMS, ...MODULE_STREAMS];
 
-const INITIAL_SEED_REPORTS = [
-  {
-    reportId: 'VAL-ENV-2026-104',
-    streamKey: 'environmental',
-    streamName: '🌿 Environmental Data Stream',
-    organizationName: 'MEIL Infrastructure Group (All Sites)',
-    reportingYear: '2026',
-    validatedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    qualityScore: 92,
-    totalRecords: 18,
-    summary: { highCount: 1, medCount: 1, lowCount: 0, totalIssues: 2 },
-    issues: [
-      {
-        severity: 'HIGH',
-        type: 'MISSING_DATA',
-        metric: 'Total Water Withdrawal',
-        message: 'Missing Data Alert: Blank Water Consumption detected for Site 2.',
-        suggestion: 'Verify water meter flow logs or municipal intake invoices before BRSR consolidation.',
-      },
-      {
-        severity: 'MEDIUM',
-        type: 'ABNORMAL_CHANGE',
-        metric: 'Fuel Consumption',
-        message: 'Unusual Increase Detected: Fuel consumption jumped by +320% vs prior quarter.',
-        suggestion: 'Confirm if diesel gensets were deployed during tunnel corridor excavation.',
-      },
-    ],
-    status: 'Action Required',
-    auditedBy: 'ESG AI Copilot v2.4',
-  },
-  {
-    reportId: 'VAL-BRS-2026-410',
-    streamKey: 'brsr',
-    streamName: '📑 BRSR Reporting Disclosures',
-    organizationName: 'MEIL Infrastructure Group (All Sites)',
-    reportingYear: '2026',
-    validatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    qualityScore: 94,
-    totalRecords: 24,
-    summary: { highCount: 0, medCount: 1, lowCount: 1, totalIssues: 2 },
-    issues: [
-      {
-        severity: 'MEDIUM',
-        type: 'MISSING_DATA',
-        metric: 'Principle 6 - Scope 3 Value Chain Disclosures',
-        message: 'Upstream transportation & employee commute Scope 3 calculations require supplier activity data.',
-        suggestion: 'Request Scope 3 category data from top 10 supply-chain contractors before annual SEBI filing.',
-      },
-      {
-        severity: 'LOW',
-        type: 'INVALID_VALUE',
-        metric: 'Principle 3 - Gender Diversity Ratio',
-        message: 'Permanent female employee ratio (14.2%) confirmed within SEBI Core disclosure standard.',
-        suggestion: 'Include board-level diversity targets in Section B disclosure.',
-      },
-    ],
-    status: 'Verified',
-    auditedBy: 'ESG AI Copilot v2.4',
-  },
-  {
-    reportId: 'VAL-SOC-2026-218',
-    streamKey: 'social',
-    streamName: '👥 Social & HR Data Stream',
-    organizationName: 'MEIL Infrastructure Group (All Sites)',
-    reportingYear: '2026',
-    validatedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-    qualityScore: 98,
-    totalRecords: 14,
-    summary: { highCount: 0, medCount: 1, lowCount: 0, totalIssues: 1 },
-    issues: [
-      {
-        severity: 'LOW',
-        type: 'MISSING_DATA',
-        metric: 'Training Hours',
-        message: 'Missing Unit Alert: No measurement unit specified for Training Hours.',
-        suggestion: 'Specify standard hours/employee.',
-      },
-    ],
-    status: 'Verified',
-    auditedBy: 'ESG AI Copilot v2.4',
-  },
-  {
-    reportId: 'VAL-DOC-2026-522',
-    streamKey: 'documents',
-    streamName: '📂 Documents & Evidence Vault',
-    organizationName: 'MEIL Infrastructure Group (All Sites)',
-    reportingYear: '2026',
-    validatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    qualityScore: 88,
-    totalRecords: 16,
-    summary: { highCount: 1, medCount: 1, lowCount: 0, totalIssues: 2 },
-    issues: [
-      {
-        severity: 'HIGH',
-        type: 'MISSING_DATA',
-        metric: 'Third-Party Water Meter Calibration Certificate',
-        message: 'Evidence File Alert: Missing NABL calibration certificate for primary intake flow meters.',
-        suggestion: 'Upload statutory water meter calibration certificate to the Documents Vault to pass audit.',
-      },
-      {
-        severity: 'MEDIUM',
-        type: 'MISSING_DATA',
-        metric: 'Hazardous Waste Manifest & Weighbridge Slips',
-        message: 'State Pollution Control Board manifest for Q3 hazardous chemical waste disposal missing stamp.',
-        suggestion: 'Verify authorized re-processor acknowledgement receipt.',
-      },
-    ],
-    status: 'Action Required',
-    auditedBy: 'ESG AI Copilot v2.4',
-  },
-  {
-    reportId: 'VAL-ALL-2026-302',
-    streamKey: 'all',
-    streamName: '🌐 Comprehensive Full Audit',
-    organizationName: 'MEIL Infrastructure Group (All Sites)',
-    reportingYear: '2026',
-    validatedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-    qualityScore: 95,
-    totalRecords: 48,
-    summary: { highCount: 1, medCount: 2, lowCount: 1, totalIssues: 4 },
-    issues: [
-      {
-        severity: 'HIGH',
-        type: 'MISSING_DATA',
-        metric: 'Total Water Withdrawal',
-        message: 'Missing Data Alert: Blank Water Consumption on Project Site B.',
-        suggestion: 'Check utility tanker manifest before BRSR compilation.',
-      },
-      {
-        severity: 'MEDIUM',
-        type: 'ABNORMAL_CHANGE',
-        metric: 'Electricity Consumption',
-        message: 'Unusual Increase Detected: Grid power consumption increased by +280%.',
-        suggestion: 'Check new tunnel boring machine commissioning logs.',
-      },
-    ],
-    status: 'Action Required',
-    auditedBy: 'ESG AI Copilot v2.4',
-  },
-];
-
 const Validation = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  // 'copilot' | 'reports_table' | 'alerts' | 'simulator' | 'rules'
+  // 'copilot' | 'reports_table' | 'alerts' | 'rules'
   const [activeTab, setActiveTab] = useState('copilot');
   const [analyzing, setAnalyzing] = useState(false);
   const [validationData, setValidationData] = useState(null);
@@ -422,9 +281,22 @@ const Validation = () => {
   const [reportsHistory, setReportsHistory] = useState(() => {
     try {
       const saved = localStorage.getItem('esg_ai_validation_reports');
-      return saved ? JSON.parse(saved) : INITIAL_SEED_REPORTS;
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed)
+        ? parsed.filter(
+            (r) =>
+              ![
+                'VAL-ENV-2026-104',
+                'VAL-BRS-2026-410',
+                'VAL-SOC-2026-218',
+                'VAL-DOC-2026-522',
+                'VAL-ALL-2026-901',
+              ].includes(r.reportId)
+          )
+        : [];
     } catch {
-      return INITIAL_SEED_REPORTS;
+      return [];
     }
   });
 

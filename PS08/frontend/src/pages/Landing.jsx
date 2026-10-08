@@ -92,15 +92,6 @@ const PROCESS_STEPS = [
   },
 ];
 
-/* ─── DEMO ACCOUNTS FOR INSTANT LOGIN ─── */
-const DEMO_USERS = [
-  { role: 'Super Admin', email: 'admin@esg360.com', password: 'Admin@123456' },
-  { role: 'Group ESG Admin', email: 'group.admin@esg360.com', password: 'Admin@123456' },
-  { role: 'Subsidiary Admin', email: 'energy.sub@esg360.com', password: 'Admin@123456' },
-  { role: 'BU Manager', email: 'solar.bu@esg360.com', password: 'Admin@123456' },
-  { role: 'Facility User', email: 'bhadla.user@esg360.com', password: 'Admin@123456' },
-];
-
 const Landing = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -130,7 +121,7 @@ const Landing = () => {
   // Auto-open login modal if timed out
   useEffect(() => {
     if (timeoutNotice) {
-      setLoginForm({ email: 'admin@esg360.com', password: 'Admin@123456' });
+      setLoginForm({ email: '', password: '' });
       setLoginModalOpen(true);
     }
   }, [timeoutNotice]);
@@ -654,27 +645,6 @@ const Landing = () => {
                       <span>{loginError}</span>
                     </div>
                   )}
-
-                  {/* 1-Click Demo Super Admin Box */}
-                  <div className="auth-demo-box">
-                    <div className="auth-demo-info">
-                      <div className="auth-demo-label">
-                        <Sparkles size={13} style={{ color: '#F15A24' }} />
-                        Demo Super Admin
-                      </div>
-                      <div className="auth-demo-val">admin@esg360.com &bull; Admin@123456</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="auth-demo-btn"
-                      onClick={() => {
-                        setLoginForm({ email: 'admin@esg360.com', password: 'Admin@123456' });
-                        setLoginError('');
-                      }}
-                    >
-                      Fill Credentials
-                    </button>
-                  </div>
 
                   {/* Login Form */}
                   <form onSubmit={handleLoginSubmit} noValidate>
