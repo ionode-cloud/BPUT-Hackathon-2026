@@ -11,13 +11,13 @@ export const NAV_ITEMS = [
 ];
 
 export const PAGE_TITLES = {
-  overview:    'Facility Overview',
-  air:         'Air Quality Monitoring',
+  overview:    'Overview',
+  air:         'Air and Weather Quality',
   energy:      'Energy Optimization',
   water:       'Water Management',
   waste:       'Waste Management',
-  alerts:      'High Alert Incident History',
+  alerts:      'Alerts and History',
   priority:    'Priority Engine & Triage Matrix',
-  forecasting: 'Predictive AI Forecasting & Trends',
+  forecasting: 'Predictive Forecasting & Trends',
 };
 

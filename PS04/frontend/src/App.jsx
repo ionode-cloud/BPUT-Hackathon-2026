@@ -287,7 +287,7 @@ export default function App() {
           title="Return to Public Landing Page"
         >
           <span className="brand-dot" />
-          <span>Facility AI</span>
+          <span>Greenexa</span>
         </div>
 
         <nav className="nav">
@@ -329,9 +329,6 @@ export default function App() {
             <MdLogout size={16} />
             <span>Logout</span>
           </button>
-          <div className="sidebar-version-tag">
-            Facility AI • PS04 Console
-          </div>
         </div>
       </aside>
 
@@ -414,7 +411,12 @@ export default function App() {
 
         {/* Active Page — Always rendered; displays '-' if API has no data */}
         {(!loading || data || isEmpty) && (
-          <PageComponent data={data || {}} history={history || []} onUpdate={updateData} />
+          <PageComponent
+            data={data || {}}
+            history={history || []}
+            onUpdate={updateData}
+            onNavigate={navigateTo}
+          />
         )}
       </main>
 

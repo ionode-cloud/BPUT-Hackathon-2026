@@ -34,7 +34,7 @@ export default function Overview({ data, history = [] }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="overview" tabLabel="Facility Overview" data={d} history={history} />
+          <ExcelDownloadBtn tabName="overview" tabLabel="Overview" data={d} history={history} />
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export default function Overview({ data, history = [] }) {
       {/* Alerts and Scorecard */}
       <div className="two">
         <div className="card">
-          <h3>Active Facility Alerts</h3>
+          <h3>Active Alerts</h3>
           {d.pm25 > 35 && (
             <div className="alert">
               <div className="alert-icon"><MdAir size={22} color="#f59e0b" /></div>

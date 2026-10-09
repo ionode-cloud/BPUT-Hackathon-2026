@@ -22,6 +22,37 @@ function normalizeValveFields(body) {
   return body;
 }
 
+// ── Persistent Actuator States for Water Valves ─────────────────────────────
+// Valves are manually operated actuators and must NOT auto-reset to OFF
+// when periodic sensor nodes post readings without valve state.
+let persistentValveState = {
+  valve1: null,
+  valve2: null,
+};
+
+async function getOrInitValveState() {
+  if (persistentValveState.valve1 === null || persistentValveState.valve2 === null) {
+    try {
+      const latestWithValve = await SensorData.findOne({
+        $or: [{ valve1: { $exists: true } }, { valve2: { $exists: true } }]
+      }).sort({ timestamp: -1 }).lean();
+      if (latestWithValve) {
+        if (persistentValveState.valve1 === null && latestWithValve.valve1 !== undefined) {
+          persistentValveState.valve1 = Boolean(latestWithValve.valve1);
+        }
+        if (persistentValveState.valve2 === null && latestWithValve.valve2 !== undefined) {
+          persistentValveState.valve2 = Boolean(latestWithValve.valve2);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    if (persistentValveState.valve1 === null) persistentValveState.valve1 = false;
+    if (persistentValveState.valve2 === null) persistentValveState.valve2 = false;
+  }
+  return persistentValveState;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    GET  /api/data          → latest record (default) OR all records with ?all=true
    GET  /api/data?all=true → array of all records, newest first
@@ -76,8 +107,11 @@ router.get('/', async (req, res) => {
     // Ensure valve1 and valve2 default to boolean false if not defined in older records
     const v1 = consolidated.valve1 !== undefined ? consolidated.valve1 : (consolidated.Valve1 !== undefined ? consolidated.Valve1 : false);
     const v2 = consolidated.valve2 !== undefined ? consolidated.valve2 : (consolidated.Valve2 !== undefined ? consolidated.Valve2 : false);
-    consolidated.valve1 = Boolean(v1);
-    consolidated.valve2 = Boolean(v2);
+    
+    // Always honor persistent manual actuator state set by operator clicks
+    const currentValves = await getOrInitValveState();
+    consolidated.valve1 = currentValves.valve1 !== null ? currentValves.valve1 : Boolean(v1);
+    consolidated.valve2 = currentValves.valve2 !== null ? currentValves.valve2 : Boolean(v2);
     delete consolidated.Valve1;
     delete consolidated.Valve2;
 
@@ -98,8 +132,9 @@ router.get('/:id', async (req, res) => {
     }
     const v1 = record.valve1 !== undefined ? record.valve1 : (record.Valve1 !== undefined ? record.Valve1 : false);
     const v2 = record.valve2 !== undefined ? record.valve2 : (record.Valve2 !== undefined ? record.Valve2 : false);
-    record.valve1 = Boolean(v1);
-    record.valve2 = Boolean(v2);
+    const currentValves = await getOrInitValveState();
+    record.valve1 = currentValves.valve1 !== null ? currentValves.valve1 : Boolean(v1);
+    record.valve2 = currentValves.valve2 !== null ? currentValves.valve2 : Boolean(v2);
     delete record.Valve1;
     delete record.Valve2;
     res.json({ success: true, data: record });
@@ -120,6 +155,8 @@ router.post('/', async (req, res) => {
     }
     normalizeValveFields(body);
 
+    const currentValves = await getOrInitValveState();
+
     // If incoming body is partial, inherit previous known readings so different sensor channels don't blank each other out
     const latest = await SensorData.findOne().sort({ timestamp: -1 }).lean();
     let payload = { ...body };
@@ -127,6 +164,27 @@ router.post('/', async (req, res) => {
       const { _id, createdAt, updatedAt, ...prevFields } = latest;
       payload = { ...prevFields, ...body };
     }
+
+    // Actuators (Valve 1 & 2) must only change via explicit operator action (PUT), NEVER auto-revert from sensor telemetry POSTs
+    if (body.valve1 === undefined && body.Valve1 === undefined) {
+      payload.valve1 = currentValves.valve1;
+    } else if (body.source === 'sensor' || (!body.source && body.source !== 'manual')) {
+      // Periodic sensor ingestion preserves current valve state unless explicitly forced by manual operator
+      payload.valve1 = currentValves.valve1;
+    } else {
+      persistentValveState.valve1 = Boolean(body.valve1);
+      payload.valve1 = persistentValveState.valve1;
+    }
+
+    if (body.valve2 === undefined && body.Valve2 === undefined) {
+      payload.valve2 = currentValves.valve2;
+    } else if (body.source === 'sensor' || (!body.source && body.source !== 'manual')) {
+      payload.valve2 = currentValves.valve2;
+    } else {
+      persistentValveState.valve2 = Boolean(body.valve2);
+      payload.valve2 = persistentValveState.valve2;
+    }
+
     // Always assign fresh current timestamp so new Postman requests become the latest active snapshot
     payload.timestamp = new Date();
     const record = await SensorData.create(payload);
@@ -150,6 +208,13 @@ router.put('/', async (req, res) => {
       try { body = JSON.parse(body); } catch (e) {}
     }
     normalizeValveFields(body);
+
+    if (body.valve1 !== undefined) {
+      persistentValveState.valve1 = Boolean(body.valve1);
+    }
+    if (body.valve2 !== undefined) {
+      persistentValveState.valve2 = Boolean(body.valve2);
+    }
 
     // Find the latest record to update, or create one if database is empty
     let record = await SensorData.findOne().sort({ timestamp: -1 });
@@ -191,6 +256,13 @@ router.put('/:id', async (req, res) => {
       try { body = JSON.parse(body); } catch (e) {}
     }
     normalizeValveFields(body);
+
+    if (body.valve1 !== undefined) {
+      persistentValveState.valve1 = Boolean(body.valve1);
+    }
+    if (body.valve2 !== undefined) {
+      persistentValveState.valve2 = Boolean(body.valve2);
+    }
 
     const updateData = { ...body };
     if (!body.timestamp) {

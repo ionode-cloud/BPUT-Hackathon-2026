@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import {
   MdWaterDrop,
   MdSpeed,
@@ -24,20 +24,33 @@ export default function Water({ data, history = [], onUpdate }) {
   const apiValve1 = Boolean(d.valve1 ?? false);
   const apiValve2 = Boolean(d.valve2 ?? false);
 
-  // Local optimistic state for instant UI response
-  const [localValve1, setLocalValve1] = useState(null);
-  const [localValve2, setLocalValve2] = useState(null);
+  // Persistent valve state controlled strictly by manual user clicks (never auto-turns off or on)
+  const [valve1, setValve1] = useState(() => {
+    try {
+      const saved = localStorage.getItem('facility_actuator_valve1');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return apiValve1;
+  });
+
+  const [valve2, setValve2] = useState(() => {
+    try {
+      const saved = localStorage.getItem('facility_actuator_valve2');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return apiValve2;
+  });
+
   const [isUpdating1, setIsUpdating1] = useState(false);
   const [isUpdating2, setIsUpdating2] = useState(false);
-  const [, startTransition] = useTransition();
 
-  const valve1 = localValve1 !== null ? localValve1 : apiValve1;
-  const valve2 = localValve2 !== null ? localValve2 : apiValve2;
-
-  // Toggle or set Valve 1 state
+  // Toggle or set Valve 1 state (Strictly manual: ON/OFF ONLY when clicked)
   const handleValve1 = async (targetState) => {
     const nextVal = typeof targetState === 'boolean' ? targetState : !valve1;
-    setLocalValve1(nextVal);
+    setValve1(nextVal);
+    try {
+      localStorage.setItem('facility_actuator_valve1', String(nextVal));
+    } catch {}
     setIsUpdating1(true);
     try {
       if (onUpdate) {
@@ -51,20 +64,19 @@ export default function Water({ data, history = [], onUpdate }) {
       }
     } catch (err) {
       console.error('Failed to update Valve 1:', err);
-      // Revert on failure
-      setLocalValve1(apiValve1);
     } finally {
       setIsUpdating1(false);
-      startTransition(() => {
-        setLocalValve1(null);
-      });
+      // Preserved! Never reset to null or auto-revert to off!
     }
   };
 
-  // Toggle or set Valve 2 state
+  // Toggle or set Valve 2 state (Strictly manual: ON/OFF ONLY when clicked)
   const handleValve2 = async (targetState) => {
     const nextVal = typeof targetState === 'boolean' ? targetState : !valve2;
-    setLocalValve2(nextVal);
+    setValve2(nextVal);
+    try {
+      localStorage.setItem('facility_actuator_valve2', String(nextVal));
+    } catch {}
     setIsUpdating2(true);
     try {
       if (onUpdate) {
@@ -78,13 +90,9 @@ export default function Water({ data, history = [], onUpdate }) {
       }
     } catch (err) {
       console.error('Failed to update Valve 2:', err);
-      // Revert on failure
-      setLocalValve2(apiValve2);
     } finally {
       setIsUpdating2(false);
-      startTransition(() => {
-        setLocalValve2(null);
-      });
+      // Preserved! Never reset to null or auto-revert to off!
     }
   };
 

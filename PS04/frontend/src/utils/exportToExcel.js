@@ -345,6 +345,24 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
       });
       const wsHourly = XLSX.utils.json_to_sheet(hourlyPredictions);
       XLSX.utils.book_append_sheet(wb, wsHourly, '24h Hourly Forecast Curve');
+
+      // 3. Extra Clean Energy & Microgrid Infeed Sheet
+      const extraRows = [
+        ['Facility AI - Extra Clean Energy & Microgrid Injection Report', ''],
+        ['Report Generated', new Date().toLocaleString()],
+        ['Campus Solar Array', 'Rooftop Monocrystalline PV Bifacial Array'],
+        ['Storage System', 'Lithium Iron Phosphate (LiFePO4) BESS (48 kWh)'],
+        ['', ''],
+        ['Extra Clean Metric', 'Simulated Value', 'Unit', 'Operational Target / Tariff Impact'],
+        ['Extra Solar PV Injection', safeVal(extraData?.extraSolarKw, 25), 'kW', 'Midday peak solar infeed'],
+        ['Extra Clean Generation Today', safeVal(extraData?.totalExtraEnergyKwh, 105), 'kWh', 'Direct renewable clean energy production'],
+        ['BESS Battery Dispatch Mode', safeVal(extraData?.batteryMode, 'Peak Shaving'), 'State', 'Active load leveling during evening peak tariff'],
+        ['Net Grid Energy Reduction', '-38.5%', '%', 'Avoided grid dependency'],
+        ['Extra Tariff Cost Saved Today', '₹' + Math.round((extraData?.totalExtraEnergyKwh || 105) * 8.5), 'INR', 'Computed blended tariff savings'],
+        ['Extra Carbon Abatement', +((extraData?.totalExtraEnergyKwh || 105) * 0.82).toFixed(1), 'kg CO2', 'Avoided fossil utility emissions'],
+      ];
+      const wsExtra = XLSX.utils.aoa_to_sheet(extraRows);
+      XLSX.utils.book_append_sheet(wb, wsExtra, 'Extra Clean Energy');
       break;
     }
 
