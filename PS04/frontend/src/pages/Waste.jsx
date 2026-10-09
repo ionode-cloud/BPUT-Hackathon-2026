@@ -1,6 +1,7 @@
 import { MdDelete, MdWarning, MdRecycling } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getWasteTrendData, getWasteBinDistribution } from '../utils/chartHelpers';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 export default function Waste({ data, history = [] }) {
   const d = data || {};
@@ -12,6 +13,22 @@ export default function Waste({ data, history = [] }) {
 
   return (
     <>
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" style={{ background: '#9333ea' }} />
+            <span>Smart Sanitation & Waste Logistics Intelligence</span>
+          </div>
+          <p className="banner-subtext">
+            Ultrasound volumetric bin level sensors streaming campus block status with predictive overflow dispatch alerts.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="waste" tabLabel="Waste" data={d} history={history} />
+        </div>
+      </div>
+
       {/* Waste KPIs */}
       <div className="grid">
         <div className="card">

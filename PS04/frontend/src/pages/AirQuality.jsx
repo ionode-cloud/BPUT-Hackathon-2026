@@ -1,6 +1,7 @@
 import { MdWaterDrop, MdAir, MdExplore, MdWbSunny, MdSmokingRooms, MdScience, MdGrain } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getAirQualityChartData } from '../utils/chartHelpers';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 function aqiLabel(aqi) {
   if (aqi == null) return { text: '-', cls: '' };
@@ -88,6 +89,22 @@ export default function AirQuality({ data, history = [] }) {
 
   return (
     <>
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" style={{ background: '#0284c7' }} />
+            <span>Atmospheric & Microclimate Surveillance</span>
+          </div>
+          <p className="banner-subtext">
+            Multi-spectral continuous monitoring of AQI, particulate concentrations, chemical vapors, and weather conditions.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="air" tabLabel="Air Quality" data={d} history={history} />
+        </div>
+      </div>
+
       {/* Primary KPI row */}
       <div className="grid">
         <div className="card">

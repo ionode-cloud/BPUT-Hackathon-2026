@@ -26,6 +26,7 @@ import {
   clearAllAlerts,
   resetDefaultAlerts,
 } from '../utils/alertEngine';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 const SYSTEM_ICONS = {
   water:  <MdWaterDrop size={22} color="#0284c7" />,
@@ -163,6 +164,22 @@ export default function AlertHistory({ data }) {
           <span>{notification}</span>
         </div>
       )}
+
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" style={{ background: '#ef4444' }} />
+            <span>Cross-System Incident Triage & High Alert Log</span>
+          </div>
+          <p className="banner-subtext">
+            Continuous cross-cutting anomaly surveillance: pipe leaks, chemical spikes, substation overload, and bin overflow.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="alerts" tabLabel="Alert History" alerts={alerts} />
+        </div>
+      </div>
 
       {/* ════ KPI Summary Cards ════ */}
       <div className="grid">

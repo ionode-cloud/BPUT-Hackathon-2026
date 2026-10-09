@@ -13,37 +13,46 @@ import {
   MdShield,
   MdHome,
   MdNotificationsActive,
+  MdTune,
+  MdTrendingUp,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
 import { useSensorData } from './hooks/useSensorData';
 import { loadPersistedAlerts, countActiveAlerts } from './utils/alertEngine';
 
-import LandingPage     from './pages/LandingPage';
-import AdminLoginModal from './components/AdminLoginModal';
-import Overview        from './pages/Overview';
-import AirQuality      from './pages/AirQuality';
-import Energy          from './pages/Energy';
-import Water           from './pages/Water';
-import Waste           from './pages/Waste';
-import AlertHistory    from './pages/AlertHistory';
+import LandingPage      from './pages/LandingPage';
+import AdminLoginModal  from './components/AdminLoginModal';
+import ExcelDownloadBtn from './components/ExcelDownloadBtn';
+import Overview         from './pages/Overview';
+import AirQuality       from './pages/AirQuality';
+import Energy           from './pages/Energy';
+import Water            from './pages/Water';
+import Waste            from './pages/Waste';
+import AlertHistory     from './pages/AlertHistory';
+import PriorityEngine   from './pages/PriorityEngine';
+import Forecasting      from './pages/Forecasting';
 
 const PAGE_MAP = {
-  overview: Overview,
-  air:      AirQuality,
-  energy:   Energy,
-  water:    Water,
-  waste:    Waste,
-  alerts:   AlertHistory,
+  overview:    Overview,
+  air:         AirQuality,
+  energy:      Energy,
+  water:       Water,
+  waste:       Waste,
+  alerts:      AlertHistory,
+  priority:    PriorityEngine,
+  forecasting: Forecasting,
 };
 
 const NAV_ICONS = {
-  overview: <MdApartment            size={18} />,
-  air:      <MdAir                  size={18} />,
-  energy:   <MdElectricBolt         size={18} />,
-  water:    <MdWaterDrop            size={18} />,
-  waste:    <MdDelete               size={18} />,
-  alerts:   <MdNotificationsActive  size={18} />,
+  overview:    <MdApartment           size={18} />,
+  air:         <MdAir                 size={18} />,
+  energy:      <MdElectricBolt        size={18} />,
+  water:       <MdWaterDrop           size={18} />,
+  waste:       <MdDelete              size={18} />,
+  alerts:      <MdNotificationsActive size={18} />,
+  priority:    <MdTune                size={18} />,
+  forecasting: <MdTrendingUp          size={18} />,
 };
 
 // Parse active view and page from URL hash
@@ -337,6 +346,16 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            {/* Download in Excel Button */}
+            <ExcelDownloadBtn
+              tabName={page}
+              tabLabel={PAGE_TITLES[page]}
+              data={data || {}}
+              history={history || []}
+              alerts={loadPersistedAlerts()}
+              variant="header"
+            />
+
             {/* Admin Badge */}
             <div className="admin-status-pill" title={adminUser?.email || adminUser?.id || 'admin@gmail.com'}>
               <MdShield size={14} color="#38bdf8" />

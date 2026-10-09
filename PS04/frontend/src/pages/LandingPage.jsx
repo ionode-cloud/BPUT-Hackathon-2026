@@ -502,16 +502,16 @@ export default function LandingPage({
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          Section 4: Four Core Systems Grid (What are the best modules?)
+          Section 4: 3x3 Core Systems Grid (What are the core systems of Facility AI?)
           ═══════════════════════════════════════════════════════════════════ */}
       <section id="pillars-section" className="grid-cards-section light-bg">
         <div className="container-fluid">
           <div className="grid-section-header">
             <h2>What are the core systems of Facility AI?</h2>
-            <p>Five integrated operational domains from the live Facility AI console powering campus intelligence.</p>
+            <p>Six integrated operational domains from the live Facility AI console powering campus intelligence.</p>
           </div>
 
-          <div className="five-cards-grid">
+          <div className="core-systems-grid">
             {/* 1. Facility Overview */}
             <div className="core-system-card card-overview">
               <div className="core-card-top">

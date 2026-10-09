@@ -1,6 +1,7 @@
 import { MdDelete, MdOpacity, MdAir, MdScience, MdGrain } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getOverviewChartData } from '../utils/chartHelpers';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 export default function Overview({ data, history = [] }) {
   const d = data || {};
@@ -21,6 +22,22 @@ export default function Overview({ data, history = [] }) {
 
   return (
     <>
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" />
+            <span>Campus Cross-Domain Overview Telemetry</span>
+          </div>
+          <p className="banner-subtext">
+            Integrated sustainability scorecards, live power & water draw curves, and multi-zone sensor health.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="overview" tabLabel="Facility Overview" data={d} history={history} />
+        </div>
+      </div>
+
       {/* KPI Row */}
       <div className="grid">
         <div className="card">
@@ -80,8 +97,8 @@ export default function Overview({ data, history = [] }) {
         <ChartBox id="overviewChart" type="line" labels={chartData.labels} datasets={chartData.datasets} />
       </div>
 
-      {/* Alerts, Scorecard, and Recommendations */}
-      <div className="three">
+      {/* Alerts and Scorecard */}
+      <div className="two">
         <div className="card">
           <h3>Active Facility Alerts</h3>
           {d.pm25 > 35 && (
@@ -149,33 +166,6 @@ export default function Overview({ data, history = [] }) {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="card">
-          <h3>AI Advisory & Directives</h3>
-          {d.todaysEnergy > 120 && (
-            <div className="recommendation recommendation--warn">
-              <b>HVAC Advisory:</b> Consumption at {d.todaysEnergy} kWh. Adjust thermostat in zones with low occupancy.
-            </div>
-          )}
-          {d.overflowRisk > 0 && (
-            <div className="recommendation recommendation--alert">
-              <b>Waste Dispatch:</b> {d.overflowRisk} bin(s) near full capacity. Prioritize route A collection.
-            </div>
-          )}
-          {d.tankLevel < 35 && d.tankLevel != null && (
-            <div className="recommendation recommendation--alert">
-              <b>Water Reserve:</b> Tank at {d.tankLevel}%. Trigger auxiliary borehole pump.
-            </div>
-          )}
-          {d.sustainabilityScore != null && (!d.todaysEnergy || d.todaysEnergy <= 120) && (!d.overflowRisk || d.overflowRisk === 0) && (
-            <div className="recommendation">
-              <b>Optimal Operation:</b> Facility power and water consumption are operating within green efficiency benchmarks.
-            </div>
-          )}
-          {d.sustainabilityScore == null && (
-            <div className="small" style={{ color: 'var(--muted)' }}>-</div>
-          )}
         </div>
       </div>
     </>

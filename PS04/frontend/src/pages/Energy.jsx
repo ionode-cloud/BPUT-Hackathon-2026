@@ -1,6 +1,7 @@
 import { MdElectricBolt, MdBatteryChargingFull, MdShowChart, MdCurrencyRupee } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getEnergyBarData, getEnergyDistributionData } from '../utils/chartHelpers';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 export default function Energy({ data, history = [] }) {
   const d = data || {};
@@ -40,6 +41,22 @@ export default function Energy({ data, history = [] }) {
 
   return (
     <>
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" style={{ background: '#f59e0b' }} />
+            <span>Electrical Grid & Power Optimization Metering</span>
+          </div>
+          <p className="banner-subtext">
+            Precision active wattage profiling, peak demand surveillance, and dynamic tariff cost modeling.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="energy" tabLabel="Energy" data={d} history={history} />
+        </div>
+      </div>
+
       {/* Energy KPIs */}
       <div className="grid">
         {kpis.map(k => (
