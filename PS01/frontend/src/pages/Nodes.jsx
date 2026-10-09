@@ -481,8 +481,40 @@ export default function Nodes() {
         </div>
       )}
 
-      {/* ── Node Cards Grid (1st: Station Cards) ──────────────────── */}
+      {/* ── Geo-Spatial Map Section (1st: Map View in Split / Map View) ─────────────────── */}
+      {(viewMode === 'split' || viewMode === 'map') && (
+        <div id="node-map-section" style={{ marginBottom: 28, marginTop: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Map size={16} color="var(--color-heading)" />
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+              Interactive Geo-Spatial Station Map
+            </h3>
+            <span className="text-xs text-muted" style={{ fontWeight: 500 }}>
+              (Live GPS coordinates of all deployed nodes)
+            </span>
+          </div>
+
+          <NodeMap
+            nodes={nodes}
+            selectedNodeId={selectedMapNodeId}
+            onSelectNode={(node) => setSelectedMapNodeId(node.nodeId)}
+            onEditNode={handleOpenEdit}
+            height={viewMode === 'map' ? '580px' : '440px'}
+          />
+        </div>
+      )}
+
+
+      {/* ── Node Cards Grid (2nd: Station Cards) ──────────────────── */}
       {viewMode !== 'map' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <Cpu size={16} color="var(--color-heading)" />
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+            Deployed Station Registry ({nodes.length} Active Nodes)
+          </h3>
+        </div>
+      )}
+{viewMode !== 'map' && (
         nodes.length === 0 ? (
           <div
             className="card"
@@ -877,29 +909,6 @@ export default function Nodes() {
             })}
           </div>
         )
-      )}
-
-      {/* ── Geo-Spatial Map Section (2nd: Map View) ─────────────────── */}
-      {(viewMode === 'split' || viewMode === 'map') && (
-        <div id="node-map-section" style={{ marginBottom: 28, marginTop: viewMode === 'split' ? 10 : 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Map size={16} color="var(--color-heading)" />
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
-              Interactive Geo-Spatial Station Map
-            </h3>
-            <span className="text-xs text-muted" style={{ fontWeight: 500 }}>
-              (Live GPS coordinates of all deployed nodes)
-            </span>
-          </div>
-
-          <NodeMap
-            nodes={nodes}
-            selectedNodeId={selectedMapNodeId}
-            onSelectNode={(node) => setSelectedMapNodeId(node.nodeId)}
-            onEditNode={handleOpenEdit}
-            height={viewMode === 'map' ? '580px' : '440px'}
-          />
-        </div>
       )}
 
       {/* ── Add Node Modal ───────────────────────────────────────────── */}
