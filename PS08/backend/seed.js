@@ -1,7 +1,19 @@
 /**
- * ESG360 Clean Seeder
- * Purges all seed/dummy records and provisions the primary Super Admin account.
- * Ready for users to add their own organizations, metrics, users, and reports.
+ * ESG360 Comprehensive Database Seeder
+ * Populates complete, realistic, regulatory-compliant seed data across EVERY TAB:
+ * 1. Dashboard (KPIs, status/category/org distribution charts, recent activity)
+ * 2. Organizations & Projects (4-tier hierarchy: Group -> Subsidiaries -> BUs -> Projects with pending approval entities)
+ * 3. ESG Data Collection (Environmental, Social, Governance across sectors, departments, and workflow states)
+ * 4. Consolidation & ESG Scoring (Multi-department streams: Environmental, HR, Safety, Compliance with live scores & benchmarks)
+ * 5. Category Tabs (/environmental, /social, /governance)
+ * 6. SEBI BRSR Reporting (Principles 1-9, Section A/B/C disclosures, multi-year reports)
+ * 7. AI Validation Engine & Copilot (Anomalies, outlier spikes, zero-injury checks, diagnostic streams)
+ * 8. Documents & Evidence Vault (All 8 categories with approved, reviewed, and pending review documents)
+ * 9. Approvals Center (Pending Documents, Pending ESG Records, Pending Organizations)
+ * 10. Reports & Domain Export (Approved ESG data ready for instant Excel & PDF generation)
+ * 11. Analytics & Trends (3-year YoY trend data 2024-2026, sector benchmarks, breakdown charts)
+ * 12. Notifications (Unread and read operational alerts across all types)
+ * 13. Audit Logs (Tamper-evident log entries and login credentials for all system roles)
  */
 
 require('dotenv').config();
@@ -24,59 +36,2315 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log('✅ Connected to MongoDB\n');
 
-  console.log('🧹 Purging all dummy data and records...');
+  console.log('🧹 Purging old records for fresh seed across all collections...');
   await Promise.all([
+    User.deleteMany({}),
+    Organization.deleteMany({}),
     ESGData.deleteMany({}),
     BRSRReport.deleteMany({}),
     Document.deleteMany({}),
     Notification.deleteMany({}),
     AuditLog.deleteMany({}),
-    Organization.deleteMany({}),
-    User.deleteMany({
-      email: { $nin: [ADMIN_EMAIL.toLowerCase(), 'ionodecloud@gmail.com'] },
-    }),
   ]);
   console.log('✅ Clean slate prepared.\n');
 
-  console.log('👤 Provisioning clean Super Admin account...');
-  let admin = await User.findOne({ email: ADMIN_EMAIL.toLowerCase() }).select('+password');
-  if (!admin) {
-    admin = await User.create({
+  // =========================================================================
+  // 1. ORGANIZATIONS & PROJECTS (4-TIER HIERARCHY)
+  // =========================================================================
+  console.log('🏢 [Tab: Organizations & Projects] Creating 4-Tier Organization Structure...');
+
+  // Level 1: Root Conglomerate Group
+  const groupOrg = await Organization.create({
+    name: 'ESG360 Infra Group Ltd.',
+    type: 'Group',
+    location: {
+      address: 'ESG360 Towers, Bandra Kurla Complex',
+      city: 'Mumbai',
+      district: 'Mumbai Suburban',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400051',
+    },
+    cin: 'L45200MH2012PLC234567',
+    gstin: '27AABCE1234F1Z5',
+    industry: 'Infrastructure & Renewable Energy',
+    sector: 'Conglomerate Infrastructure',
+    description: 'National conglomerate operating across utility solar, intermodal logistics, urban metro rail, and circular bio-economy.',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  // Level 2: Subsidiaries
+  const cleanEnergySub = await Organization.create({
+    name: 'ESG360 Clean Energy Ltd.',
+    type: 'Subsidiary',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Clean Energy Ltd.',
+    location: {
+      address: 'Solarium Park, SG Highway',
+      city: 'Ahmedabad',
+      district: 'Ahmedabad',
+      state: 'Gujarat',
+      country: 'India',
+      pincode: '380054',
+    },
+    cin: 'U40106GJ2015PLC081234',
+    gstin: '24AABCE4321A1Z9',
+    industry: 'Solar & Wind Power Generation',
+    sector: 'Power',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const logisticsSub = await Organization.create({
+    name: 'ESG360 Logistics & Supply Chain Ltd.',
+    type: 'Subsidiary',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Logistics & Supply Chain Ltd.',
+    location: {
+      address: 'Logistics Central, JNPT SEZ',
+      city: 'Navi Mumbai',
+      district: 'Raigad',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400707',
+    },
+    cin: 'U60200MH2016PLC182940',
+    gstin: '27AABCU7890D1Z2',
+    industry: 'Intermodal Freight & Green Cold Chain',
+    sector: 'Transportation',
+    description: 'National freight, electrified container logistics, and zero-emission multimodal cold chain corridors.',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const urbanInfraSub = await Organization.create({
+    name: 'ESG360 Urban Mobility & Infrastructure Ltd.',
+    type: 'Subsidiary',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Urban Mobility & Infrastructure Ltd.',
+    location: {
+      address: 'Urban Tower, BKC Extension',
+      city: 'Mumbai',
+      district: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      pincode: '400051',
+    },
+    cin: 'U45309MH2018PLC312984',
+    gstin: '27AABCM6543K1Z9',
+    industry: 'Metro Rail & Sustainable Civil Infrastructure',
+    sector: 'Construction',
+    description: 'High-speed urban rail transit, smart green metro stations, and low-carbon express corridors.',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  // Pending Subsidiary awaiting Super Admin approval & verification (Shows in Approvals -> Organizations tab!)
+  const bioFuelsSub = await Organization.create({
+    name: 'ESG360 Circular Bio-Fuels & Agri-Waste Ltd.',
+    type: 'Subsidiary',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Circular Bio-Fuels & Agri-Waste Ltd.',
+    location: {
+      address: 'Bio-Energy Hub, Sanand GIDC',
+      city: 'Ahmedabad',
+      district: 'Ahmedabad',
+      state: 'Gujarat',
+      country: 'India',
+      pincode: '382170',
+    },
+    cin: 'U24100GJ2023PLC140291',
+    gstin: '24AABCE9988G1Z1',
+    industry: 'Compressed Bio-Gas (CBG) & Agri-Waste Pellets',
+    sector: 'Oil & Gas',
+    description: 'Circular bio-economy subsidiary converting paddy straw and agro-waste into green methane.',
+    status: 'Submitted',
+    verificationStatus: 'Pending Verification',
+    reportingYear: '2026',
+  });
+
+  // Level 3: Business Units
+  const solarBU = await Organization.create({
+    name: 'Solar Parks Business Unit',
+    type: 'Business Unit',
+    parent: cleanEnergySub._id,
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: 'Solar Parks Business Unit',
+    location: { city: 'Jodhpur', district: 'Jodhpur', state: 'Rajasthan', country: 'India' },
+    industry: 'Utility Scale Solar',
+    sector: 'Power',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const windBU = await Organization.create({
+    name: 'Wind & Hybrid Energy BU',
+    type: 'Business Unit',
+    parent: cleanEnergySub._id,
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: 'Wind & Hybrid Energy BU',
+    location: { city: 'Jaisalmer', district: 'Jaisalmer', state: 'Rajasthan', country: 'India' },
+    industry: 'Wind Turbines & Hybrid Assets',
+    sector: 'Power',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const coldChainBU = await Organization.create({
+    name: 'Cold Chain & Intermodal Logistical BU',
+    type: 'Business Unit',
+    parent: logisticsSub._id,
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: 'Cold Chain & Intermodal Logistical BU',
+    location: { city: 'Bhiwandi', district: 'Thane', state: 'Maharashtra', country: 'India' },
+    industry: 'Electric Cold Chain Fleet',
+    sector: 'Transportation',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const highwaysBU = await Organization.create({
+    name: 'Green Expressways & Corridors BU',
+    type: 'Business Unit',
+    parent: urbanInfraSub._id,
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: 'Green Expressways & Corridors BU',
+    location: { city: 'Vadodara', district: 'Vadodara', state: 'Gujarat', country: 'India' },
+    industry: 'Highways & Civil Infrastructure',
+    sector: 'Construction',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  // Level 4: Operating Projects & Facilities
+  const bhadlaProject = await Organization.create({
+    name: 'Bhadla 500MW Ultra Solar Park',
+    type: 'Project',
+    projectId: 'PRJ-PWR-26-101',
+    parent: solarBU._id,
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    location: { address: 'Solar Zone Phase 4', city: 'Bhadla', district: 'Phalodi', state: 'Rajasthan', country: 'India' },
+    industry: 'Solar Generation Plant',
+    sector: 'Power',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const khavdaProject = await Organization.create({
+    name: 'Khavda 1GW Hybrid Renewable Project',
+    type: 'Project',
+    projectId: 'PRJ-PWR-26-202',
+    parent: windBU._id,
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: windBU.name,
+    location: { address: 'Khavda Renewable Complex', city: 'Khavda', district: 'Kutch', state: 'Gujarat', country: 'India' },
+    industry: 'Solar & Wind Hybrid Farm',
+    sector: 'Power',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const freightTerminal = await Organization.create({
+    name: 'Nhava Sheva Multimodal Port Terminal',
+    type: 'Project',
+    projectId: 'PRJ-TRA-26-303',
+    parent: coldChainBU._id,
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    location: { address: 'JNPT Port CFS Sector 12', city: 'Nhava Sheva', district: 'Raigad', state: 'Maharashtra', country: 'India' },
+    industry: 'Container Depot & Cargo',
+    sector: 'Transportation',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const metroProject = await Organization.create({
+    name: 'Mumbai Metro Line 3 Green Stations',
+    type: 'Project',
+    projectId: 'PRJ-CON-26-404',
+    parent: highwaysBU._id,
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    location: { address: 'Colaba-Bandra-SEEPZ Corridor', city: 'Mumbai', district: 'Mumbai', state: 'Maharashtra', country: 'India' },
+    industry: 'Metro Rail Transport',
+    sector: 'Construction',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const irrigationProject = await Organization.create({
+    name: 'Kaleshwaram Lift Irrigation & Water Grid',
+    type: 'Project',
+    projectId: 'PRJ-WAT-26-606',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Water Solutions Ltd.',
+    businessUnitName: 'Water Infrastructure BU',
+    location: { address: 'Godavari Basin Pump House 2', city: 'Medigadda', district: 'Jayashankar Bhupalpally', state: 'Telangana', country: 'India' },
+    industry: 'Water Resources & Lift Irrigation',
+    sector: 'Water',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  const cgdProject = await Organization.create({
+    name: 'City Gas Distribution & Green Hydrogen Hub',
+    type: 'Project',
+    projectId: 'PRJ-OIL-26-707',
+    parent: groupOrg._id,
+    subsidiaryName: 'ESG360 Clean Fuels Ltd.',
+    businessUnitName: 'City Gas Distribution BU',
+    location: { address: 'CGD Terminal Station 4', city: 'Surat', district: 'Surat', state: 'Gujarat', country: 'India' },
+    industry: 'Clean Natural Gas & Hydrogen Blending',
+    sector: 'Oil & Gas',
+    status: 'Active',
+    verificationStatus: 'Verified',
+    reportingYear: '2026',
+  });
+
+  // Pending Project awaiting Super Admin approval & verification (Shows in Approvals -> Organizations tab!)
+  const mundraProject = await Organization.create({
+    name: 'Mundra Green Port & Clean Bunkering Facility',
+    type: 'Project',
+    projectId: 'PRJ-TRA-26-505',
+    parent: logisticsSub._id,
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    location: { address: 'Marine Zone Berth 7', city: 'Mundra', district: 'Kutch', state: 'Gujarat', country: 'India' },
+    industry: 'Marine Clean Bunkering & Green Hydrogen',
+    sector: 'Transportation',
+    status: 'Submitted',
+    verificationStatus: 'Pending Verification',
+    reportingYear: '2026',
+  });
+
+  console.log('✅ Created 15 Organizations across 4 tiers with projects and pending approval entities.\n');
+
+  // =========================================================================
+  // 2. USERS & CREDENTIALS ACROSS ALL ROLES
+  // =========================================================================
+  console.log('👥 [Tab: Audit Logs / Users] Creating Demo Users across all system roles...');
+
+  const usersToCreate = [
+    {
       name: 'Super Admin',
       email: ADMIN_EMAIL.toLowerCase(),
       password: ADMIN_PASSWORD,
       role: 'Super Admin',
-      organization: null,
+      organization: groupOrg._id,
       department: 'Executive Governance',
+      employeeId: 'EMP-SA-001',
+      designation: 'Chief Compliance & ESG Director',
       isActive: true,
+    },
+    {
+      name: 'Group ESG Director',
+      email: 'group.admin@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Group ESG Admin',
+      organization: groupOrg._id,
+      department: 'Group ESG & Sustainability',
+      employeeId: 'EMP-ESG-010',
+      designation: 'Vice President - Group Sustainability',
+      isActive: true,
+    },
+    {
+      name: 'Clean Energy Admin',
+      email: 'energy.sub@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Subsidiary Admin',
+      organization: cleanEnergySub._id,
+      department: 'Operations & Sustainability',
+      employeeId: 'EMP-NRG-022',
+      designation: 'General Manager - Clean Energy',
+      isActive: true,
+    },
+    {
+      name: 'Logistics Admin',
+      email: 'logistics.sub@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Subsidiary Admin',
+      organization: logisticsSub._id,
+      department: 'Logistics Compliance',
+      employeeId: 'EMP-LOG-033',
+      designation: 'Head of Green Supply Chain',
+      isActive: true,
+    },
+    {
+      name: 'Solar BU Manager',
+      email: 'solar.bu@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Business Unit Manager',
+      organization: solarBU._id,
+      department: 'Renewable Power Ops',
+      employeeId: 'EMP-SOL-044',
+      designation: 'AVP - Solar Assets Management',
+      isActive: true,
+    },
+    {
+      name: 'Bhadla Facility Engineer',
+      email: 'bhadla.user@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Project/Department User',
+      organization: bhadlaProject._id,
+      department: 'Plant Operations & Data Entry',
+      employeeId: 'EMP-BHD-105',
+      designation: 'Senior Plant SCADA Engineer',
+      isActive: true,
+    },
+    {
+      name: 'Priya Sharma (ESG Manager)',
+      email: 'esg.manager@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'ESG Manager',
+      organization: groupOrg._id,
+      department: 'Corporate Sustainability',
+      employeeId: 'EMP-CORP-068',
+      designation: 'Corporate ESG Lead',
+      isActive: true,
+    },
+    {
+      name: 'Rajesh Verma (Compliance Officer)',
+      email: 'compliance@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Compliance Officer',
+      organization: groupOrg._id,
+      department: 'Legal & SEBI Compliance',
+      employeeId: 'EMP-LEG-077',
+      designation: 'Principal Compliance Officer',
+      isActive: true,
+    },
+    {
+      name: 'KPMG Lead Reviewer',
+      email: 'auditor@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Auditor/Reviewer',
+      organization: groupOrg._id,
+      department: 'External ESG Assurance',
+      employeeId: 'AUD-KPMG-901',
+      designation: 'Lead ESG Assurance Auditor',
+      isActive: true,
+    },
+    {
+      name: 'Managing Director (Board)',
+      email: 'mgmt@esg360.com',
+      password: ADMIN_PASSWORD,
+      role: 'Management',
+      organization: groupOrg._id,
+      department: 'Board of Directors',
+      employeeId: 'DIR-BRD-002',
+      designation: 'Managing Director & CEO',
+      isActive: true,
+    },
+    {
+      name: 'Hackathon Preserved Super Admin',
+      email: 'ionodecloud@gmail.com',
+      password: ADMIN_PASSWORD,
+      role: 'Super Admin',
+      organization: groupOrg._id,
+      department: 'Executive Governance',
+      employeeId: 'EMP-SA-002',
+      designation: 'Cloud Platform Architect',
+      isActive: true,
+    },
+  ];
+
+  const createdUsers = [];
+  for (const u of usersToCreate) {
+    const user = await User.create(u);
+    createdUsers.push(user);
+  }
+
+  const superAdmin = createdUsers[0];
+  const groupAdmin = createdUsers[1];
+  const energySubAdmin = createdUsers[2];
+  const logisticsSubAdmin = createdUsers[3];
+  const buManager = createdUsers[4];
+  const plantUser = createdUsers[5];
+  const esgManager = createdUsers[6];
+  const complianceOfficer = createdUsers[7];
+  const auditorUser = createdUsers[8];
+  const mgmtUser = createdUsers[9];
+
+  // Assign admin users to orgs
+  await Organization.updateOne({ _id: groupOrg._id }, { adminUser: superAdmin._id });
+  await Organization.updateOne({ _id: cleanEnergySub._id }, { adminUser: energySubAdmin._id });
+  await Organization.updateOne({ _id: logisticsSub._id }, { adminUser: logisticsSubAdmin._id });
+  await Organization.updateOne({ _id: urbanInfraSub._id }, { adminUser: energySubAdmin._id });
+  await Organization.updateOne({ _id: solarBU._id }, { adminUser: buManager._id });
+  await Organization.updateOne({ _id: bhadlaProject._id }, { adminUser: plantUser._id });
+
+  console.log(`✅ Created ${createdUsers.length} Users with active credentials.\n`);
+
+  // =========================================================================
+  // 3. ESG RECORDS (DATA COLLECTION, CONSOLIDATION & SCORING, CATEGORY PAGES)
+  // =========================================================================
+  console.log('📊 [Tabs: Data Collection, Consolidation, Environmental, Social, Governance] Seeding rich ESG Records...');
+
+  const esgRecords = [];
+
+  // Helper function to build structured ESG record
+  const addRec = (data) => {
+    esgRecords.push({
+      groupCompany: 'MEIL Group (Megha Engineering & Infrastructures Ltd.)',
+      dateOfSubmission: new Date(data.dateOfSubmission || '2026-06-15'),
+      lastUpdatedDate: new Date(),
+      workflowHistory: [
+        { status: 'Draft', changedBy: plantUser._id, comment: 'Telemetry gathered from site meters/logs', changedAt: new Date('2026-05-10') },
+        { status: 'Submitted', changedBy: plantUser._id, comment: 'Submitted for department review with evidence', changedAt: new Date('2026-05-20') },
+        ...(data.status === 'Approved'
+          ? [
+              { status: 'Validated', changedBy: complianceOfficer._id, comment: 'Verified against calibration certificates', changedAt: new Date('2026-06-01') },
+              { status: 'Approved', changedBy: esgManager._id, comment: 'Approved for SEBI BRSR Section C disclosure', changedAt: new Date('2026-06-15') },
+            ]
+          : data.status === 'Validated'
+          ? [
+              { status: 'Validated', changedBy: complianceOfficer._id, comment: 'Audited and verified by Compliance Officer', changedAt: new Date('2026-06-05') },
+            ]
+          : data.status === 'Correction Required'
+          ? [
+              { status: 'Correction Required', changedBy: complianceOfficer._id, comment: 'Shift schedule missing biometric sign-off records', changedAt: new Date('2026-06-10') },
+            ]
+          : []),
+      ],
+      ...data,
     });
-    console.log(`✅ Created Super Admin: ${ADMIN_EMAIL}`);
-  } else {
-    admin.name = 'Super Admin';
-    admin.password = ADMIN_PASSWORD;
-    admin.role = 'Super Admin';
-    admin.organization = null;
-    admin.isActive = true;
-    await admin.save();
-    console.log(`✅ Reset Super Admin: ${ADMIN_EMAIL}`);
-  }
+  };
 
-  // Preserve team account if present
-  const ionodeUser = await User.findOne({ email: 'ionodecloud@gmail.com' });
-  if (ionodeUser) {
-    ionodeUser.role = 'Super Admin';
-    ionodeUser.organization = null;
-    ionodeUser.isActive = true;
-    await ionodeUser.save();
-    console.log('✅ Preserved ionodecloud@gmail.com as Super Admin');
-  }
+  // -------------------------------------------------------------------------
+  // 3.1 BHADLA SOLAR PARK (PRJ-PWR-26-101) — 4 DEPARTMENTS FULLY APPROVED
+  // This guarantees Consolidation & Scoring is 100% Ready (Score ~92, Grade AAA)
+  // -------------------------------------------------------------------------
 
-  console.log('\n======================================================');
-  console.log('✨ Clean Slate Ready - No dummy data loaded.');
-  console.log(`   Super Admin Email   : ${ADMIN_EMAIL}`);
-  console.log(`   Super Admin Password: ${ADMIN_PASSWORD}`);
-  console.log('   Users can now add their own organizations, metrics & data.');
-  console.log('======================================================\n');
+  // Environmental Department
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Total Energy Consumption',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 142500,
+    unit: 'GJ',
+    description: 'Direct and indirect energy consumption for inverter cooling and auxiliary solar systems.',
+    dataSource: 'Substation SCADA TOD Meters',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-15'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Renewable Energy Generated',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 35000,
+    unit: 'MWh',
+    description: 'Clean solar PV power generated and fed to interstate transmission network (ISTS).',
+    dataSource: 'ISTS Incomer Substation Calibrated Metering',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-20'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Renewable Energy Consumed',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 28500,
+    unit: 'MWh',
+    description: 'Self-generated solar energy consumed internally for site facilities.',
+    dataSource: 'Internal Auxiliary Metering Log',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-21'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Water',
+    metric: 'Total Water Withdrawal',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 4800,
+    unit: 'Kilolitres',
+    description: 'Groundwater abstracted for robotic solar panel dry-cleaning and domestic plant use.',
+    dataSource: 'Borewell Telemetry Digital Flowmeters',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-22'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Water',
+    metric: 'Water Recycled/Reused',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 3600,
+    unit: 'Kilolitres',
+    description: 'Effluent water recycled through on-site settling ponds for desert green belt recharge (75% recycling rate).',
+    dataSource: 'STP Water Meter Logs',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-22'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Emissions',
+    metric: 'Scope 1 GHG Emissions',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 42.5,
+    unit: 'tCO2e',
+    description: 'Direct emissions from emergency backup diesel generators and maintenance patrol utility vehicles.',
+    dataSource: 'Fuel Purchase Invoices & DEFRA Emission Factors',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-25'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Waste',
+    metric: 'Total Waste Generated',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 12.4,
+    unit: 'Metric Tonnes',
+    description: 'Packaging cardboard, damaged solar cell modules, and non-hazardous substation scrap.',
+    dataSource: 'Weighbridge Slips & Scrap Manifests',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-25'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Waste',
+    metric: 'Waste Recycled',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 10.8,
+    unit: 'Metric Tonnes',
+    description: 'PV glass, aluminum frames, and cardboard diverted to certified recyclers (87% recycling rate).',
+    dataSource: 'Authorized Recycler Certificates',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-06-25'),
+  });
+
+  // HR Department
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Employees',
+    metric: 'Total Employees',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 280,
+    unit: 'Nos',
+    description: 'Total head count including 95 permanent technical staff and 185 operations & maintenance contractors.',
+    dataSource: 'HRMS Biometric Headcount Census',
+    status: 'Approved',
+    responsibleUser: createdUsers[6]._id,
+    submittedBy: createdUsers[6]._id,
+    submittedByName: 'Priya Sharma (ESG Manager)',
+    employeeId: 'EMP-CORP-068',
+    designation: 'Corporate ESG Lead',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-28'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Employees',
+    metric: 'Female Employees',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 68,
+    unit: 'Nos',
+    description: 'Female engineers in control room monitoring, SCADA operations, and site management (24.3% ratio).',
+    dataSource: 'HR Payroll Register',
+    status: 'Approved',
+    responsibleUser: createdUsers[6]._id,
+    submittedBy: createdUsers[6]._id,
+    submittedByName: 'Priya Sharma (ESG Manager)',
+    employeeId: 'EMP-CORP-068',
+    designation: 'Corporate ESG Lead',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-28'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Training',
+    metric: 'Training Hours',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 6450,
+    unit: 'Hours',
+    description: 'High voltage electrical safety, solar inverter maintenance, and environmental stewardship training.',
+    dataSource: 'LMS Training Attendance Logs',
+    status: 'Approved',
+    responsibleUser: createdUsers[6]._id,
+    submittedBy: createdUsers[6]._id,
+    submittedByName: 'Priya Sharma (ESG Manager)',
+    employeeId: 'EMP-CORP-068',
+    designation: 'Corporate ESG Lead',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-29'),
+  });
+
+  // Safety Department
+  addRec({
+    category: 'Social',
+    department: 'Safety',
+    subcategory: 'OHS',
+    metric: 'Lost Time Injury Rate',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 0.08,
+    unit: 'Per Million Man-Hours',
+    description: 'Lost Time Injury Frequency Rate benchmarked across 1.4 million safe plant operating man-hours.',
+    dataSource: 'EHS Incident Register & OSHA Form 300 Log',
+    status: 'Approved',
+    responsibleUser: createdUsers[7]._id,
+    submittedBy: createdUsers[7]._id,
+    submittedByName: 'Rajesh Verma (Compliance Officer)',
+    employeeId: 'EMP-LEG-077',
+    designation: 'Principal Compliance Officer',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-30'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'Safety',
+    subcategory: 'OHS',
+    metric: 'Total Recordable Incidents',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 1,
+    unit: 'Nos',
+    description: 'One minor electrical arc flash during routine breaker maintenance; treated with first aid and zero lost work days.',
+    dataSource: 'Safety Committee Investigation Report',
+    status: 'Approved',
+    responsibleUser: createdUsers[7]._id,
+    submittedBy: createdUsers[7]._id,
+    submittedByName: 'Rajesh Verma (Compliance Officer)',
+    employeeId: 'EMP-LEG-077',
+    designation: 'Principal Compliance Officer',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-30'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'Safety',
+    subcategory: 'OHS',
+    metric: 'Fatalities',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 0,
+    unit: 'Nos',
+    description: 'Zero workplace fatalities achieved across solar operations.',
+    dataSource: 'Statutory Factory Inspectorate EHS Audit',
+    status: 'Approved',
+    responsibleUser: createdUsers[7]._id,
+    submittedBy: createdUsers[7]._id,
+    submittedByName: 'Rajesh Verma (Compliance Officer)',
+    employeeId: 'EMP-LEG-077',
+    designation: 'Principal Compliance Officer',
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-30'),
+  });
+
+  // Compliance Department
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Ethics',
+    metric: 'Ethics Policy Coverage',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 100,
+    unit: '%',
+    description: '100% of employees signed the Code of Business Conduct and Anti-Bribery Declaration.',
+    dataSource: 'HRMS Digital Sign-Off Registry',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-02'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Regulatory',
+    metric: 'Regulatory Non-Compliances',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: bhadlaProject._id,
+    project: bhadlaProject._id,
+    projectId: bhadlaProject.projectId,
+    projectName: bhadlaProject.name,
+    organizationName: bhadlaProject.name,
+    sectorType: 'Power',
+    subsidiaryName: cleanEnergySub.name,
+    businessUnitName: solarBU.name,
+    value: 0,
+    unit: 'Nos',
+    description: 'Zero notices, warnings, or sanctions from Central Electricity Authority or Pollution Control Board.',
+    dataSource: 'Statutory Filings Repository',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-02'),
+  });
+
+  // -------------------------------------------------------------------------
+  // 3.2 MUMBAI METRO LINE 3 (PRJ-CON-26-404) — CONSTRUCTION SECTOR
+  // -------------------------------------------------------------------------
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Total Energy Consumption',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 215000,
+    unit: 'GJ',
+    description: 'Grid traction power and tunnel ventilation fan energy for underground rail network.',
+    dataSource: 'Traction Substation Energy Meters',
+    status: 'Approved',
+    responsibleUser: energySubAdmin._id,
+    submittedBy: energySubAdmin._id,
+    submittedByName: energySubAdmin.name,
+    employeeId: energySubAdmin.employeeId,
+    designation: energySubAdmin.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-05'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Water',
+    metric: 'Total Water Withdrawal',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 125000,
+    unit: 'Kilolitres',
+    description: 'Fresh municipal water consumption across 27 underground stations and car depot.',
+    dataSource: 'BMC Municipal Water Meter Readings',
+    status: 'Approved',
+    responsibleUser: energySubAdmin._id,
+    submittedBy: energySubAdmin._id,
+    submittedByName: energySubAdmin.name,
+    employeeId: energySubAdmin.employeeId,
+    designation: energySubAdmin.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-06'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Emissions',
+    metric: 'Scope 2 GHG Emissions',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 41200,
+    unit: 'tCO2e',
+    description: 'Indirect emissions calculated from 58,000 MWh grid electricity supplied by Maharashtra state grid.',
+    dataSource: 'CEA National Grid Emission Factor Database',
+    status: 'Approved',
+    responsibleUser: energySubAdmin._id,
+    submittedBy: energySubAdmin._id,
+    submittedByName: energySubAdmin.name,
+    employeeId: energySubAdmin.employeeId,
+    designation: energySubAdmin.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-07-08'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Employees',
+    metric: 'Total Employees',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 4120,
+    unit: 'Nos',
+    description: 'Workforce census across station management, rail signalling, track maintenance, and civil contracting.',
+    dataSource: 'Station Operations Workforce Database',
+    status: 'Approved',
+    responsibleUser: esgManager._id,
+    submittedBy: esgManager._id,
+    submittedByName: esgManager.name,
+    employeeId: esgManager.employeeId,
+    designation: esgManager.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-10'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'Safety',
+    subcategory: 'OHS',
+    metric: 'Lost Time Injury Rate',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 0.14,
+    unit: 'Per Million Man-Hours',
+    description: 'Underground rail safety frequency rate across 8.8 million civil engineering man-hours.',
+    dataSource: 'EHS Construction Safety Dossier',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-12'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Regulatory',
+    metric: 'Regulatory Non-Compliances',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 0,
+    unit: 'Nos',
+    description: 'Zero notices from Commissioner of Metro Railway Safety (CMRS) or Maharashtra Pollution Board.',
+    dataSource: 'Legal Compliance Register',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-14'),
+  });
+
+  // -------------------------------------------------------------------------
+  // 3.3 NHAVA SHEVA LOGISTICS TERMINAL (PRJ-TRA-26-303) — TRANSPORTATION SECTOR
+  // Includes intentional Pending/Under Review/Correction items for APPROVALS TAB
+  // -------------------------------------------------------------------------
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Fuel Consumption',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: freightTerminal._id,
+    project: freightTerminal._id,
+    projectId: freightTerminal.projectId,
+    projectName: freightTerminal.name,
+    organizationName: freightTerminal.name,
+    sectorType: 'Transportation',
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    value: 1420000,
+    unit: 'Litres',
+    description: 'Diesel fuel consumed by heavy intermodal freight fleet, gantry cranes, and yard transport haulers.',
+    dataSource: 'Fuel Card ERP Requisition Logs',
+    status: 'Approved',
+    responsibleUser: logisticsSubAdmin._id,
+    submittedBy: logisticsSubAdmin._id,
+    submittedByName: logisticsSubAdmin.name,
+    employeeId: logisticsSubAdmin.employeeId,
+    designation: logisticsSubAdmin.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-07-18'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Emissions',
+    metric: 'Scope 1 GHG Emissions',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: freightTerminal._id,
+    project: freightTerminal._id,
+    projectId: freightTerminal.projectId,
+    projectName: freightTerminal.name,
+    organizationName: freightTerminal.name,
+    sectorType: 'Transportation',
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    value: 3820,
+    unit: 'tCO2e',
+    description: 'Direct fleet fuel combustion emissions across container hauling routes.',
+    dataSource: 'DEFRA Heavy Goods Vehicle Carbon Accounting Factor',
+    status: 'Approved',
+    responsibleUser: logisticsSubAdmin._id,
+    submittedBy: logisticsSubAdmin._id,
+    submittedByName: logisticsSubAdmin.name,
+    employeeId: logisticsSubAdmin.employeeId,
+    designation: logisticsSubAdmin.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-20'),
+  });
+
+  // PENDING REVIEW RECORD (Shows in Approvals -> ESG Data Tab!)
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Emissions',
+    metric: 'Scope 3 GHG Emissions',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: freightTerminal._id,
+    project: freightTerminal._id,
+    projectId: freightTerminal.projectId,
+    projectName: freightTerminal.name,
+    organizationName: freightTerminal.name,
+    sectorType: 'Transportation',
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    value: 18450,
+    unit: 'tCO2e',
+    description: 'Upstream third-party long-haul freight operations and carrier sub-tier fuel estimates awaiting approval.',
+    dataSource: 'Subcontractor Freight Manifests',
+    status: 'Submitted',
+    responsibleUser: logisticsSubAdmin._id,
+    submittedBy: logisticsSubAdmin._id,
+    submittedByName: logisticsSubAdmin.name,
+    employeeId: logisticsSubAdmin.employeeId,
+    designation: logisticsSubAdmin.designation,
+  });
+
+  // CORRECTION REQUIRED RECORD (Shows in Approvals -> ESG Data Tab!)
+  addRec({
+    category: 'Social',
+    department: 'Safety',
+    subcategory: 'OHS',
+    metric: 'Total Recordable Incidents',
+    reportingPeriod: { year: '2026', quarter: 'Q2' },
+    organization: freightTerminal._id,
+    project: freightTerminal._id,
+    projectId: freightTerminal.projectId,
+    projectName: freightTerminal.name,
+    organizationName: freightTerminal.name,
+    sectorType: 'Transportation',
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    value: 3,
+    unit: 'Nos',
+    description: 'Minor collisions during container loading at freight terminal yard.',
+    dataSource: 'Terminal Security Logbook',
+    status: 'Correction Required',
+    correctionComment: 'Shift schedule in Appendix B is missing driver rest time logs. Please attach biometric sign-off records.',
+    responsibleUser: logisticsSubAdmin._id,
+    submittedBy: logisticsSubAdmin._id,
+    submittedByName: logisticsSubAdmin.name,
+    employeeId: logisticsSubAdmin.employeeId,
+    designation: logisticsSubAdmin.designation,
+  });
+
+  // UNDER REVIEW RECORD (Shows in Approvals -> ESG Data Tab!)
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Diversity',
+    metric: 'Women in Leadership',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: freightTerminal._id,
+    project: freightTerminal._id,
+    projectId: freightTerminal.projectId,
+    projectName: freightTerminal.name,
+    organizationName: freightTerminal.name,
+    sectorType: 'Transportation',
+    subsidiaryName: logisticsSub.name,
+    businessUnitName: coldChainBU.name,
+    value: 18.5,
+    unit: '%',
+    description: 'Percentage of terminal management and operational leadership positions held by women.',
+    dataSource: 'HR Talent Review Records',
+    status: 'Under Review',
+    responsibleUser: esgManager._id,
+    submittedBy: esgManager._id,
+    submittedByName: esgManager.name,
+    employeeId: esgManager.employeeId,
+    designation: esgManager.designation,
+    reviewedBy: auditorUser._id,
+    reviewedAt: new Date('2026-08-01'),
+  });
+
+  // -------------------------------------------------------------------------
+  // 3.4 WATER & IRRIGATION SECTOR (PRJ-WAT-26-606) & OIL & GAS (PRJ-OIL-26-707)
+  // -------------------------------------------------------------------------
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Water',
+    metric: 'Total Water Withdrawal',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: irrigationProject._id,
+    project: irrigationProject._id,
+    projectId: irrigationProject.projectId,
+    projectName: irrigationProject.name,
+    organizationName: irrigationProject.name,
+    sectorType: 'Water',
+    subsidiaryName: 'ESG360 Water Solutions Ltd.',
+    businessUnitName: 'Water Infrastructure BU',
+    value: 840000,
+    unit: 'Kilolitres',
+    description: 'Lift irrigation barrage water intake pumped to semi-arid agricultural command areas.',
+    dataSource: 'State Irrigation Dept Telemetric Discharge Gauges',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-22'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Total Energy Consumption',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: irrigationProject._id,
+    project: irrigationProject._id,
+    projectId: irrigationProject.projectId,
+    projectName: irrigationProject.name,
+    organizationName: irrigationProject.name,
+    sectorType: 'Water',
+    subsidiaryName: 'ESG360 Water Solutions Ltd.',
+    businessUnitName: 'Water Infrastructure BU',
+    value: 395000,
+    unit: 'GJ',
+    description: 'Heavy high-capacity electric pump motor energy consumption across pump stations.',
+    dataSource: 'Telangana State Power Distribution TOD Invoices',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: esgManager._id,
+    approvedAt: new Date('2026-07-25'),
+  });
+
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Emissions',
+    metric: 'Scope 1 GHG Emissions',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: cgdProject._id,
+    project: cgdProject._id,
+    projectId: cgdProject.projectId,
+    projectName: cgdProject.name,
+    organizationName: cgdProject.name,
+    sectorType: 'Oil & Gas',
+    subsidiaryName: 'ESG360 Clean Fuels Ltd.',
+    businessUnitName: 'City Gas Distribution BU',
+    value: 890,
+    unit: 'tCO2e',
+    description: 'Fugitive gas emissions and flaring vented during pipeline maintenance and green hydrogen electrolysis testing.',
+    dataSource: 'Continuous Optical Gas Imaging & Mass Flow Meters',
+    status: 'Approved',
+    responsibleUser: plantUser._id,
+    submittedBy: plantUser._id,
+    submittedByName: plantUser.name,
+    employeeId: plantUser.employeeId,
+    designation: plantUser.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-07-28'),
+  });
+
+  // INTENTIONAL SPIKE RECORD FOR AI VALIDATION ENGINE (VAL-AI-01: +142% Anomaly Spike)
+  addRec({
+    category: 'Environmental',
+    department: 'Environmental',
+    subcategory: 'Energy',
+    metric: 'Electricity Consumption',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: metroProject._id,
+    project: metroProject._id,
+    projectId: metroProject.projectId,
+    projectName: metroProject.name,
+    organizationName: metroProject.name,
+    sectorType: 'Construction',
+    subsidiaryName: urbanInfraSub.name,
+    businessUnitName: highwaysBU.name,
+    value: 98000,
+    unit: 'MWh',
+    description: 'Grid electricity consumption during intensive high-speed underground tunnel boring Phase 3.',
+    dataSource: 'State Grid Electric Meters',
+    status: 'Submitted',
+    responsibleUser: energySubAdmin._id,
+    submittedBy: energySubAdmin._id,
+    submittedByName: energySubAdmin.name,
+    employeeId: energySubAdmin.employeeId,
+    designation: energySubAdmin.designation,
+  });
+
+  // -------------------------------------------------------------------------
+  // 3.5 GROUP LEVEL GOVERNANCE & CSR RECORDS (2026)
+  // -------------------------------------------------------------------------
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Board',
+    metric: 'Total Board Members',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 12,
+    unit: 'Nos',
+    description: 'Total statutory board of directors members in compliance with SEBI LODR Regulations.',
+    dataSource: 'MCA Ministry of Corporate Affairs ROC Filing',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-05-15'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Board',
+    metric: 'Independent Directors',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 6,
+    unit: 'Nos',
+    description: '50% independent directors ratio complying with SEBI BRSR Principle 1 corporate governance mandates.',
+    dataSource: 'Board Resolution & Secretarial Audit',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-05-15'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Board',
+    metric: 'Women Directors',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 3,
+    unit: 'Nos',
+    description: '25% women directors on the statutory board of directors.',
+    dataSource: 'Secretarial Audit & Annual Report',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-05-15'),
+  });
+
+  addRec({
+    category: 'Social',
+    department: 'HR',
+    subcategory: 'Community',
+    metric: 'CSR Expenditure',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 52000000,
+    unit: 'INR',
+    description: 'Mandatory 2% average net profits deployed in solar micro-grids for desert schools, drinking water, and skill dev.',
+    dataSource: 'Corporate CSR Committee Approved Financial Statements',
+    status: 'Approved',
+    responsibleUser: esgManager._id,
+    submittedBy: esgManager._id,
+    submittedByName: esgManager.name,
+    employeeId: esgManager.employeeId,
+    designation: esgManager.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-10'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Whistleblower',
+    metric: 'Whistleblower Complaints Received',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 4,
+    unit: 'Nos',
+    description: 'Confidential whistleblower reports submitted via the independent ethics portal.',
+    dataSource: 'Audit Committee Vigil Mechanism Register',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-12'),
+  });
+
+  addRec({
+    category: 'Governance',
+    department: 'Compliance',
+    subcategory: 'Whistleblower',
+    metric: 'Whistleblower Complaints Resolved',
+    reportingPeriod: { year: '2026', quarter: 'Annual' },
+    organization: groupOrg._id,
+    organizationName: groupOrg.name,
+    sectorType: 'Conglomerate Infrastructure',
+    value: 4,
+    unit: 'Nos',
+    description: 'All 4 whistleblower reports investigated and resolved with remedial actions taken (100% resolution rate).',
+    dataSource: 'Audit Committee Vigil Mechanism Register',
+    status: 'Approved',
+    responsibleUser: complianceOfficer._id,
+    submittedBy: complianceOfficer._id,
+    submittedByName: complianceOfficer.name,
+    employeeId: complianceOfficer.employeeId,
+    designation: complianceOfficer.designation,
+    approvedBy: superAdmin._id,
+    approvedAt: new Date('2026-06-12'),
+  });
+
+  // -------------------------------------------------------------------------
+  // 3.6 HISTORICAL YEAR RECORDS (2025 & 2024) — POWERS ANALYTICS YoY TRENDS!
+  // -------------------------------------------------------------------------
+  const historicalSeed = [
+    // 2025 Records
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Total Energy Consumption', val: 165000, unit: 'GJ', yr: '2025', org: cleanEnergySub._id, orgN: cleanEnergySub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Electricity Consumption', val: 38000, unit: 'MWh', yr: '2025', org: cleanEnergySub._id, orgN: cleanEnergySub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Renewable Energy Generated', val: 29000, unit: 'MWh', yr: '2025', org: bhadlaProject._id, orgN: bhadlaProject.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Total Water Withdrawal', val: 128000, unit: 'Kilolitres', yr: '2025', org: urbanInfraSub._id, orgN: urbanInfraSub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Scope 1 GHG Emissions', val: 4200, unit: 'tCO2e', yr: '2025', org: logisticsSub._id, orgN: logisticsSub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Scope 2 GHG Emissions', val: 35000, unit: 'tCO2e', yr: '2025', org: urbanInfraSub._id, orgN: urbanInfraSub.name },
+    { cat: 'Social', dept: 'HR', metric: 'Total Employees', val: 3850, unit: 'Nos', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Social', dept: 'HR', metric: 'Female Employees', val: 510, unit: 'Nos', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Social', dept: 'Safety', metric: 'Lost Time Injury Rate', val: 0.18, unit: 'Per Million Man-Hours', yr: '2025', org: logisticsSub._id, orgN: logisticsSub.name },
+    { cat: 'Social', dept: 'HR', metric: 'CSR Expenditure', val: 45000000, unit: 'INR', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Total Board Members', val: 11, unit: 'Nos', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Independent Directors', val: 5, unit: 'Nos', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Ethics Policy Coverage', val: 98, unit: '%', yr: '2025', org: groupOrg._id, orgN: groupOrg.name },
+
+    // 2024 Records
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Total Energy Consumption', val: 145000, unit: 'GJ', yr: '2024', org: cleanEnergySub._id, orgN: cleanEnergySub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Electricity Consumption', val: 34000, unit: 'MWh', yr: '2024', org: cleanEnergySub._id, orgN: cleanEnergySub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Renewable Energy Generated', val: 22000, unit: 'MWh', yr: '2024', org: bhadlaProject._id, orgN: bhadlaProject.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Total Water Withdrawal', val: 142000, unit: 'Kilolitres', yr: '2024', org: urbanInfraSub._id, orgN: urbanInfraSub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Scope 1 GHG Emissions', val: 4600, unit: 'tCO2e', yr: '2024', org: logisticsSub._id, orgN: logisticsSub.name },
+    { cat: 'Environmental', dept: 'Environmental', metric: 'Scope 2 GHG Emissions', val: 38000, unit: 'tCO2e', yr: '2024', org: urbanInfraSub._id, orgN: urbanInfraSub.name },
+    { cat: 'Social', dept: 'HR', metric: 'Total Employees', val: 3400, unit: 'Nos', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Social', dept: 'HR', metric: 'Female Employees', val: 420, unit: 'Nos', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Social', dept: 'Safety', metric: 'Lost Time Injury Rate', val: 0.22, unit: 'Per Million Man-Hours', yr: '2024', org: logisticsSub._id, orgN: logisticsSub.name },
+    { cat: 'Social', dept: 'HR', metric: 'CSR Expenditure', val: 39000000, unit: 'INR', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Total Board Members', val: 10, unit: 'Nos', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Independent Directors', val: 5, unit: 'Nos', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+    { cat: 'Governance', dept: 'Compliance', metric: 'Ethics Policy Coverage', val: 95, unit: '%', yr: '2024', org: groupOrg._id, orgN: groupOrg.name },
+  ];
+
+  historicalSeed.forEach((h) => {
+    addRec({
+      category: h.cat,
+      department: h.dept,
+      metric: h.metric,
+      reportingPeriod: { year: h.yr, quarter: 'Annual' },
+      organization: h.org,
+      organizationName: h.orgN,
+      value: h.val,
+      unit: h.unit,
+      description: `Audited statutory record for reporting period ${h.yr}.`,
+      status: 'Approved',
+      responsibleUser: superAdmin._id,
+      submittedBy: superAdmin._id,
+      approvedBy: superAdmin._id,
+      approvedAt: new Date(`${h.yr}-06-30`),
+    });
+  });
+
+  const createdESG = await ESGData.insertMany(esgRecords);
+  console.log(`✅ Created ${createdESG.length} comprehensive ESG records across all categories, departments, and years.\n`);
+
+  // =========================================================================
+  // 4. SEBI BRSR REPORTS (TAB: BRSR REPORTING)
+  // =========================================================================
+  console.log('📑 [Tab: BRSR Reporting] Creating SEBI BRSR Reports...');
+
+  const brsrReports = [
+    {
+      title: 'SEBI BRSR Comprehensive Annual Report FY 2025-26',
+      organization: groupOrg._id,
+      reportingPeriod: {
+        year: '2026',
+        fromDate: new Date('2025-04-01'),
+        toDate: new Date('2026-03-31'),
+      },
+      status: 'Approved',
+      generatedBy: esgManager._id,
+      generatedAt: new Date('2026-07-15'),
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-07-25'),
+      overallCompletionPercentage: 100,
+      summaryNarrative: 'Comprehensive group disclosures aligned with SEBI BRSR Core Circular covering Energy transition, Scope 1-3 reduction, Zero Fatality safety performance, and board diversity governance.',
+      reportVersion: '2.0 Final',
+      brsrReference: 'SEBI Circular SEBI/HO/CFD/CFD-SEC-2/P/CIR/2023/122',
+      sections: [
+        { sectionName: 'Section A: General Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Section B: Management and Process Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Section C: Principle-wise Performance Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 1: Ethics and Transparency', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 2: Sustainable Products and Services', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 3: Employee Well-being', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 4: Stakeholder Interests', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 5: Human Rights', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 6: Environmental Responsibility', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 7: Policy Advocacy', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 8: Inclusive Growth', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Principle 9: Consumer Responsibility', isComplete: true, completionPercentage: 100 },
+      ],
+      consolidatedScope: {
+        organizations: [cleanEnergySub._id, logisticsSub._id, urbanInfraSub._id, bhadlaProject._id],
+        includesSubsidiaries: true,
+      },
+    },
+    {
+      title: 'ESG360 Clean Energy Subsidiary BRSR Section-C Disclosures',
+      organization: cleanEnergySub._id,
+      reportingPeriod: {
+        year: '2026',
+        fromDate: new Date('2025-04-01'),
+        toDate: new Date('2026-03-31'),
+      },
+      status: 'Under Review',
+      generatedBy: energySubAdmin._id,
+      generatedAt: new Date('2026-08-01'),
+      reviewedBy: auditorUser._id,
+      reviewedAt: new Date('2026-08-10'),
+      overallCompletionPercentage: 92,
+      summaryNarrative: 'Subsidiary-level principle-wise performance metrics for Solar and Wind generation assets with independent verification.',
+      reportVersion: '1.0 Draft',
+      brsrReference: 'SEBI BRSR Principle 6 (Environment)',
+      sections: [
+        { sectionName: 'Section A: General Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Section B: Management and Process Disclosures', isComplete: true, completionPercentage: 90 },
+        { sectionName: 'Section C: Principle-wise Performance Disclosures', isComplete: true, completionPercentage: 88 },
+        { sectionName: 'Principle 6: Environmental Responsibility', isComplete: true, completionPercentage: 95 },
+      ],
+    },
+    {
+      title: 'ESG360 Logistics Sustainable Supply Chain BRSR Report 2026',
+      organization: logisticsSub._id,
+      reportingPeriod: {
+        year: '2026',
+        fromDate: new Date('2025-04-01'),
+        toDate: new Date('2026-03-31'),
+      },
+      status: 'In Progress',
+      generatedBy: logisticsSubAdmin._id,
+      generatedAt: new Date('2026-08-05'),
+      overallCompletionPercentage: 78,
+      summaryNarrative: 'Freight logistics, electric vehicle fleet decarbonization, and cold-chain refrigerant stewardship disclosures.',
+      reportVersion: '0.8 WIP',
+      brsrReference: 'SEBI BRSR Core Supply Chain Indicators',
+      sections: [
+        { sectionName: 'Section A: General Disclosures', isComplete: true, completionPercentage: 90 },
+        { sectionName: 'Section B: Management and Process Disclosures', isComplete: true, completionPercentage: 75 },
+        { sectionName: 'Section C: Principle-wise Performance Disclosures', isComplete: false, completionPercentage: 70 },
+      ],
+    },
+    {
+      title: 'SEBI BRSR Statutory Published Filing FY 2024-25',
+      organization: groupOrg._id,
+      reportingPeriod: {
+        year: '2025',
+        fromDate: new Date('2024-04-01'),
+        toDate: new Date('2025-03-31'),
+      },
+      status: 'Approved',
+      generatedBy: esgManager._id,
+      generatedAt: new Date('2025-07-10'),
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2025-07-20'),
+      overallCompletionPercentage: 100,
+      summaryNarrative: 'Statutory filing submitted to National Stock Exchange (NSE) and BSE Limited for FY 2024-25 with independent third-party reasonable assurance.',
+      reportVersion: '2.0 Final',
+      brsrReference: 'SEBI BRSR 2024 Standard Format',
+      sections: [
+        { sectionName: 'Section A: General Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Section B: Management and Process Disclosures', isComplete: true, completionPercentage: 100 },
+        { sectionName: 'Section C: Principle-wise Performance Disclosures', isComplete: true, completionPercentage: 100 },
+      ],
+    },
+  ];
+
+  await BRSRReport.insertMany(brsrReports);
+  console.log(`✅ Created ${brsrReports.length} BRSR Reports.\n`);
+
+  // =========================================================================
+  // 5. COMPLIANCE & EVIDENCE DOCUMENTS (TABS: DOCUMENTS, APPROVALS)
+  // =========================================================================
+  console.log('📄 [Tabs: Documents, Approvals] Creating Compliance & Evidence Documents across all categories...');
+
+  const dummyDocs = [
+    // PENDING UPLOADED DOCUMENTS (READY FOR SUPER ADMIN APPROVAL IN APPROVALS TAB!)
+    {
+      originalName: 'Khavda_Hybrid_Park_Phase1_Biodiversity_Clearance.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/clean_energy/khavda_biodiversity_clearance',
+      fileType: 'application/pdf',
+      fileSize: 4850000,
+      category: 'Environmental Certificate',
+      organization: khavdaProject._id,
+      uploadedBy: plantUser._id,
+      description: 'EIA Wildlife Clearance and avian migratory flyway study conducted by Wildlife Institute of India for 1GW Hybrid Park.',
+      status: 'Submitted',
+      reportingPeriod: { year: '2026', quarter: 'Q3' },
+      tags: ['Biodiversity', 'EIA', 'Clearance', 'Avian Flyway', 'Submitted'],
+    },
+    {
+      originalName: 'Nhava_Sheva_Terminal_Refrigerant_Leak_Safety_Audit.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/logistics/refrigerant_safety_audit',
+      fileType: 'application/pdf',
+      fileSize: 2150000,
+      category: 'Safety Record',
+      organization: freightTerminal._id,
+      uploadedBy: logisticsSubAdmin._id,
+      description: 'Annual third-party ammonia and HFC low-GWP refrigerant containment and emergency ventilation inspection.',
+      status: 'Submitted',
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Safety Audit', 'Refrigerants', 'Cold Chain', 'Submitted'],
+    },
+    {
+      originalName: 'Bio_Fuels_Plant_Zero_Liquid_Discharge_Compliance_Dossier.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/bio_fuels/zld_dossier',
+      fileType: 'application/pdf',
+      fileSize: 3400000,
+      category: 'ESG Evidence',
+      organization: bioFuelsSub._id,
+      uploadedBy: complianceOfficer._id,
+      description: 'Zero Liquid Discharge (ZLD) RO plant commissioning logbook and bio-methanation effluent balance dossier.',
+      status: 'Submitted',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['ZLD', 'Circular Economy', 'Water Recycling', 'Submitted'],
+    },
+    {
+      originalName: 'Group_Corporate_Human_Rights_Due_Diligence_Report_2026.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/group/human_rights_report_2026',
+      fileType: 'application/pdf',
+      fileSize: 1890000,
+      category: 'Board Document',
+      organization: groupOrg._id,
+      uploadedBy: complianceOfficer._id,
+      description: 'Independent human rights due diligence audit covering tier-1 supplier facilities and ethical recruitment covenants.',
+      status: 'Submitted',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Human Rights', 'BRSR Principle 5', 'Value Chain', 'Submitted'],
+    },
+    {
+      originalName: 'Metro_Line_3_Contractor_Minimum_Wage_Audit_Records.xlsx',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/raw/upload/v1690000000/sample.xlsx',
+      cloudinaryPublicId: 'esg360/urban_infra/minimum_wage_audit',
+      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: 1420000,
+      category: 'Audit Report',
+      organization: metroProject._id,
+      uploadedBy: buManager._id,
+      description: 'Statutory wage audit, ESIC registration cross-check, and bank disbursement records for 3,850 civil works contract laborers.',
+      status: 'Submitted',
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Social Audit', 'Fair Wages', 'Contractors', 'Submitted'],
+    },
+    {
+      originalName: 'Consolidated_Group_Energy_Emissions_Evidence_FY25.xlsx',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/raw/upload/v1690000000/sample.xlsx',
+      cloudinaryPublicId: 'esg360/group/energy_evidence_fy25',
+      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: 2480000,
+      category: 'ESG Evidence',
+      organization: groupOrg._id,
+      uploadedBy: esgManager._id,
+      description: 'Aggregated utility bills, sub-meter readings, and fuel procurement receipts across all operational subsidiaries.',
+      status: 'Under Review',
+      reviewedBy: groupAdmin._id,
+      reviewedAt: new Date('2026-09-18T09:45:00Z'),
+      reviewComment: 'Currently verifying Scope 2 grid emission factors against Central Electricity Authority baseline database.',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Scope 1', 'Scope 2', 'Utility Bills', 'Energy'],
+    },
+
+    // APPROVED & VALIDATED DOCUMENTS (VAULT REGISTER & REPORT EVIDENCE)
+    {
+      originalName: 'ESG360_Group_Annual_Audit_Assurance_FY25-26.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/group/audit_assurance_fy25_26',
+      fileType: 'application/pdf',
+      fileSize: 3450000,
+      category: 'Audit Report',
+      organization: groupOrg._id,
+      uploadedBy: auditorUser._id,
+      description: 'Independent limited assurance report conducted by external audit firm covering BRSR core indicators.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-08-15T10:00:00Z'),
+      reviewComment: 'Verified against SEBI BRSR standard core indicators. Fully assured.',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Audit', 'External Assurance', 'BRSR', 'FY26'],
+    },
+    {
+      originalName: 'ESG360_Corporate_Environmental_Climate_Policy_2026.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/group/env_policy_2026',
+      fileType: 'application/pdf',
+      fileSize: 1820000,
+      category: 'Policy Document',
+      organization: groupOrg._id,
+      uploadedBy: groupAdmin._id,
+      description: 'Board-approved corporate policy framework for greenhouse gas reduction, net-zero roadmap, and water security.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-01-10T11:30:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Policy', 'Climate', 'Net-Zero', 'Governance'],
+    },
+    {
+      originalName: 'Board_Diversity_Human_Rights_Policy_Declaration.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/group/board_diversity_2026',
+      fileType: 'application/pdf',
+      fileSize: 940000,
+      category: 'Board Document',
+      organization: groupOrg._id,
+      uploadedBy: complianceOfficer._id,
+      description: 'Charter of the ESG Nomination and Governance Committee outlining board gender ratio and supplier human rights code.',
+      status: 'Validated',
+      reviewedBy: auditorUser._id,
+      reviewedAt: new Date('2026-07-12T14:15:00Z'),
+      reviewComment: 'Methodology and board resolutions validated.',
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Board', 'Diversity', 'Human Rights'],
+    },
+    {
+      originalName: 'Bhadla_Solar_Phase_IV_Environmental_Clearance_MOEFCC.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/clean_energy/moefcc_clearance',
+      fileType: 'application/pdf',
+      fileSize: 4200000,
+      category: 'Environmental Certificate',
+      organization: cleanEnergySub._id,
+      uploadedBy: energySubAdmin._id,
+      description: 'Statutory Environmental Clearance issued by Ministry of Environment, Forest and Climate Change for 300MW solar installation.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-03-22T16:00:00Z'),
+      reviewComment: 'Statutory compliance confirmed.',
+      reportingPeriod: { year: '2026', quarter: 'Q1' },
+      tags: ['Statutory', 'MOEFCC', 'Solar', 'Compliance'],
+    },
+    {
+      originalName: 'Clean_Energy_ISO_14001_Environment_Management_Certificate.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/clean_energy/iso_14001',
+      fileType: 'application/pdf',
+      fileSize: 1540000,
+      category: 'Environmental Certificate',
+      organization: cleanEnergySub._id,
+      uploadedBy: energySubAdmin._id,
+      description: 'ISO 14001:2015 Environmental Management Systems accreditation covering solar PV operations in Rajasthan and Gujarat.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-04-05T12:00:00Z'),
+      reviewComment: 'Accreditation certified valid through 2028.',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['ISO', 'ISO 14001', 'Certification'],
+    },
+    {
+      originalName: 'Clean_Energy_Worker_Health_Safety_ISO_45001_Audit_Log.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/clean_energy/iso_45001',
+      fileType: 'application/pdf',
+      fileSize: 2100000,
+      category: 'Safety Record',
+      organization: cleanEnergySub._id,
+      uploadedBy: energySubAdmin._id,
+      description: 'Zero Lost Time Injury logbook and toolbox talk attendance sheets for solar plant contract workers.',
+      status: 'Validated',
+      reviewedBy: complianceOfficer._id,
+      reviewedAt: new Date('2026-08-01T15:20:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Safety', 'EHS', 'Zero Harm', 'LTI'],
+    },
+    {
+      originalName: 'Clean_Energy_Green_Credits_CERC_Tariff_Statement.xlsx',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/raw/upload/v1690000000/sample.xlsx',
+      cloudinaryPublicId: 'esg360/clean_energy/green_credits',
+      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: 1120000,
+      category: 'Financial Data',
+      organization: cleanEnergySub._id,
+      uploadedBy: esgManager._id,
+      description: 'Renewable energy certificates issuance statement and clean power purchase agreements revenues.',
+      status: 'Under Review',
+      reviewedBy: auditorUser._id,
+      reviewedAt: new Date('2026-09-10T11:00:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Q3' },
+      tags: ['Finance', 'REC', 'Carbon Credits'],
+    },
+    {
+      originalName: 'Electric_Fleet_EV_Telematics_Log_Q2_2026.xlsx',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/raw/upload/v1690000000/sample.xlsx',
+      cloudinaryPublicId: 'esg360/logistics/ev_fleet_telematics',
+      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: 2890000,
+      category: 'ESG Evidence',
+      organization: logisticsSub._id,
+      uploadedBy: logisticsSubAdmin._id,
+      description: 'Automated telematics data measuring diesel displacement by 120 heavy electric freight haulers.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-07-28T14:40:00Z'),
+      reviewComment: 'Verified with GPS telemetry records. Fuel reduction numbers cross-matched.',
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Logistics', 'EV Fleet', 'Diesel Displacement', 'Scope 1'],
+    },
+    {
+      originalName: 'Port_Terminals_Hazardous_Waste_Discharge_Consent.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/logistics/hazardous_waste_consent',
+      fileType: 'application/pdf',
+      fileSize: 1650000,
+      category: 'Environmental Certificate',
+      organization: logisticsSub._id,
+      uploadedBy: complianceOfficer._id,
+      description: 'State Pollution Control Board Consent to Operate for port bunkering and bilge oil separation units.',
+      status: 'Validated',
+      reviewedBy: auditorUser._id,
+      reviewedAt: new Date('2026-06-19T10:15:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Pollution Board', 'CTO', 'Hazardous Waste', 'Water'],
+    },
+    {
+      originalName: 'Driver_Fatigue_Incident_Investigation_Report.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/logistics/safety_correction',
+      fileType: 'application/pdf',
+      fileSize: 740000,
+      category: 'Safety Record',
+      organization: logisticsSub._id,
+      uploadedBy: logisticsSubAdmin._id,
+      description: 'Root cause analysis of NH-48 minor transport collision and driver shift rotation schedule.',
+      status: 'Correction Required',
+      correctionComment: 'Shift schedule in Appendix B is missing driver rest time logs. Please attach biometric sign-off records.',
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Safety', 'Incident', 'Correction Required'],
+    },
+    {
+      originalName: 'Metro_Line_3_Urban_Biodiversity_Impact_Assessment.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/urban_infra/biodiversity_report',
+      fileType: 'application/pdf',
+      fileSize: 3100000,
+      category: 'ESG Evidence',
+      organization: metroProject._id,
+      uploadedBy: energySubAdmin._id,
+      description: 'Comprehensive ecological study covering compensatory afforestation of 25,000 native tree saplings.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-05-14T09:30:00Z'),
+      reviewComment: 'Geo-tagged afforestation records approved.',
+      reportingPeriod: { year: '2026', quarter: 'Annual' },
+      tags: ['Biodiversity', 'Afforestation', 'Metro Infrastructure'],
+    },
+    {
+      originalName: 'Precast_Yard_Rainwater_Harvesting_Zero_Discharge_Cert.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/urban_infra/water_recycle_cert',
+      fileType: 'application/pdf',
+      fileSize: 1250000,
+      category: 'Environmental Certificate',
+      organization: metroProject._id,
+      uploadedBy: energySubAdmin._id,
+      description: 'Third-party hydrological certification for 100% wastewater recycling and artificial aquifer recharge pit.',
+      status: 'Approved',
+      approvedBy: esgManager._id,
+      approvedAt: new Date('2026-06-30T17:00:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['Water', 'Rainwater Harvesting', 'Zero Discharge'],
+    },
+    {
+      originalName: 'Bhadla_Solar_Pyranometer_Solar_Irradiance_Calibration.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/solar_bu/pyranometer_cert',
+      fileType: 'application/pdf',
+      fileSize: 670000,
+      category: 'ESG Evidence',
+      organization: bhadlaProject._id,
+      uploadedBy: plantUser._id,
+      description: 'NABL accredited laboratory calibration report for solar irradiance sensors and energy yield audit.',
+      status: 'Approved',
+      approvedBy: superAdmin._id,
+      approvedAt: new Date('2026-04-18T10:00:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Q1' },
+      tags: ['Solar BU', 'Calibration', 'Energy Yield'],
+    },
+    {
+      originalName: 'Substation_High_Voltage_Switchgear_SF6_Gas_Leakage_Log.pdf',
+      cloudinaryUrl: 'https://res.cloudinary.com/demo/image/upload/v1690000000/sample.pdf',
+      cloudinaryPublicId: 'esg360/solar_bu/sf6_leakage_audit',
+      fileType: 'application/pdf',
+      fileSize: 890000,
+      category: 'Environmental Certificate',
+      organization: bhadlaProject._id,
+      uploadedBy: plantUser._id,
+      description: 'Zero SF6 greenhouse gas leakage verification test for 400kV step-up substation.',
+      status: 'Approved',
+      approvedBy: groupAdmin._id,
+      approvedAt: new Date('2026-05-25T14:30:00Z'),
+      reportingPeriod: { year: '2026', quarter: 'Q2' },
+      tags: ['SF6', 'GHG', 'Substation', 'Environmental'],
+    },
+  ];
+
+  await Document.insertMany(dummyDocs);
+  console.log(`✅ Created ${dummyDocs.length} Compliance & Evidence Documents across all categories and review states.\n`);
+
+  // =========================================================================
+  // 6. NOTIFICATIONS (TAB: NOTIFICATIONS)
+  // =========================================================================
+  console.log('🔔 [Tab: Notifications] Creating operational notifications for user accounts...');
+
+  const notifications = [
+    {
+      recipient: superAdmin._id,
+      type: 'ESG_APPROVED',
+      title: 'ESG Record Approved: Renewable Energy Generated',
+      message: 'Bhadla 500MW Ultra Solar Park record has been approved by Group ESG Manager.',
+      isRead: false,
+      organization: groupOrg._id,
+      triggeredBy: esgManager._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'ESG_SUBMITTED',
+      title: 'New ESG Record Submitted: Fuel Consumption',
+      message: 'ESG360 Logistics & Freight Ltd. submitted annual fuel consumption figures for review.',
+      isRead: false,
+      organization: logisticsSub._id,
+      triggeredBy: logisticsSubAdmin._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'CORRECTION_REQUIRED',
+      title: 'Correction Flagged: Scope 3 GHG Emissions',
+      message: 'Western Freight Hub Scope 3 documentation flagged for carrier sub-tier breakdown verification.',
+      isRead: false,
+      organization: freightTerminal._id,
+      triggeredBy: complianceOfficer._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'REPORT_GENERATED',
+      title: 'BRSR Report Generated: FY 2025-26',
+      message: 'SEBI BRSR Comprehensive Annual Report FY 2025-26 draft is now ready at 100% overall completion.',
+      isRead: true,
+      organization: groupOrg._id,
+      triggeredBy: esgManager._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'SYSTEM',
+      title: 'SEBI BRSR Core Compliance Check Passed',
+      message: 'Automated validation check confirmed all mandatory BRSR Core KPIs are populated for FY 2026.',
+      isRead: true,
+      organization: groupOrg._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'REMINDER',
+      title: 'Statutory Groundwater Withdrawal Audit Due',
+      message: 'Central Ground Water Authority NOC quarterly return for Bhadla Solar Park due in 15 days.',
+      isRead: false,
+      organization: bhadlaProject._id,
+      triggeredBy: complianceOfficer._id,
+    },
+    {
+      recipient: superAdmin._id,
+      type: 'REVIEW_ASSIGNED',
+      title: 'Assigned Review: Khavda 1GW Biodiversity Clearance',
+      message: 'You have been assigned as lead reviewer for the Khavda avian flyway environmental assessment.',
+      isRead: false,
+      organization: khavdaProject._id,
+      triggeredBy: groupAdmin._id,
+    },
+    // Duplicate high-priority alerts for Group Admin
+    {
+      recipient: groupAdmin._id,
+      type: 'REPORT_GENERATED',
+      title: 'SEBI BRSR Annual Pack Ready',
+      message: 'SEBI BRSR Comprehensive Annual Report FY 2025-26 draft is now ready for final group review.',
+      isRead: false,
+      organization: groupOrg._id,
+      triggeredBy: esgManager._id,
+    },
+    {
+      recipient: groupAdmin._id,
+      type: 'ESG_SUBMITTED',
+      title: 'Pending ESG Approval Queue',
+      message: '6 new operational data records submitted from operating facilities awaiting sign-off.',
+      isRead: false,
+      organization: groupOrg._id,
+      triggeredBy: plantUser._id,
+    },
+  ];
+
+  await Notification.insertMany(notifications);
+  console.log(`✅ Created ${notifications.length} Notifications with active unread counters.\n`);
+
+  // =========================================================================
+  // 7. COMPLIANCE AUDIT LOGS (TAB: AUDIT LOGS / SYSTEM CREDENTIALS)
+  // =========================================================================
+  console.log('📜 [Tab: Audit Logs] Creating immutable Compliance Audit Logs and user credentials...');
+
+  const auditLogs = [
+    {
+      user: superAdmin._id,
+      userName: superAdmin.name,
+      userEmail: superAdmin.email,
+      userRole: superAdmin.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: superAdmin._id,
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Super Admin logged in from corporate governance console.',
+      createdAt: new Date('2026-08-20T09:15:00Z'),
+    },
+    {
+      user: groupAdmin._id,
+      userName: groupAdmin.name,
+      userEmail: groupAdmin.email,
+      userRole: groupAdmin.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: groupAdmin._id,
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Group ESG Admin authenticated.',
+      createdAt: new Date('2026-08-20T09:30:00Z'),
+    },
+    {
+      user: energySubAdmin._id,
+      userName: energySubAdmin.name,
+      userEmail: energySubAdmin.email,
+      userRole: energySubAdmin.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: energySubAdmin._id,
+      organization: cleanEnergySub._id,
+      organizationName: cleanEnergySub.name,
+      status: 'Success',
+      description: 'Subsidiary Admin logged in for Clean Energy reporting.',
+      createdAt: new Date('2026-08-20T09:40:00Z'),
+    },
+    {
+      user: logisticsSubAdmin._id,
+      userName: logisticsSubAdmin.name,
+      userEmail: logisticsSubAdmin.email,
+      userRole: logisticsSubAdmin.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: logisticsSubAdmin._id,
+      organization: logisticsSub._id,
+      organizationName: logisticsSub.name,
+      status: 'Success',
+      description: 'Logistics Subsidiary Admin authenticated.',
+      createdAt: new Date('2026-08-20T09:50:00Z'),
+    },
+    {
+      user: buManager._id,
+      userName: buManager.name,
+      userEmail: buManager.email,
+      userRole: buManager.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: buManager._id,
+      organization: solarBU._id,
+      organizationName: solarBU.name,
+      status: 'Success',
+      description: 'Solar Business Unit Manager logged in.',
+      createdAt: new Date('2026-08-20T10:00:00Z'),
+    },
+    {
+      user: plantUser._id,
+      userName: plantUser.name,
+      userEmail: plantUser.email,
+      userRole: plantUser.role,
+      password: ADMIN_PASSWORD,
+      action: 'CREATE',
+      entity: 'ESGData',
+      organization: bhadlaProject._id,
+      organizationName: bhadlaProject.name,
+      status: 'Success',
+      description: 'Created telemetry record for Renewable Energy Generated.',
+      createdAt: new Date('2026-08-20T10:15:00Z'),
+    },
+    {
+      user: esgManager._id,
+      userName: esgManager.name,
+      userEmail: esgManager.email,
+      userRole: esgManager.role,
+      password: ADMIN_PASSWORD,
+      action: 'APPROVE',
+      entity: 'ESGData',
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Approved Bhadla 500MW Ultra Solar Park annual environmental metrics.',
+      createdAt: new Date('2026-08-20T14:00:00Z'),
+    },
+    {
+      user: complianceOfficer._id,
+      userName: complianceOfficer.name,
+      userEmail: complianceOfficer.email,
+      userRole: complianceOfficer.role,
+      password: ADMIN_PASSWORD,
+      action: 'VALIDATE',
+      entity: 'ESGData',
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Validated compliance parameters against SEBI BRSR Core requirements.',
+      createdAt: new Date('2026-08-20T15:30:00Z'),
+    },
+    {
+      user: auditorUser._id,
+      userName: auditorUser.name,
+      userEmail: auditorUser.email,
+      userRole: auditorUser.role,
+      password: ADMIN_PASSWORD,
+      action: 'VALIDATE',
+      entity: 'Document',
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'External auditor verified ISO 14001 certification and calibration data.',
+      createdAt: new Date('2026-08-21T09:00:00Z'),
+    },
+    {
+      user: mgmtUser._id,
+      userName: mgmtUser.name,
+      userEmail: mgmtUser.email,
+      userRole: mgmtUser.role,
+      password: ADMIN_PASSWORD,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: mgmtUser._id,
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Managing Director accessed Executive Governance Board dashboard.',
+      createdAt: new Date('2026-08-21T10:00:00Z'),
+    },
+    {
+      user: superAdmin._id,
+      userName: superAdmin.name,
+      userEmail: superAdmin.email,
+      userRole: superAdmin.role,
+      password: ADMIN_PASSWORD,
+      action: 'CONSOLIDATE',
+      entity: 'Organization',
+      organization: groupOrg._id,
+      organizationName: groupOrg.name,
+      status: 'Success',
+      description: 'Consolidated ESG datasets across all operating subsidiaries for statutory SEBI reporting.',
+      createdAt: new Date('2026-08-21T11:00:00Z'),
+    },
+  ];
+
+  await AuditLog.insertMany(auditLogs);
+  console.log(`✅ Created ${auditLogs.length} Compliance Audit Logs with full role roster.\n`);
+
+  console.log('======================================================================');
+  console.log('🎉 SEED COMPLETED SUCCESSFULLY FOR EVERY TAB:');
+  console.log('   ✅ 1. Dashboard                 : Active KPIs, charts & recent activities');
+  console.log('   ✅ 2. Organizations & Projects  : 15 entities across 4 levels + pending approval');
+  console.log('   ✅ 3. Data Collection           : Full spectrum of ESG records across all sectors');
+  console.log('   ✅ 4. Consolidation & Scoring   : Bhadla Park 100% scored (AAA Grade, 4 depts populated)');
+  console.log('   ✅ 5. Environmental/Social/Gov  : Category pages fully stocked with live records');
+  console.log('   ✅ 6. SEBI BRSR Reporting       : 4 Reports (2026 Comprehensive, Clean Energy, FY25)');
+  console.log('   ✅ 7. AI Validation & Copilot   : Anomaly detection, spike checks & all 9 streams');
+  console.log('   ✅ 8. Documents Vault           : 20+ certificates, policies, audits across 8 categories');
+  console.log('   ✅ 9. Approvals Center          : Pending Documents, Pending ESG Records & Pending Orgs');
+  console.log('   ✅ 10. Reports & Domain Export  : Approved records ready for instant Excel/PDF export');
+  console.log('   ✅ 11. Analytics & Trends       : 3-Year YoY trends (2024-2026), category & org charts');
+  console.log('   ✅ 12. Notifications            : Unread/read alerts across all 7 operational types');
+  console.log('   ✅ 13. Audit Logs / Users       : Complete credentials roster for all system roles');
+  console.log('----------------------------------------------------------------------');
+  console.log('🔑 Login Credentials (All share password: ' + ADMIN_PASSWORD + ')');
+  console.log('   • Super Admin        : ' + ADMIN_EMAIL);
+  console.log('   • Group ESG Admin    : group.admin@esg360.com');
+  console.log('   • Subsidiary Admin   : energy.sub@esg360.com');
+  console.log('   • Logistics Admin    : logistics.sub@esg360.com');
+  console.log('   • Solar BU Manager   : solar.bu@esg360.com');
+  console.log('   • Plant Data User    : bhadla.user@esg360.com');
+  console.log('   • ESG Manager        : esg.manager@esg360.com');
+  console.log('   • Compliance Officer : compliance@esg360.com');
+  console.log('   • Auditor/Reviewer   : auditor@esg360.com');
+  console.log('   • Management/Board   : mgmt@esg360.com');
+  console.log('======================================================================\n');
 
   await mongoose.disconnect();
   process.exit(0);
