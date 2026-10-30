@@ -280,7 +280,7 @@ exports.sendNodeSensorData = asyncHandler(async (req, res) => {
   } else {
     node.lastSeen = new Date();
     node.status = 'online';
-    if (location && !node.location) node.location = location.trim();
+    if (location) node.location = location.trim();
     if (name) node.name = name.trim();
     if (parsedLat !== null) node.latitude = parsedLat;
     if (parsedLng !== null) node.longitude = parsedLng;
@@ -629,21 +629,22 @@ exports.deleteNode = asyncHandler(async (req, res) => {
 // Retrieve paginated sensor readings for a specific node
 exports.getNodeReadings = asyncHandler(async (req, res) => {
   const cleanId = String(req.params.nodeId).toUpperCase().trim();
-  const { limit = 50, page = 1 } = req.query;
+  const numLimit = Number(req.query.limit) || 50;
+  const numPage  = Number(req.query.page)  || 1;
 
   const total = await SensorReading.countDocuments({ nodeId: cleanId });
   const readings = await SensorReading.find({ nodeId: cleanId })
     .sort({ timestamp: -1 })
-    .skip((page - 1) * limit)
-    .limit(Number(limit))
+    .skip((numPage - 1) * numLimit)
+    .limit(numLimit)
     .lean();
 
   res.json({
     success: true,
     count: readings.length,
     total,
-    page: Number(page),
-    pages: Math.ceil(total / limit) || 1,
+    page: numPage,
+    pages: Math.ceil(total / numLimit) || 1,
     data: readings.map(flatten),
   });
 });

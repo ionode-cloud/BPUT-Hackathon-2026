@@ -325,8 +325,12 @@ export function evaluateReadingAlerts(reading, nodeName, currentActiveAlerts = {
       };
 
       updatedActive[alertKey] = alertObj;
-      // Always trigger popup when dangerous sensor data arrives
-      popupsToTrigger.push(alertObj);
+      // Only trigger popup when alert is newly raised or severity escalates
+      const isNewAlert = !existingAlert;
+      const isSeverityEscalated = existingAlert && newSeverity === 'critical' && previousSeverity === 'warning';
+      if (isNewAlert || isSeverityEscalated) {
+        popupsToTrigger.push(alertObj);
+      }
     }
     // ── CASE 2: Recovery back to normal ──
     else if (newSeverity === 'normal' && existingAlert) {

@@ -108,6 +108,7 @@ exports.getSummary = asyncHandler(async (req, res) => {
 
 // GET /api/dashboard/node-status
 exports.getNodeStatus = asyncHandler(async (req, res) => {
+  const Node = require('../models/Node');
   const latest = await SensorReading.findOne().sort({ timestamp: -1 }).lean();
   if (!latest) {
     return res.json({ success: true, data: [] });
@@ -116,12 +117,16 @@ exports.getNodeStatus = asyncHandler(async (req, res) => {
     ? latest.actiondevice
     : computeActionDevice(latest);
 
+  // Look up node name from registry
+  const nodeDoc = latest.nodeId ? await Node.findOne({ nodeId: latest.nodeId }).lean() : null;
+  const nodeName = nodeDoc?.name || latest.nodeId || 'Primary Environmental Sensor Unit';
+
   res.json({
     success: true,
     data: [
       {
         nodeId: latest.nodeId,
-        nodeName: 'Primary Environmental Sensor Unit',
+        nodeName,
         status: 'online',
         airQualityStatus: 'safe',
         actiondevice: nodeActionDevice,

@@ -61,8 +61,8 @@ const seed = async () => {
     console.log(`   ✓ ${readings.length} sensor readings inserted`);
 
     console.log('\n🎉 Seed complete!\n');
-    console.log('   API: http://localhost:5000/api/sensor');
-    console.log('   Latest: http://localhost:5000/api/sensor/latest\n');
+    console.log('   API: http://localhost:5000/api/readings');
+    console.log('   Latest: http://localhost:5000/api/readings/latest\n');
     process.exit(0);
   } catch (err) {
     console.error('\n❌ Seed failed:', err.message);

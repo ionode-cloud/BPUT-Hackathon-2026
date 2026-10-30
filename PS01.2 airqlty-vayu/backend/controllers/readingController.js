@@ -41,21 +41,23 @@ const buildSensor = (val, defaultUnit) => {
 // GET /api/readings?limit=&page=
 exports.getReadings = asyncHandler(async (req, res) => {
   const { limit = 50, page = 1, nodeId } = req.query;
+  const numLimit = Number(limit);
+  const numPage  = Number(page);
   const filter = nodeId ? { nodeId: nodeId.toUpperCase() } : {};
 
   const total = await SensorReading.countDocuments(filter);
   const readings = await SensorReading.find(filter)
     .sort({ timestamp: -1 })
-    .skip((page - 1) * limit)
-    .limit(Number(limit))
+    .skip((numPage - 1) * numLimit)
+    .limit(numLimit)
     .lean();
 
   res.json({
     success: true,
     count: readings.length,
     total,
-    page: Number(page),
-    pages: Math.ceil(total / limit) || 1,
+    page: numPage,
+    pages: Math.ceil(total / numLimit) || 1,
     data: readings.map(flattenReading),
   });
 });
@@ -72,7 +74,8 @@ exports.getLatestReadings = asyncHandler(async (req, res) => {
 // GET /api/readings/node/:nodeId
 exports.getReadingsByNode = asyncHandler(async (req, res) => {
   const { limit = 100 } = req.query;
-  const readings = await SensorReading.find()
+  const nodeId = String(req.params.nodeId).toUpperCase().trim();
+  const readings = await SensorReading.find({ nodeId })
     .sort({ timestamp: -1 })
     .limit(Number(limit))
     .lean();

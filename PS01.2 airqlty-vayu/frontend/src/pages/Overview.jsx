@@ -88,7 +88,7 @@ export default function Overview() {
             co2: r.co2,
             pm25: r.pm25,
             temperature: r.temperature,
-            smoke: r.smoke || 20,
+            smoke: r.smoke ?? null,
           }))
         );
       } else if (curLatest) {
@@ -103,7 +103,7 @@ export default function Overview() {
             co2: curLatest.co2,
             pm25: curLatest.pm25,
             temperature: curLatest.temperature,
-            smoke: curLatest.smoke || 20,
+            smoke: curLatest.smoke ?? null,
           },
         ]);
       } else {
@@ -151,7 +151,7 @@ export default function Overview() {
           co2: reading.co2,
           pm25: reading.pm25,
           temperature: reading.temperature,
-          smoke: reading.smoke || 20,
+          smoke: reading.smoke ?? null,
         };
         const next = [...prev, point];
         return next.slice(-25);
@@ -308,7 +308,7 @@ export default function Overview() {
         <ProtrudingStatCard
           icon={Activity}
           label="TOTAL TELEMETRY"
-          value={summary?.totalReadings != null ? Number(summary.totalReadings).toLocaleString() : (latestReading ? '1,580' : '0')}
+          value={summary?.totalReadings != null ? Number(summary.totalReadings).toLocaleString() : '0'}
           color="blue"
           sub="Real-time records received"
         />
@@ -333,100 +333,6 @@ export default function Overview() {
           color="green"
           sub={socketConnected ? 'Live WebSocket stream active' : 'Reconnecting to stream...'}
         />
-      </div>
-
-      {/* ── Real-Time Live Telemetry Wave Graph ──────────────────────── */}
-      <div className="overview-realtime-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span className="chart-label chart-label-mint" style={{ margin: 0 }}>LIVE TELEMETRY STREAM</span>
-              <span style={{
-                fontSize: 10,
-                fontWeight: 800,
-                background: socketConnected ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
-                color: socketConnected ? '#059669' : '#e11d48',
-                border: `1px solid ${socketConnected ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}`,
-                padding: '2px 8px',
-                borderRadius: 999,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: socketConnected ? '#10B981' : '#F43F5E', animation: socketConnected ? 'beaconPulse 2s infinite' : 'none' }} />
-                {socketConnected ? 'WEBSOCKET STREAM ACTIVE' : 'STREAM RECONNECTING'}
-              </span>
-            </div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
-              Atmospheric Live Wave Trajectory — {masterNode?.name || 'Master Station'}
-            </h3>
-            <p className="text-xs text-muted" style={{ marginTop: 2 }}>
-              Dynamic live telemetry stream updating in real-time ({trendData.length > 0 ? trendData.length : 1} live rolling ticks)
-            </p>
-          </div>
-
-          {/* Channel Filter Chips */}
-          <div className="hero-param-selector">
-            {[
-              { id: 'all', label: 'All Channels' },
-              { id: 'co2', label: 'CO₂ Gas' },
-              { id: 'pm25', label: 'PM2.5 Dust' },
-              { id: 'temperature', label: 'Temperature' },
-              { id: 'smoke', label: 'Smoke' },
-            ].map(c => (
-              <button
-                key={c.id}
-                type="button"
-                className={`hero-param-chip ${graphChannel === c.id ? 'active' : ''}`}
-                onClick={() => setGraphChannel(c.id)}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ height: 260 }}>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={trendData.length > 0 ? trendData : [{ time: 'Live', co2: 450, pm25: 18, temperature: 24, smoke: 15 }]}>
-              <defs>
-                <linearGradient id="ovCo2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="ovPm25" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="ovTemp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="ovSmoke" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="#ECFDF5" strokeDasharray="4 4" vertical={false} />
-              <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={{ stroke: '#D1FAE5' }} />
-              <YAxis tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', borderRadius: 14, fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif" }} />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              {(graphChannel === 'all' || graphChannel === 'co2') && (
-                <Area type="natural" dataKey="co2" name="CO₂ (ppm)" stroke="#10B981" fill="url(#ovCo2)" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
-              )}
-              {(graphChannel === 'all' || graphChannel === 'pm25') && (
-                <Area type="natural" dataKey="pm25" name="PM2.5 (µg/m³)" stroke="#F43F5E" fill="url(#ovPm25)" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
-              )}
-              {(graphChannel === 'all' || graphChannel === 'temperature') && (
-                <Area type="natural" dataKey="temperature" name="Temp (°C)" stroke="#F59E0B" fill="url(#ovTemp)" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
-              )}
-              {(graphChannel === 'all' || graphChannel === 'smoke') && (
-                <Area type="natural" dataKey="smoke" name="Smoke (ppm)" stroke="#8B5CF6" fill="url(#ovSmoke)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-              )}
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
       </div>
 
       {/* ── Live Sensor Telemetry Grid ────────────────────────────────── */}
@@ -472,6 +378,100 @@ export default function Overview() {
             timestamp={latestReading?.timestamp}
           />
         ))}
+      </div>
+
+      {/* ── Real-Time Live Telemetry Wave Graph ──────────────────────── */}
+      <div className="overview-realtime-card" style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span className="chart-label chart-label-mint" style={{ margin: 0 }}>LIVE TELEMETRY STREAM</span>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 800,
+                background: socketConnected ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
+                color: socketConnected ? '#059669' : '#e11d48',
+                border: `1px solid ${socketConnected ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}`,
+                padding: '2px 8px',
+                borderRadius: 999,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: socketConnected ? '#10B981' : '#F43F5E', animation: socketConnected ? 'beaconPulse 2s infinite' : 'none' }} />
+                {socketConnected ? 'WEBSOCKET STREAM ACTIVE' : 'STREAM RECONNECTING'}
+              </span>
+            </div>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-heading)', margin: 0 }}>
+              Atmospheric Live Wave Trajectory — {masterNode?.name || 'Master Station'}
+            </h3>
+            <p className="text-xs text-muted" style={{ marginTop: 2 }}>
+              Dynamic live telemetry stream updating in real-time ({trendData.length > 0 ? trendData.length : 1} live rolling ticks)
+            </p>
+          </div>
+
+          {/* Channel Filter Chips */}
+          <div className="hero-param-selector">
+            {[
+              { id: 'all',         label: 'All Channels' },
+              { id: 'co2',         label: 'CO₂ Gas'      },
+              { id: 'pm25',        label: 'PM2.5 Dust'   },
+              { id: 'temperature', label: 'Temperature'  },
+              { id: 'smoke',       label: 'Smoke'        },
+            ].map(c => (
+              <button
+                key={c.id}
+                type="button"
+                className={`hero-param-chip ${graphChannel === c.id ? 'active' : ''}`}
+                onClick={() => setGraphChannel(c.id)}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ height: 260 }}>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={trendData.length > 0 ? trendData : [{ time: 'Live', co2: 450, pm25: 18, temperature: 24, smoke: 15 }]}>
+              <defs>
+                <linearGradient id="ovCo2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#10B981" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0}  />
+                </linearGradient>
+                <linearGradient id="ovPm25" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#F43F5E" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.0}  />
+                </linearGradient>
+                <linearGradient id="ovTemp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#F59E0B" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.0}  />
+                </linearGradient>
+                <linearGradient id="ovSmoke" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#8B5CF6" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0}  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#ECFDF5" strokeDasharray="4 4" vertical={false} />
+              <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={{ stroke: '#D1FAE5' }} />
+              <YAxis tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', borderRadius: 14, fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif" }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+              {(graphChannel === 'all' || graphChannel === 'co2') && (
+                <Area type="natural" dataKey="co2"         name="CO₂ (ppm)"     stroke="#10B981" fill="url(#ovCo2)"   strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
+              )}
+              {(graphChannel === 'all' || graphChannel === 'pm25') && (
+                <Area type="natural" dataKey="pm25"        name="PM2.5 (µg/m³)" stroke="#F43F5E" fill="url(#ovPm25)"  strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
+              )}
+              {(graphChannel === 'all' || graphChannel === 'temperature') && (
+                <Area type="natural" dataKey="temperature" name="Temp (°C)"      stroke="#F59E0B" fill="url(#ovTemp)"  strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
+              )}
+              {(graphChannel === 'all' || graphChannel === 'smoke') && (
+                <Area type="natural" dataKey="smoke"       name="Smoke (raw)"    stroke="#8B5CF6" fill="url(#ovSmoke)" strokeWidth={2}   dot={{ r: 2 }} activeDot={{ r: 4 }} />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* ── Real-Time Parameter Status Table ─────────────────────────── */}

@@ -86,15 +86,17 @@ export default function Nodes() {
     };
 
     const onNodeDeleted = (payload) => {
-      setNodes((prev) => prev.filter((n) => n.nodeId !== payload.nodeId));
-      if (payload.newMasterNodeId) {
-        setNodes((prev) =>
-          prev.map((n) => ({
+      setNodes((prev) => {
+        // Remove deleted node, then update master in a single atomic state update
+        const filtered = prev.filter((n) => n.nodeId !== payload.nodeId);
+        if (payload.newMasterNodeId) {
+          return filtered.map((n) => ({
             ...n,
             isMaster: n.nodeId === payload.newMasterNodeId,
-          }))
-        );
-      }
+          }));
+        }
+        return filtered;
+      });
     };
 
     const onNewReading = (reading) => {

@@ -57,6 +57,7 @@ export default function Analytics() {
         humidity:    r.humidity    != null ? Number(r.humidity)    : null,
         voc:         r.voc         != null ? Number(r.voc)         : null,
         nh3:         r.nh3         != null ? Number(r.nh3)         : null,
+        smoke:       r.smoke       != null ? Number(r.smoke)       : null,
       }));
       setHistory(formatted);
     } catch (err) {
@@ -88,6 +89,7 @@ export default function Analytics() {
         humidity: r.humidity != null ? Number(r.humidity) : null,
         voc: r.voc != null ? Number(r.voc) : null,
         nh3: r.nh3 != null ? Number(r.nh3) : null,
+        smoke: r.smoke != null ? Number(r.smoke) : null,
       };
       setHistory(prev => [...prev, point].slice(-300));
     };

@@ -56,19 +56,13 @@ export const readingsAPI = {
 };
 
 // ── Alerts ────────────────────────────────────
-export const alertsAPI = {
-  getAll: (params) => api.get('/alerts', { params }),
-  getSummary: () => api.get('/alerts/summary'),
-  create: (data) => api.post('/alerts', data),
-  update: (id, data) => api.put(`/alerts/${id}`, data),
-  delete: (id) => api.delete(`/alerts/${id}`),
-};
+// NOTE: Alerts are handled client-side via Socket.IO + alertConfig.js.
+// No /api/alerts route exists in the backend — these are placeholder stubs.
+// export const alertsAPI = { getAll, getSummary, create, update, delete };
 
 // ── Thresholds ────────────────────────────────
-export const thresholdsAPI = {
-  getAll: () => api.get('/thresholds'),
-  getBySensor: (sensorType) => api.get(`/thresholds/${sensorType}`),
-  update: (sensorType, data) => api.put(`/thresholds/${sensorType}`, data),
-};
+// NOTE: Thresholds are static client-side (utils/thresholds.js).
+// No /api/thresholds route exists in the backend — these are placeholder stubs.
+// export const thresholdsAPI = { getAll, getBySensor, update };
 
 export default api;
