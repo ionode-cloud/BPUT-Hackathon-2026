@@ -26,7 +26,7 @@ function safeVal(val, fallback = 'N/A') {
 /**
  * Builds and downloads an Excel file for the requested tab.
  * @param {Object} options
- * @param {string} options.tabName - 'overview' | 'air' | 'energy' | 'water' | 'waste' | 'alerts' | 'priority' | 'forecasting'
+ * @param {string} options.tabName - 'overview' | 'air' | 'energy' | 'water' | 'waste' | 'alerts'
  * @param {Object} options.data - Current live sensor snapshot
  * @param {Array} options.history - Historical sensor telemetry records
  * @param {Array} options.alerts - High alert incident logs
@@ -264,105 +264,6 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
         { 'Status': 'All clear - Zero active high alert incidents recorded.' }
       ]);
       XLSX.utils.book_append_sheet(wb, wsAlerts, 'Incident Log & Audit');
-      break;
-    }
-
-    case 'priority': {
-      // 1. Priority Engine & Triage Matrix
-      const priorityRows = [
-        ['Facility AI - Autonomous Priority Engine Matrix', ''],
-        ['Export Timestamp', new Date().toLocaleString()],
-        ['Autonomous Engine Level', 'Level 3 - Closed-Loop Cyber Physical Actuation'],
-        ['Mean Time to Mitigation (MTTM)', '1.8 Minutes'],
-        ['', ''],
-        ['Rank', 'Action Directive', 'Domain', 'Priority Score (0-100)', 'Urgency', 'Affected Zone', 'Target Actuator', 'Dispatch Status', 'SLA (mins)'],
-        [1, 'Overhead Water Pipe Rupture & Isolation', 'Water Management', 96, 'CRITICAL', 'Science Quad - Zone 3', 'Solenoid Valve 1', d.valve1 ? 'PENDING CUTOFF' : 'ISOLATED / SAFE', 2],
-        [2, 'Ammonia Toxic Vapor Exhaust Scrubber', 'Air Quality', 88, 'HIGH', 'Chemical Engineering Lab 4', 'HVAC Exhaust Fan 2', (d.nh3 ?? 8) > 25 ? 'DISPATCHED' : 'STANDBY', 5],
-        [3, 'Substation Power Overload Load-Shedding', 'Energy Grid', 78, 'HIGH', 'Main Substation Bus B', 'Chiller Compressors 2-3', 'ACTIVE CURTAILMENT', 15],
-        [4, 'Cafeteria Bin Overflow Route Dispatch', 'Waste Logistics', 65, 'MEDIUM', 'Student Dining Commons', 'Electric Route Cart #2', 'DISPATCHED', 30],
-        [5, 'Atmospheric Particulate Misting Cannons', 'Air Quality', 52, 'MEDIUM', 'Perimeter Construction Bay', 'Dust Suppression Mist', 'MONITORING', 45],
-        [6, 'Reservoir Off-Peak Replenishment Schedule', 'Water Management', 38, 'LOW', 'Overhead Tank Reservoir', 'Submersible Pump #1', 'SCHEDULED 22:00', 120],
-      ];
-      const wsPriority = XLSX.utils.aoa_to_sheet(priorityRows);
-      XLSX.utils.book_append_sheet(wb, wsPriority, 'Priority Queue & Triage');
-
-      // 2. Weighting Factors
-      const weights = extraData.weights || {
-        safety: 35,
-        water: 30,
-        energy: 20,
-        waste: 15,
-      };
-      const weightRows = [
-        ['Priority Engine Dynamic Weight Configuration', ''],
-        ['Safety & Toxic Gas Weight (%)', `${weights.safety || 35}%`],
-        ['Water Damage & Leak Prevention Weight (%)', `${weights.water || 30}%`],
-        ['Energy Overload & Tariff Weight (%)', `${weights.energy || 20}%`],
-        ['Sanitation & Bin Overflow SLA Weight (%)', `${weights.waste || 15}%`],
-        ['', ''],
-        ['Operational Algorithm', 'Multi-Attribute Utility Theory (MAUT) + Real-time Rule-Engine'],
-      ];
-      const wsWeights = XLSX.utils.aoa_to_sheet(weightRows);
-      XLSX.utils.book_append_sheet(wb, wsWeights, 'Algorithm Weights');
-      break;
-    }
-
-    case 'forecasting': {
-      // 1. AI Forecast Projections
-      const forecastRows = [
-        ['Facility AI - Predictive Neural Forecasting & Multi-Day Projections', ''],
-        ['Export Timestamp', new Date().toLocaleString()],
-        ['Model Architecture', 'LSTM Recurrent Neural Net + XGBoost Gradient Ensemble'],
-        ['Model Validation Confidence', '94.6% Accuracy (RMSE 0.38)'],
-        ['Forecast Horizon', 'Next 24 Hours & 7-Day Trend'],
-        ['', ''],
-        ['Operational Domain', 'Current Baseline', 'AI 24h Forecast', '7-Day Trend', 'Confidence', 'Peak Expected Window', 'Strategic AI Directive'],
-        ['Energy Demand', `${d.todaysEnergy ?? 142} kWh`, `${d.energyForecast ?? 158} kWh`, '+8.4% Upward Demand', '96.2%', '13:00 - 16:30 Peak Heat', 'Pre-cool campus buildings before peak tariff hours'],
-        ['Water Depletion', `${d.tankLevel ?? 78}% Reservoir`, `${d.waterForecast ?? 2650} L Demand`, '18.4 hrs until reserve limit', '94.1%', '08:00 - 10:30 Morning Rush', 'Ensure pump fill cycle initiates at 21:00 low-tariff window'],
-        ['Air Quality Index (AQI)', `${d.aqi ?? 42} AQI (Good)`, 'Peak 68 AQI (Moderate)', 'Diurnal Dust Inversion', '92.8%', '15:30 - 18:00 Commute Rush', 'Schedule perimeter misting at 15:00'],
-        ['Waste Fill Kinetics', `${d.averageFill ?? 54}% Avg Fill`, 'Critical Bin at 4.2 hrs', 'Weekend Footfall Surge', '95.5%', '13:30 Cafeteria Lunch Peak', 'Pre-empty Dining Commons bins at 12:45'],
-      ];
-      const wsForecast = XLSX.utils.aoa_to_sheet(forecastRows);
-      XLSX.utils.book_append_sheet(wb, wsForecast, 'Predictive Projections');
-
-      // 2. Hourly 24h Prediction Curve
-      const hourlyPredictions = Array.from({ length: 24 }, (_, i) => {
-        const hour = (new Date().getHours() + i + 1) % 24;
-        const hourStr = `${String(hour).padStart(2, '0')}:00`;
-        const hourMultiplier = hour >= 9 && hour <= 18 ? 1.4 : 0.65;
-        const predictedKwh = +(12 * hourMultiplier + Math.sin(i / 3) * 2).toFixed(1);
-        const predictedWaterL = Math.round(180 * hourMultiplier + Math.cos(i / 2) * 25);
-        const predictedAqi = Math.round((d.aqi ?? 42) + (hour >= 14 && hour <= 18 ? 18 : 4));
-        const temp = +(24 + 5 * Math.sin((hour - 8) / 12 * Math.PI)).toFixed(1);
-
-        return {
-          'Hour (+T)': `+${i + 1}h (${hourStr})`,
-          'Projected Power (kW)': predictedKwh,
-          'Projected Water Flow (L/h)': predictedWaterL,
-          'Predicted AQI': predictedAqi,
-          'Ambient Temp (°C)': temp,
-        };
-      });
-      const wsHourly = XLSX.utils.json_to_sheet(hourlyPredictions);
-      XLSX.utils.book_append_sheet(wb, wsHourly, '24h Hourly Forecast Curve');
-
-      // 3. Extra Clean Energy & Microgrid Infeed Sheet
-      const extraRows = [
-        ['Facility AI - Extra Clean Energy & Microgrid Injection Report', ''],
-        ['Report Generated', new Date().toLocaleString()],
-        ['Campus Solar Array', 'Rooftop Monocrystalline PV Bifacial Array'],
-        ['Storage System', 'Lithium Iron Phosphate (LiFePO4) BESS (48 kWh)'],
-        ['', ''],
-        ['Extra Clean Metric', 'Simulated Value', 'Unit', 'Operational Target / Tariff Impact'],
-        ['Extra Solar PV Injection', safeVal(extraData?.extraSolarKw, 25), 'kW', 'Midday peak solar infeed'],
-        ['Extra Clean Generation Today', safeVal(extraData?.totalExtraEnergyKwh, 105), 'kWh', 'Direct renewable clean energy production'],
-        ['BESS Battery Dispatch Mode', safeVal(extraData?.batteryMode, 'Peak Shaving'), 'State', 'Active load leveling during evening peak tariff'],
-        ['Net Grid Energy Reduction', '-38.5%', '%', 'Avoided grid dependency'],
-        ['Extra Tariff Cost Saved Today', '₹' + Math.round((extraData?.totalExtraEnergyKwh || 105) * 8.5), 'INR', 'Computed blended tariff savings'],
-        ['Extra Carbon Abatement', +((extraData?.totalExtraEnergyKwh || 105) * 0.82).toFixed(1), 'kg CO2', 'Avoided fossil utility emissions'],
-      ];
-      const wsExtra = XLSX.utils.aoa_to_sheet(extraRows);
-      XLSX.utils.book_append_sheet(wb, wsExtra, 'Extra Clean Energy');
       break;
     }
 

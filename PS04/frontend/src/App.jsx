@@ -13,8 +13,6 @@ import {
   MdShield,
   MdHome,
   MdNotificationsActive,
-  MdTune,
-  MdTrendingUp,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
@@ -30,8 +28,6 @@ import Energy           from './pages/Energy';
 import Water            from './pages/Water';
 import Waste            from './pages/Waste';
 import AlertHistory     from './pages/AlertHistory';
-import PriorityEngine   from './pages/PriorityEngine';
-import Forecasting      from './pages/Forecasting';
 
 const PAGE_MAP = {
   overview:    Overview,
@@ -40,8 +36,6 @@ const PAGE_MAP = {
   water:       Water,
   waste:       Waste,
   alerts:      AlertHistory,
-  priority:    PriorityEngine,
-  forecasting: Forecasting,
 };
 
 const NAV_ICONS = {
@@ -51,8 +45,6 @@ const NAV_ICONS = {
   water:       <MdWaterDrop           size={18} />,
   waste:       <MdDelete              size={18} />,
   alerts:      <MdNotificationsActive size={18} />,
-  priority:    <MdTune                size={18} />,
-  forecasting: <MdTrendingUp          size={18} />,
 };
 
 // Parse active view and page from URL hash

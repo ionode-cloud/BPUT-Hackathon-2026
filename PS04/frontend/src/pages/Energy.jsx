@@ -1,35 +1,19 @@
-import { useState } from 'react';
 import {
   MdElectricBolt,
   MdBatteryChargingFull,
   MdShowChart,
   MdCurrencyRupee,
   MdWbSunny,
-  MdTrendingUp,
-  MdArrowForward,
   MdEnergySavingsLeaf,
 } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getEnergyBarData, getEnergyDistributionData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
-import Forecasting from './Forecasting';
 
-export default function Energy({ data, history = [], onNavigate }) {
+export default function Energy({ data, history = [] }) {
   const d = data || {};
   const barData = getEnergyBarData(d, history);
   const pieData = getEnergyDistributionData(d);
-
-  // Active view within Energy: 'telemetry' | 'forecasting'
-  const [activeView, setActiveView] = useState('telemetry');
-
-  // Jump to separate Forecasting tab if requested
-  const handleGoToForecastingTab = () => {
-    if (onNavigate) {
-      onNavigate('forecasting');
-    } else {
-      window.location.hash = '#forecasting';
-    }
-  };
 
   const kpis = [
     {
@@ -64,7 +48,7 @@ export default function Energy({ data, history = [], onNavigate }) {
 
   return (
     <>
-      {/* Tab Control / Export Banner with Forecasting Shortcut */}
+      {/* Tab Control / Export Banner */}
       <div className="tab-control-banner">
         <div className="banner-left-info">
           <div className="engine-status-pill">
@@ -75,111 +59,10 @@ export default function Energy({ data, history = [], onNavigate }) {
             Precision active wattage profiling, peak demand surveillance, and dynamic tariff cost modeling.
           </p>
         </div>
-        <div className="banner-right-actions" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button
-            type="button"
-            className="btn-action btn-action--primary"
-            onClick={() => setActiveView(activeView === 'telemetry' ? 'forecasting' : 'telemetry')}
-            title="Toggle Predictive Forecasting & Trends"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 7,
-              padding: '8px 16px',
-              fontSize: 13,
-              fontWeight: 700,
-              background: activeView === 'forecasting'
-                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 10,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <MdTrendingUp size={17} />
-            <span>{activeView === 'forecasting' ? 'Show Live Telemetry' : 'Predictive Forecasting & Trends'}</span>
-            <MdArrowForward size={16} />
-          </button>
+        <div className="banner-right-actions">
           <ExcelDownloadBtn tabName="energy" tabLabel="Energy" data={d} history={history} />
         </div>
       </div>
-
-      {/* Dual Tab Quick-Switcher Strip */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#ffffff',
-          padding: '10px 16px',
-          borderRadius: 14,
-          border: '1px solid var(--border)',
-          marginBottom: 18,
-          boxShadow: 'var(--shadow-sm)',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => setActiveView('telemetry')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 14px',
-              borderRadius: 8,
-              background: activeView === 'telemetry' ? '#eff6ff' : 'transparent',
-              color: activeView === 'telemetry' ? '#1d4ed8' : '#64748b',
-              fontWeight: activeView === 'telemetry' ? 700 : 600,
-              fontSize: 13,
-              border: '1px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <MdElectricBolt size={16} />
-            <span>Energy Optimization Telemetry {activeView === 'telemetry' ? '(Active)' : ''}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveView('forecasting')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 14px',
-              borderRadius: 8,
-              background: activeView === 'forecasting' ? '#e0e7ff' : 'transparent',
-              color: activeView === 'forecasting' ? '#4338ca' : '#64748b',
-              fontWeight: activeView === 'forecasting' ? 700 : 600,
-              fontSize: 13,
-              border: '1px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <MdTrendingUp size={16} color={activeView === 'forecasting' ? '#4338ca' : '#6366f1'} />
-            <span>Predictive Forecasting & Trends {activeView === 'forecasting' ? '(Active)' : ''}</span>
-          </button>
-        </div>
-
-        <div style={{ fontSize: 12.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <MdEnergySavingsLeaf color="#10b981" size={16} />
-          <span>Extra Clean Solar Infeed: Active (~18.4 kW)</span>
-        </div>
-      </div>
-
-      {/* Conditional Rendering: Telemetry vs Forecasting View */}
-      {activeView === 'forecasting' ? (
-        <Forecasting data={data} history={history} />
-      ) : (
-        <>
           {/* Energy KPIs */}
           <div className="grid">
             {kpis.map(k => (
@@ -308,73 +191,6 @@ export default function Energy({ data, history = [], onNavigate }) {
               <div className="small" style={{ color: 'var(--muted)' }}>-</div>
             )}
           </div>
-
-          {/* Direct Forecasting Integration Callout */}
-          <div
-            className="card"
-            style={{
-              marginTop: 20,
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '24px 28px',
-              borderRadius: 16,
-              boxShadow: '0 10px 25px -5px rgba(49, 46, 129, 0.4)',
-              flexWrap: 'wrap',
-              gap: 16,
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ background: '#4f46e5', padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
-                  NEURAL LOAD PREDICTION
-                </span>
-                <span style={{ color: '#a5b4fc', fontSize: 13 }}>LSTM + XGBoost Hybrid Engine</span>
-              </div>
-              <h2 style={{ margin: '0 0 6px', fontSize: 20, color: '#ffffff', fontWeight: 800 }}>
-                Predictive Energy Horizon & Extra Clean Energy Simulation
-              </h2>
-              <p style={{ margin: 0, color: '#c7d2fe', fontSize: 13.5, maxWidth: 650 }}>
-                Simulate extra solar PV injection, BESS battery discharge schedules, and 24-hour load curve peak shaving directly in Predictive Forecasting & Trends.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveView('forecasting')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 24px',
-                fontSize: 14,
-                fontWeight: 800,
-                background: '#ffffff',
-                color: '#312e81',
-                border: 'none',
-                borderRadius: 12,
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.25)',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.25)';
-              }}
-            >
-              <MdTrendingUp size={20} color="#4f46e5" />
-              <span>View Predictive Forecasting & Trends</span>
-              <MdArrowForward size={18} color="#4f46e5" />
-            </button>
-          </div>
-        </>
-      )}
     </>
   );
 }

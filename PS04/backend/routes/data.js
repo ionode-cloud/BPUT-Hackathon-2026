@@ -22,6 +22,45 @@ function normalizeValveFields(body) {
   return body;
 }
 
+function normalizeDynamicFields(body) {
+  if (!body || typeof body !== 'object') return body;
+
+  // Accept aiForecast or aiForeacst, consolidate into single field aiForeacst
+  if (body.aiForeacst === undefined && body.aiForecast !== undefined) {
+    body.aiForeacst = body.aiForecast;
+  }
+  delete body.aiForecast;
+
+  // Accept "priority Engine", "Priority Engine", etc., consolidate into single field priorityEngine
+  if (body.priorityEngine === undefined) {
+    if (body['priority Engine'] !== undefined) body.priorityEngine = body['priority Engine'];
+    else if (body['Priority Engine'] !== undefined) body.priorityEngine = body['Priority Engine'];
+    else if (body['priority engine'] !== undefined) body.priorityEngine = body['priority engine'];
+  }
+  delete body['priority Engine'];
+  delete body['Priority Engine'];
+  delete body['priority engine'];
+
+  return body;
+}
+
+function attachDynamicDefaults(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+
+  // Use whatever value was stored or PUT by user; default to empty object {} if unset
+  const forecastVal = obj.aiForeacst !== undefined ? obj.aiForeacst : (obj.aiForecast !== undefined ? obj.aiForecast : {});
+  obj.aiForeacst = forecastVal;
+  delete obj.aiForecast;
+
+  const priorityVal = obj.priorityEngine !== undefined ? obj.priorityEngine : (obj['priority Engine'] !== undefined ? obj['priority Engine'] : {});
+  obj.priorityEngine = priorityVal;
+  delete obj['priority Engine'];
+  delete obj['Priority Engine'];
+  delete obj['priority engine'];
+
+  return obj;
+}
+
 // ── Persistent Actuator States for Water Valves ─────────────────────────────
 // Valves are manually operated actuators and must NOT auto-reset to OFF
 // when periodic sensor nodes post readings without valve state.
@@ -73,11 +112,12 @@ router.get('/', async (req, res) => {
         const v1 = r.valve1 !== undefined ? r.valve1 : (r.Valve1 !== undefined ? r.Valve1 : false);
         const v2 = r.valve2 !== undefined ? r.valve2 : (r.Valve2 !== undefined ? r.Valve2 : false);
         const { Valve1, Valve2, ...rest } = r;
-        return {
+        const item = {
           ...rest,
           valve1: Boolean(v1),
           valve2: Boolean(v2),
         };
+        return attachDynamicDefaults(item);
       });
       return res.json({ success: true, count: mapped.length, data: mapped });
     }
@@ -115,6 +155,9 @@ router.get('/', async (req, res) => {
     delete consolidated.Valve1;
     delete consolidated.Valve2;
 
+    // Attach dynamic AI Forecast and Priority Engine defaults if not already present
+    attachDynamicDefaults(consolidated);
+
     res.json({ success: true, data: consolidated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -137,6 +180,7 @@ router.get('/:id', async (req, res) => {
     record.valve2 = currentValves.valve2 !== null ? currentValves.valve2 : Boolean(v2);
     delete record.Valve1;
     delete record.Valve2;
+    attachDynamicDefaults(record);
     res.json({ success: true, data: record });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -154,6 +198,7 @@ router.post('/', async (req, res) => {
       try { body = JSON.parse(body); } catch (e) {}
     }
     normalizeValveFields(body);
+    normalizeDynamicFields(body);
 
     const currentValves = await getOrInitValveState();
 
@@ -161,9 +206,13 @@ router.post('/', async (req, res) => {
     const latest = await SensorData.findOne().sort({ timestamp: -1 }).lean();
     let payload = { ...body };
     if (latest) {
-      const { _id, createdAt, updatedAt, ...prevFields } = latest;
+      const { _id, createdAt, updatedAt, __v, ...prevFields } = latest;
       payload = { ...prevFields, ...body };
     }
+    delete payload._id;
+    delete payload.createdAt;
+    delete payload.updatedAt;
+    delete payload.__v;
 
     // Actuators (Valve 1 & 2) must only change via explicit operator action (PUT), NEVER auto-revert from sensor telemetry POSTs
     if (body.valve1 === undefined && body.Valve1 === undefined) {
@@ -191,6 +240,7 @@ router.post('/', async (req, res) => {
     const postData = record.toObject ? record.toObject() : { ...record };
     delete postData.Valve1;
     delete postData.Valve2;
+    attachDynamicDefaults(postData);
     res.status(201).json({ success: true, message: 'Sensor data created.', data: postData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -208,6 +258,7 @@ router.put('/', async (req, res) => {
       try { body = JSON.parse(body); } catch (e) {}
     }
     normalizeValveFields(body);
+    normalizeDynamicFields(body);
 
     if (body.valve1 !== undefined) {
       persistentValveState.valve1 = Boolean(body.valve1);
@@ -219,23 +270,38 @@ router.put('/', async (req, res) => {
     // Find the latest record to update, or create one if database is empty
     let record = await SensorData.findOne().sort({ timestamp: -1 });
     if (!record) {
-      record = await SensorData.create({ ...body, timestamp: new Date() });
+      const newPayload = { ...body, timestamp: new Date() };
+      delete newPayload._id;
+      delete newPayload.createdAt;
+      delete newPayload.updatedAt;
+      delete newPayload.__v;
+      record = await SensorData.create(newPayload);
       const createdData = record.toObject ? record.toObject() : { ...record };
       delete createdData.Valve1;
       delete createdData.Valve2;
+      attachDynamicDefaults(createdData);
       return res.status(201).json({ success: true, message: 'Sensor snapshot created.', data: createdData });
     }
 
+    // Prepare update data, stripping Mongo immutable / internal keys so full records can be sent safely
+    const updateData = { ...body };
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.__v;
+
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
-    const updateData = { ...body, timestamp: new Date() };
+    updateData.timestamp = new Date();
+
     const updated = await SensorData.findByIdAndUpdate(
       record._id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { new: true, runValidators: false, strict: false }
     );
     const putData = updated.toObject ? updated.toObject() : { ...updated };
     delete putData.Valve1;
     delete putData.Valve2;
+    attachDynamicDefaults(putData);
     res.json({ success: true, message: 'Sensor data updated.', data: putData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -256,6 +322,7 @@ router.put('/:id', async (req, res) => {
       try { body = JSON.parse(body); } catch (e) {}
     }
     normalizeValveFields(body);
+    normalizeDynamicFields(body);
 
     if (body.valve1 !== undefined) {
       persistentValveState.valve1 = Boolean(body.valve1);
@@ -265,6 +332,11 @@ router.put('/:id', async (req, res) => {
     }
 
     const updateData = { ...body };
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.__v;
+
     if (!body.timestamp) {
       updateData.timestamp = new Date();
     }
@@ -272,7 +344,7 @@ router.put('/:id', async (req, res) => {
     const record = await SensorData.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { new: true, runValidators: false, strict: false }
     );
     if (!record) {
       return res.status(404).json({ success: false, message: 'Record not found.' });
@@ -280,6 +352,7 @@ router.put('/:id', async (req, res) => {
     const resData = record.toObject ? record.toObject() : { ...record };
     delete resData.Valve1;
     delete resData.Valve2;
+    attachDynamicDefaults(resData);
     res.json({ success: true, message: 'Sensor data updated.', data: resData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

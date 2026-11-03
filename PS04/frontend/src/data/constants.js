@@ -6,8 +6,6 @@ export const NAV_ITEMS = [
   { id: 'water',       label: 'Water' },
   { id: 'waste',       label: 'Waste' },
   { id: 'alerts',      label: 'Alert History' },
-  { id: 'priority',    label: 'Priority Engine' },
-  { id: 'forecasting', label: 'Forecasting' },
 ];
 
 export const PAGE_TITLES = {
@@ -17,7 +15,5 @@ export const PAGE_TITLES = {
   water:       'Water Management',
   waste:       'Waste Management',
   alerts:      'Alerts and History',
-  priority:    'Priority Engine & Triage Matrix',
-  forecasting: 'Predictive Forecasting & Trends',
 };
 

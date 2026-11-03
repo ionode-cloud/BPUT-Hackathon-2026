@@ -65,6 +65,10 @@ const sensorDataSchema = new mongoose.Schema(
     waterForecast:        { type: Number, default: null }, // Litres next day
     overflowPrediction:   { type: Number, default: null }, // hours until overflow
 
+    // Free-form dynamic objects & AI forecast payloads
+    aiForeacst:           { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+    priorityEngine:       { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+
     // ── Meta ──────────────────────────────────────────────────────────────
     source:    { type: String, default: 'manual' }, // "sensor" | "manual" | "synthetic"
     location:  { type: String, default: null },     // optional facility zone tag
@@ -73,6 +77,7 @@ const sensorDataSchema = new mongoose.Schema(
   {
     timestamps: true,  // adds createdAt + updatedAt automatically
     versionKey: false,
+    strict: false,     // Allow free-form fields and keep any dynamic properties
   }
 );
 
