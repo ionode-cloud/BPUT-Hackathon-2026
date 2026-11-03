@@ -25,10 +25,12 @@ function normalizeValveFields(body) {
 function normalizeDynamicFields(body) {
   if (!body || typeof body !== 'object') return body;
 
-  // Accept aiForecast or aiForeacst, consolidate into single field aiForeacst
-  if (body.aiForeacst === undefined && body.aiForecast !== undefined) {
-    body.aiForeacst = body.aiForecast;
+  // Accept aiForecasting, aiForeacst, or aiForecast, consolidate into single canonical field aiForecasting
+  if (body.aiForecasting === undefined) {
+    if (body.aiForeacst !== undefined) body.aiForecasting = body.aiForeacst;
+    else if (body.aiForecast !== undefined) body.aiForecasting = body.aiForecast;
   }
+  delete body.aiForeacst;
   delete body.aiForecast;
 
   // Accept "priority Engine", "Priority Engine", etc., consolidate into single field priorityEngine
@@ -48,8 +50,13 @@ function attachDynamicDefaults(obj) {
   if (!obj || typeof obj !== 'object') return obj;
 
   // Use whatever value was stored or PUT by user; default to empty object {} if unset
-  const forecastVal = obj.aiForeacst !== undefined ? obj.aiForeacst : (obj.aiForecast !== undefined ? obj.aiForecast : {});
-  obj.aiForeacst = forecastVal;
+  const forecastVal = obj.aiForecasting !== undefined
+    ? obj.aiForecasting
+    : (obj.aiForeacst !== undefined
+      ? obj.aiForeacst
+      : (obj.aiForecast !== undefined ? obj.aiForecast : {}));
+  obj.aiForecasting = forecastVal;
+  delete obj.aiForeacst;
   delete obj.aiForecast;
 
   const priorityVal = obj.priorityEngine !== undefined ? obj.priorityEngine : (obj['priority Engine'] !== undefined ? obj['priority Engine'] : {});

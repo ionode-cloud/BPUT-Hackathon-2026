@@ -66,7 +66,7 @@ const sensorDataSchema = new mongoose.Schema(
     overflowPrediction:   { type: Number, default: null }, // hours until overflow
 
     // Free-form dynamic objects & AI forecast payloads
-    aiForeacst:           { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+    aiForecasting:        { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
     priorityEngine:       { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 
     // ── Meta ──────────────────────────────────────────────────────────────

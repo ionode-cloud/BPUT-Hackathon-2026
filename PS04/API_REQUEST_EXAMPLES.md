@@ -45,7 +45,7 @@ Before sending or updating data in Postman:
 ---
 
 ### Step 1: Update Live Data (`PUT`)
-Use **`PUT`** to modify the live snapshot (e.g. inject `aiForeacst`, update `priorityEngine`, or flip valve switches). Unsent fields are automatically preserved!
+Use **`PUT`** to modify the live snapshot (e.g. inject `aiForecasting`, update `priorityEngine`, or flip valve switches). Unsent fields are automatically preserved!
 
 1. Change method dropdown to **`PUT`**.
 2. URL:
@@ -58,7 +58,7 @@ Use **`PUT`** to modify the live snapshot (e.g. inject `aiForeacst`, update `pri
      "livePower": 24.5,
      "tankLevel": 88,
      "valve1": true,
-     "aiForeacst": {
+     "aiForecasting": {
        "model": "Neural Load Forecaster",
        "peakWindow": "14:00 - 16:30",
        "expectedDemandKwh": 165.4,
@@ -103,7 +103,7 @@ Use **`POST`** when you want to insert a brand new timestamped sensor reading.
      "valve1": false,
      "source": "sensor",
      "location": "Science Block 3",
-     "aiForeacst": {
+     "aiForecasting": {
        "prediction": "Rain expected in 2 hours",
        "riskLevel": "Low"
      },
@@ -129,13 +129,13 @@ Use **`POST`** when you want to insert a brand new timestamped sensor reading.
 2. Method: **`GET`**.
 3. URL: `http://localhost:5011/api/data`.
 4. Click **Send**.
-5. You will immediately see your newly updated `aiForeacst`, `priorityEngine`, and telemetry numbers in the response JSON!
+5. You will immediately see your newly updated `aiForecasting`, `priorityEngine`, and telemetry numbers in the response JSON!
 
 ---
 
 ## 1. PUT — Update Latest Snapshot
 
-Use `PUT` to update the active live facility snapshot (e.g. from operator clicks, valve actuation, or AI background models updating `aiForeacst` and `priorityEngine`).
+Use `PUT` to update the active live facility snapshot (e.g. from operator clicks, valve actuation, or AI background models updating `aiForecasting` and `priorityEngine`).
 
 > **Smart Merging**: Any field you do not provide in the payload remains untouched in MongoDB.
 
@@ -153,7 +153,7 @@ Use `PUT` to update the active live facility snapshot (e.g. from operator clicks
   "livePower": 24.6,
   "tankLevel": 85,
   "valve1": true,
-  "aiForeacst": {
+  "aiForecasting": {
     "model": "Prophet + LSTM Ensemble",
     "horizon": "24h",
     "expectedDemandKwh": 164.2,
@@ -179,7 +179,7 @@ curl -X PUT http://localhost:5011/api/data \
   -H "Content-Type: application/json" \
   -d '{
     "valve1": true,
-    "aiForeacst": {
+    "aiForecasting": {
       "model": "LSTM Ensemble",
       "expectedDemandKwh": 164.2
     },
@@ -194,7 +194,7 @@ curl -X PUT http://localhost:5011/api/data \
 ```powershell
 $body = @{
   valve1 = $true
-  aiForeacst = @{
+  aiForecasting = @{
     model = "LSTM Ensemble"
     expectedDemandKwh = 164.2
   }
@@ -261,7 +261,7 @@ Use `POST` when IoT gateways, physical microcontrollers (ESP32, Arduino, Raspber
   "avgResponse": 5,
   "location": "Central Campus",
   "source": "sensor",
-  "aiForeacst": {
+  "aiForecasting": {
     "predictedKwh": 145,
     "rainProbability": 10
   },
@@ -308,7 +308,7 @@ curl http://localhost:5011/api/data
     "tankLevel": 78,
     "valve1": false,
     "valve2": false,
-    "aiForeacst": {},
+    "aiForecasting": {},
     "priorityEngine": {}
   }
 }
@@ -358,7 +358,7 @@ async function updateTelemetry() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       livePower: 22.8,
-      aiForeacst: {
+      aiForecasting: {
         model: 'LSTM Horizon 24',
         predictedKwh: 158.4,
         confidence: '95%'
@@ -378,7 +378,7 @@ async function readTelemetry() {
   const response = await fetch(API_URL);
   const json = await response.json();
   console.log('Live Data:', json.data);
-  console.log('AI Forecast:', json.data.aiForeacst);
+  console.log('AI Forecasting:', json.data.aiForecasting);
   console.log('Priority Engine:', json.data.priorityEngine);
 }
 ```
@@ -392,7 +392,7 @@ API_URL = "http://localhost:5011/api/data"
 # 1. PUT Custom Data
 payload = {
     "valve1": True,
-    "aiForeacst": {
+    "aiForecasting": {
         "model": "XGBoost + Prophet",
         "predictedHourlyPeak": 18.4,
         "anomaliesDetected": 0
@@ -409,7 +409,7 @@ print("PUT Response:", response.json())
 # 2. GET Live Snapshot
 get_response = requests.get(API_URL)
 data = get_response.json()["data"]
-print("Live Forecast:", data.get("aiForeacst"))
+print("Live Forecast:", data.get("aiForecasting"))
 print("Priority Engine:", data.get("priorityEngine"))
 ```
 
@@ -419,7 +419,7 @@ print("Priority Engine:", data.get("priorityEngine"))
 
 | Key | Type | Description |
 | :--- | :--- | :--- |
-| `aiForeacst` | `Object` / `Mixed` | Free-form dynamic AI forecast payload. |
+| `aiForecasting` | `Object` / `Mixed` | Free-form dynamic AI forecast payload. |
 | `priorityEngine` | `Object` / `Mixed` | Free-form autonomous dispatch & triage matrix payload. |
 | `aqi` | `Number` | Air Quality Index (0 - 500). |
 | `pm25`, `pm10` | `Number` | Particulate matter (µg/m³). |
