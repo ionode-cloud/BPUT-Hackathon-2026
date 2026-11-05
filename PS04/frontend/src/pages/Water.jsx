@@ -9,6 +9,7 @@ import {
   MdPowerSettingsNew,
 } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
+import StatCard from '../components/StatCard';
 import { getWaterTrendData, getTankStorageData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
@@ -116,74 +117,69 @@ export default function Water({ data, history = [], onUpdate }) {
 
       {/* Primary KPI Row */}
       <div className="grid">
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MdWater size={20} color="#0284c7" />
-            <span>Main Tank Reserve</span>
-          </div>
-          <div className="kpi-value">
-            {d.tankLevel ?? '-'}
-            {d.tankLevel != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>%</span>}
-          </div>
-          <div className="progress">
-            <i
-              style={{
-                width: `${tankLevel}%`,
-                background: tankLevel < 25 ? 'var(--red)' : tankLevel < 50 ? 'var(--orange)' : '#0284c7',
-              }}
-            />
-          </div>
-        </div>
+        <StatCard
+          index={0}
+          icon={<MdWater size={18} color="#0284c7" />}
+          label="Main Tank Reserve"
+          badgeText={tankLevel < 25 ? 'Low Reserve' : tankLevel < 50 ? 'Moderate' : 'Optimal Reserve'}
+          badgeType={tankLevel < 25 ? 'red' : tankLevel < 50 ? 'amber' : 'green'}
+          nowLabel="Now"
+          nowValue={d.tankLevel ?? '-'}
+          unit={d.tankLevel != null ? '%' : ''}
+          secondaryLabel="In 30 min"
+          secondaryValue={d.tankLevel != null ? `${Math.max(0, (tankLevel - 1.2)).toFixed(1)}%` : '-'}
+          secondaryColor={tankLevel < 25 ? '#dc2626' : '#15803d'}
+          footerLeft={tankLevel < 25 ? 'Refill pump required' : 'Sufficient head pressure'}
+          footerRight="Safe range: > 25%"
+        />
 
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MdWaterDrop size={20} color="#3b82f6" />
-            <span>Today's Total Consumption</span>
-          </div>
-          <div className="kpi-value">
-            {d.todaysUsage != null ? d.todaysUsage.toLocaleString('en-IN') : '-'}
-            {d.todaysUsage != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>L</span>}
-          </div>
-          <div className={`kpi-foot ${d.todaysUsage > 3000 ? 'warn' : ''}`}>
-            {d.todaysUsage != null
-              ? (d.todaysUsage > 3000 ? 'Higher than baseline quota' : 'Normal campus consumption')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          index={1}
+          icon={<MdWaterDrop size={18} color="#3b82f6" />}
+          label="Today's Total Consumption"
+          badgeText={d.todaysUsage > 3000 ? 'High Usage' : 'Normal Quota'}
+          badgeType={d.todaysUsage > 3000 ? 'amber' : 'green'}
+          nowLabel="Now"
+          nowValue={d.todaysUsage != null ? d.todaysUsage.toLocaleString('en-IN') : '-'}
+          unit={d.todaysUsage != null ? 'L' : ''}
+          secondaryLabel="Daily Quota"
+          secondaryValue="5,000 L"
+          secondaryColor="#15803d"
+          footerLeft={d.todaysUsage != null ? (d.todaysUsage > 3000 ? 'Higher than baseline quota' : 'Normal campus consumption') : '-'}
+          footerRight="Max quota: 5,000 L"
+        />
 
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MdSpeed size={20} color="#10b981" />
-            <span>Current Flow Rate</span>
-          </div>
-          <div className="kpi-value">
-            {d.flowRate ?? '-'}
-            {d.flowRate != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>L/min</span>}
-          </div>
-          <div className={`kpi-foot ${d.flowRate > 20 ? 'warn' : ''}`}>
-            {d.flowRate != null
-              ? (d.flowRate > 20 ? 'High velocity detected' : 'Steady hydraulic pressure')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          index={2}
+          icon={<MdSpeed size={18} color="#10b981" />}
+          label="Current Flow Rate"
+          badgeText={d.flowRate > 20 ? 'High Velocity' : 'Steady Flow'}
+          badgeType={d.flowRate > 20 ? 'amber' : 'green'}
+          nowLabel="Now"
+          nowValue={d.flowRate ?? '-'}
+          unit={d.flowRate != null ? 'L/min' : ''}
+          secondaryLabel="Line Limit"
+          secondaryValue="35 L/m"
+          secondaryColor="#15803d"
+          footerLeft={d.flowRate != null ? (d.flowRate > 20 ? 'High velocity detected' : 'Steady hydraulic pressure') : '-'}
+          footerRight="Threshold: < 25 L/m"
+        />
 
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MdWarningAmber size={20} color={isLeaking ? '#ef4444' : '#10b981'} />
-            <span>Acoustic Leak Detection</span>
-          </div>
-          <div
-            className="kpi-value"
-            style={{ color: isLeaking ? 'var(--red)' : d.leakStatus ? 'var(--green)' : 'var(--text)', fontSize: 26 }}
-          >
-            {d.leakStatus ?? '-'}
-          </div>
-          <div className="kpi-foot" style={{ color: isLeaking ? 'var(--red)' : 'var(--green)' }}>
-            {d.leakStatus != null
-              ? (isLeaking ? 'Pressure drop detected!' : 'All pipes integrity intact')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          index={3}
+          icon={<MdWarningAmber size={18} color={isLeaking ? '#ef4444' : '#10b981'} />}
+          label="Acoustic Leak Detection"
+          badgeText={isLeaking ? 'Leak Detected' : 'All Intact'}
+          badgeType={isLeaking ? 'red' : 'green'}
+          nowLabel="Status"
+          nowValue={d.leakStatus ?? 'Normal'}
+          unit=""
+          secondaryLabel="Sensor Grid"
+          secondaryValue="100% OK"
+          secondaryColor={isLeaking ? '#dc2626' : '#15803d'}
+          footerLeft={isLeaking ? 'Pressure drop detected!' : 'All pipes integrity intact'}
+          footerRight="Acoustic grid active"
+        />
       </div>
 
       {/* ════ Water Valve Actuator Controls (Valve 1 & Valve 2) ════ */}

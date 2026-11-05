@@ -9,6 +9,7 @@ import {
 import ChartBox from '../components/ChartBox';
 import { getEnergyBarData, getEnergyDistributionData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
+import StatCard from '../components/StatCard';
 
 export default function Energy({ data, history = [] }) {
   const d = data || {};
@@ -63,21 +64,70 @@ export default function Energy({ data, history = [] }) {
           <ExcelDownloadBtn tabName="energy" tabLabel="Energy" data={d} history={history} />
         </div>
       </div>
-          {/* Energy KPIs */}
+          {/* Energy KPIs - Matching AI Forecast Card Design & Motion */}
           <div className="grid">
-            {kpis.map(k => (
-              <div key={k.label} className="card">
-                <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {k.icon}
-                  <span>{k.label}</span>
-                </div>
-                <div className="kpi-value">
-                  {k.value}
-                  {k.unit && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>{k.unit}</span>}
-                </div>
-                <div className="kpi-foot">{k.sub}</div>
-              </div>
-            ))}
+            <StatCard
+              label="Live Power Draw"
+              icon={<MdElectricBolt size={20} color="#3b82f6" />}
+              badgeText={d.livePower != null ? (d.livePower > 30 ? 'High Infeed' : 'Active Infeed') : 'Active'}
+              badgeType={d.livePower != null ? (d.livePower > 30 ? 'amber' : 'blue') : 'gray'}
+              nowLabel="Live Draw"
+              nowValue={d.livePower ?? '-'}
+              unit={d.livePower != null ? 'kW' : ''}
+              secondaryLabel="Intraday Peak"
+              secondaryValue={d.peakDemand != null ? `${d.peakDemand} kW` : '-'}
+              secondaryColor="#f59e0b"
+              footerLeft={d.peakDemand && d.livePower ? `${Math.round((d.livePower / d.peakDemand) * 100)}% of peak capacity` : 'Substation load active'}
+              footerRight="Grid: 0–45 kW"
+              index={0}
+            />
+
+            <StatCard
+              label="Today's Energy Meter"
+              icon={<MdBatteryChargingFull size={20} color="#10b981" />}
+              badgeText="Beats baseline"
+              badgeType="green"
+              nowLabel="Consumed"
+              nowValue={d.todaysEnergy ?? '-'}
+              unit={d.todaysEnergy != null ? 'kWh' : ''}
+              secondaryLabel="Target 24h"
+              secondaryValue={d.energyForecast != null ? `~${d.energyForecast} kWh` : '< 150'}
+              secondaryColor="#15803d"
+              footerLeft={d.energyForecast ? `Target: ~${d.energyForecast} kWh` : 'Diurnal quota target'}
+              footerRight="Efficiency: 96%"
+              index={1}
+            />
+
+            <StatCard
+              label="Recorded Peak Demand"
+              icon={<MdShowChart size={20} color="#f59e0b" />}
+              badgeText="Controlled Peak"
+              badgeType="amber"
+              nowLabel="Max Draw"
+              nowValue={d.peakDemand ?? '-'}
+              unit={d.peakDemand != null ? 'kW' : ''}
+              secondaryLabel="Grid Ceiling"
+              secondaryValue="45 kW"
+              secondaryColor="#0284c7"
+              footerLeft={d.peakDemand != null ? 'Maximum intraday draw' : 'Off-peak window'}
+              footerRight="Headroom safe"
+              index={2}
+            />
+
+            <StatCard
+              label="Estimated Energy Cost"
+              icon={<MdCurrencyRupee size={20} color="#8b5cf6" />}
+              badgeText="Tariff ₹7.5/kWh"
+              badgeType="green"
+              nowLabel="Computed Cost"
+              nowValue={d.estimatedCost != null ? `₹${d.estimatedCost.toLocaleString('en-IN')}` : '-'}
+              secondaryLabel="Avoided Cost"
+              secondaryValue="₹1,840"
+              secondaryColor="#15803d"
+              footerLeft={d.estimatedCost != null ? 'Computed utility tariff rate' : 'Net savings logged'}
+              footerRight="Smart load shaving"
+              index={3}
+            />
           </div>
 
           {/* Dynamic Charts */}

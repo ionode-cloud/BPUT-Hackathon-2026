@@ -13,6 +13,8 @@ import {
   MdShield,
   MdHome,
   MdNotificationsActive,
+  MdAutoAwesome,
+  MdTune,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
@@ -27,6 +29,8 @@ import AirQuality       from './pages/AirQuality';
 import Energy           from './pages/Energy';
 import Water            from './pages/Water';
 import Waste            from './pages/Waste';
+import Forecasting      from './pages/Forecasting';
+import PriorityEngine   from './pages/PriorityEngine';
 import AlertHistory     from './pages/AlertHistory';
 
 const PAGE_MAP = {
@@ -35,6 +39,8 @@ const PAGE_MAP = {
   energy:      Energy,
   water:       Water,
   waste:       Waste,
+  forecasting: Forecasting,
+  priority:    PriorityEngine,
   alerts:      AlertHistory,
 };
 
@@ -44,6 +50,8 @@ const NAV_ICONS = {
   energy:      <MdElectricBolt        size={18} />,
   water:       <MdWaterDrop           size={18} />,
   waste:       <MdDelete              size={18} />,
+  forecasting: <MdAutoAwesome         size={18} />,
+  priority:    <MdTune                size={18} />,
   alerts:      <MdNotificationsActive size={18} />,
 };
 
@@ -304,8 +312,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <button
             type="button"
-            className="sidebar-logout-btn"
-            style={{ marginBottom: '8px' }}
+            className="sidebar-landing-btn"
             onClick={() => navigateTo('landing')}
             title="Return to Landing Page"
           >

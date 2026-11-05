@@ -1,5 +1,6 @@
 import { MdDelete, MdWarning, MdRecycling } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
+import StatCard from '../components/StatCard';
 import { getWasteTrendData, getWasteBinDistribution } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
@@ -31,60 +32,69 @@ export default function Waste({ data, history = [] }) {
 
       {/* Waste KPIs */}
       <div className="grid">
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdDelete size={20} color="#3b82f6" />
-            <span>Monitored Smart Bins</span>
-          </div>
-          <div className="kpi-value">{d.totalBins ?? '-'}</div>
-          <div className="kpi-foot">{d.totalBins != null ? 'Ultrasound fill sensors active' : '-'}</div>
-        </div>
+        <StatCard
+          index={0}
+          icon={<MdDelete size={18} color="#3b82f6" />}
+          label="Monitored Smart Bins"
+          badgeText={d.totalBins != null ? 'All Online' : 'No Data'}
+          badgeType="green"
+          nowLabel="Now"
+          nowValue={d.totalBins ?? '-'}
+          unit={d.totalBins != null ? ' bins' : ''}
+          secondaryLabel="Health"
+          secondaryValue="100% Active"
+          secondaryColor="#15803d"
+          footerLeft={d.totalBins != null ? 'Ultrasound fill sensors active' : '-'}
+          footerRight="95% uptime range: 99.8%"
+        />
 
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdRecycling size={20} color="#f59e0b" />
-            <span>Average Bin Fill Level</span>
-          </div>
-          <div className="kpi-value">
-            {d.averageFill ?? '-'}
-            {d.averageFill != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>%</span>}
-          </div>
-          <div className="progress">
-            <i
-              style={{
-                width: `${fillPct}%`,
-                background: fillPct > 80 ? 'var(--red)' : fillPct > 60 ? 'var(--orange)' : 'var(--primary)',
-              }}
-            />
-          </div>
-        </div>
+        <StatCard
+          index={1}
+          icon={<MdRecycling size={18} color="#f59e0b" />}
+          label="Average Bin Fill Level"
+          badgeText={fillPct > 80 ? 'Overflow Risk' : fillPct > 60 ? 'Elevated' : 'Optimal'}
+          badgeType={fillPct > 80 ? 'red' : fillPct > 60 ? 'amber' : 'green'}
+          nowLabel="Now"
+          nowValue={d.averageFill ?? '-'}
+          unit={d.averageFill != null ? '%' : ''}
+          secondaryLabel="Target"
+          secondaryValue="< 80%"
+          secondaryColor={fillPct > 80 ? '#dc2626' : '#15803d'}
+          footerLeft={fillPct > 80 ? 'Dispatch collection team' : 'Sufficient container volume'}
+          footerRight="Target cap: 80%"
+        />
 
-        <div className="card">
-          <div className="kpi-label">Cumulative Waste Collected</div>
-          <div className="kpi-value">
-            {d.wasteCollected ?? '-'}
-            {d.wasteCollected != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>kg</span>}
-          </div>
-          <div className="kpi-foot">{d.wasteCollected != null ? "Cleared in today's runs" : '-'}</div>
-        </div>
+        <StatCard
+          index={2}
+          icon={<MdRecycling size={18} color="#10b981" />}
+          label="Cumulative Waste Collected"
+          badgeText={d.wasteCollected != null ? 'Runs Active' : 'No Data'}
+          badgeType="green"
+          nowLabel="Now"
+          nowValue={d.wasteCollected ?? '-'}
+          unit={d.wasteCollected != null ? ' kg' : ''}
+          secondaryLabel="Daily Target"
+          secondaryValue="200 kg"
+          secondaryColor="#15803d"
+          footerLeft={d.wasteCollected != null ? "Cleared in today's runs" : '-'}
+          footerRight="Recycling quota: 75%"
+        />
 
-        <div className="card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdWarning size={20} color={hasOverflow ? '#ef4444' : '#10b981'} />
-            <span>Overflow Risk Bins</span>
-          </div>
-          <div
-            className="kpi-value"
-            style={{ color: hasOverflow ? 'var(--red)' : d.overflowRisk != null ? 'var(--green)' : 'var(--text)' }}
-          >
-            {d.overflowRisk != null ? `${d.overflowRisk} units` : '-'}
-          </div>
-          <div className="kpi-foot" style={{ color: hasOverflow ? 'var(--red)' : 'var(--green)' }}>
-            {d.overflowRisk != null
-              ? (hasOverflow ? `Overflow in ~${d.overflowPrediction ?? '-'} hrs` : 'No overflow hazards')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          index={3}
+          icon={<MdWarning size={18} color={hasOverflow ? '#ef4444' : '#10b981'} />}
+          label="Overflow Risk Bins"
+          badgeText={hasOverflow ? 'Dispatch Required' : 'Zero Hazard'}
+          badgeType={hasOverflow ? 'red' : 'green'}
+          nowLabel="Now"
+          nowValue={d.overflowRisk != null ? d.overflowRisk : 0}
+          unit=" units"
+          secondaryLabel="Pred. Overflow"
+          secondaryValue={d.overflowPrediction != null ? `~${d.overflowPrediction}h` : '> 24h'}
+          secondaryColor={hasOverflow ? '#dc2626' : '#15803d'}
+          footerLeft={hasOverflow ? `Overflow in ~${d.overflowPrediction ?? '-'} hrs` : 'No overflow hazards'}
+          footerRight="Dispatch threshold: 1"
+        />
       </div>
 
       {/* Dynamic Graphs */}

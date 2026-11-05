@@ -267,6 +267,57 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
       break;
     }
 
+    case 'forecasting': {
+      // 1. AI Forecasting Telemetry & Channels
+      const ai = d.aiForecasting || {};
+      const forecasts = Array.isArray(ai.forecasts) ? ai.forecasts : [];
+      const forecastRows = forecasts.map((f, idx) => {
+        const pts = f.points || [];
+        const lastPt = pts.length > 0 ? pts[pts.length - 1] : {};
+        return {
+          '#': idx + 1,
+          'Stream': f.stream || 'gateway',
+          'Channel': f.channel || 'sensor',
+          'Sensor Label': f.label || f.channel,
+          'Current Value (Now)': safeVal(f.latest_value),
+          'Predicted in 30 Min': safeVal(lastPt.value),
+          '95% Lower Range': safeVal(lastPt.lower),
+          '95% Upper Range': safeVal(lastPt.upper),
+          'Model Type': f.model?.type || 'LSTM',
+          'Beats Naive Baseline': f.model?.beats_naive ? 'YES (Beats baseline)' : 'NO (Indicative only)',
+          'Stale Duration (mins)': safeVal(f.stale_minutes != null ? Math.round(f.stale_minutes) : null),
+        };
+      });
+
+      const wsForecasting = XLSX.utils.json_to_sheet(forecastRows.length > 0 ? forecastRows : [
+        { Status: 'No active AI forecast channels available' }
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsForecasting, 'AI Forecasting');
+      break;
+    }
+
+    case 'priority': {
+      // 1. Priority Engine Ranked Actions
+      const pe = d.priorityEngine || {};
+      const items = Array.isArray(pe.items) ? pe.items : [];
+      const itemRows = items.map((it, idx) => ({
+        'Rank': it.rank || idx + 1,
+        'Severity Level': it.level || 'P3',
+        'Triage Score': it.score != null ? it.score : '-',
+        'Domain Area': it.area || 'Facility',
+        'Action Title': it.title || '-',
+        'Directive (Do)': it.action || '-',
+        'Audit (Check)': it.check || '-',
+        'Designated Owner': it.owner || '-',
+      }));
+
+      const wsPriority = XLSX.utils.json_to_sheet(itemRows.length > 0 ? itemRows : [
+        { Status: 'No open ranked actions recorded' }
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsPriority, 'Ranked Actions');
+      break;
+    }
+
     default: {
       const fallbackRows = [
         ['Facility AI Generic Report', ''],

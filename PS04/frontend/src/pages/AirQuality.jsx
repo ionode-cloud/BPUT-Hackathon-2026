@@ -2,6 +2,7 @@ import { MdWaterDrop, MdAir, MdExplore, MdWbSunny, MdSmokingRooms, MdScience, Md
 import ChartBox from '../components/ChartBox';
 import { getAirQualityChartData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
+import StatCard from '../components/StatCard';
 
 function aqiLabel(aqi) {
   if (aqi == null) return { text: '-', cls: '' };
@@ -105,62 +106,84 @@ export default function AirQuality({ data, history = [] }) {
         </div>
       </div>
 
-      {/* Primary KPI row */}
+      {/* Primary KPI row - Matching AI Forecast Card Design & Motion */}
       <div className="grid">
-        <div className="card">
-          <div className="kpi-label">Air Quality Index (AQI)</div>
-          <div className="kpi-value">{d.aqi ?? '-'}</div>
-          <div className={`kpi-foot ${d.aqi > 100 ? 'bad' : d.aqi > 50 ? 'warn' : ''}`}>
-            {d.aqi != null ? `${label.text} • Continuous monitoring` : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Air Quality Index (AQI)"
+          badgeText={d.aqi != null ? (d.aqi <= 50 ? 'Good Quality' : d.aqi <= 100 ? 'Moderate' : 'Unhealthy') : 'Monitoring'}
+          badgeType={d.aqi != null ? (d.aqi <= 50 ? 'green' : d.aqi <= 100 ? 'amber' : 'red') : 'gray'}
+          nowLabel="AQI Now"
+          nowValue={d.aqi ?? '-'}
+          secondaryLabel="Safe Benchmark"
+          secondaryValue="< 50"
+          secondaryColor="#0284c7"
+          footerLeft={d.aqi != null ? `${label.text} • Continuous monitoring` : 'Live Stream'}
+          footerRight="Safe range: 0–100"
+          index={0}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Fine Particulate (PM2.5)</div>
-          <div className="kpi-value">
-            {d.pm25 ?? '-'}
-            {d.pm25 != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>µg/m³</span>}
-          </div>
-          <div className={`kpi-foot ${d.pm25 > 35 ? 'warn' : ''}`}>
-            {d.pm25 != null ? (d.pm25 > 60 ? 'Hazardous' : d.pm25 > 35 ? 'Moderate elevation' : 'Safe air quality') : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Fine Particulate (PM2.5)"
+          badgeText={d.pm25 != null ? (d.pm25 <= 35 ? 'Safe Level' : 'Elevated') : 'Active'}
+          badgeType={d.pm25 != null ? (d.pm25 <= 35 ? 'green' : 'amber') : 'gray'}
+          nowLabel="Now"
+          nowValue={d.pm25 ?? '-'}
+          unit={d.pm25 != null ? 'µg/m³' : ''}
+          secondaryLabel="Safe Limit"
+          secondaryValue="35"
+          secondaryColor="#15803d"
+          footerLeft={d.pm25 != null ? (d.pm25 > 60 ? 'Hazardous' : d.pm25 > 35 ? 'Moderate elevation' : 'Safe air quality') : '-'}
+          footerRight="Threshold < 35"
+          index={1}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Coarse Particulate (PM10)</div>
-          <div className="kpi-value">
-            {d.pm10 ?? '-'}
-            {d.pm10 != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>µg/m³</span>}
-          </div>
-          <div className={`kpi-foot ${d.pm10 > 50 ? 'warn' : ''}`}>
-            {d.pm10 != null ? (d.pm10 > 100 ? 'High concentration' : d.pm10 > 50 ? 'Acceptable' : 'Safe level') : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Coarse Particulate (PM10)"
+          badgeText={d.pm10 != null ? (d.pm10 <= 50 ? 'Within Quota' : 'Elevated') : 'Active'}
+          badgeType={d.pm10 != null ? (d.pm10 <= 50 ? 'green' : 'amber') : 'gray'}
+          nowLabel="Now"
+          nowValue={d.pm10 ?? '-'}
+          unit={d.pm10 != null ? 'µg/m³' : ''}
+          secondaryLabel="Safe Limit"
+          secondaryValue="50"
+          secondaryColor="#0284c7"
+          footerLeft={d.pm10 != null ? (d.pm10 > 100 ? 'High concentration' : d.pm10 > 50 ? 'Acceptable' : 'Safe level') : '-'}
+          footerRight="Threshold < 50"
+          index={2}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Carbon Dioxide (CO₂)</div>
-          <div className="kpi-value">
-            {d.co2 ?? '-'}
-            {d.co2 != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>ppm</span>}
-          </div>
-          <div className={`kpi-foot ${d.co2 > 1000 ? 'warn' : ''}`}>
-            {d.co2 != null ? (d.co2 > 1500 ? 'Poor ventilation' : d.co2 > 1000 ? 'Requires airflow' : 'Fresh indoor air') : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Carbon Dioxide (CO₂)"
+          badgeText={d.co2 != null ? (d.co2 <= 1000 ? 'Beats baseline' : 'Requires airflow') : 'Active'}
+          badgeType={d.co2 != null ? (d.co2 <= 1000 ? 'green' : 'amber') : 'gray'}
+          nowLabel="Now"
+          nowValue={d.co2 ?? '-'}
+          unit={d.co2 != null ? 'ppm' : ''}
+          secondaryLabel="Target Range"
+          secondaryValue="< 800"
+          secondaryColor="#15803d"
+          footerLeft={d.co2 != null ? (d.co2 > 1500 ? 'Poor ventilation' : d.co2 > 1000 ? 'Requires airflow' : 'Fresh indoor air') : '-'}
+          footerRight="Nominal < 1000 ppm"
+          index={3}
+        />
       </div>
 
-      {/* Environmental Sensors Row */}
+      {/* Environmental Sensors Row - Matching AI Forecast Card Design & Motion */}
       <div className="env-cards">
-        {envCards.map(c => (
-          <div key={c.label} className="card env-card">
-            <div className="env-icon">{c.icon}</div>
-            <div className="kpi-label" style={{ marginBottom: 4 }}>{c.label}</div>
-            <div className="kpi-value" style={{ fontSize: 24, marginBottom: 4 }}>
-              {c.value}
-              {c.unit && <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)', marginLeft: 4 }}>{c.unit}</span>}
-            </div>
-            <div className={`kpi-foot ${c.footCls}`}>{c.foot}</div>
-          </div>
+        {envCards.map((c, i) => (
+          <StatCard
+            key={c.label}
+            label={c.label}
+            icon={c.icon}
+            badgeText={c.footCls === 'bad' ? 'Hazard' : c.footCls === 'warn' ? 'Elevated' : 'Normal'}
+            badgeType={c.footCls === 'bad' ? 'red' : c.footCls === 'warn' ? 'amber' : 'green'}
+            nowLabel="Reading"
+            nowValue={c.value}
+            unit={c.unit}
+            footerLeft={c.foot}
+            footerRight="Telemetry live"
+            index={i + 4}
+          />
         ))}
       </div>
 

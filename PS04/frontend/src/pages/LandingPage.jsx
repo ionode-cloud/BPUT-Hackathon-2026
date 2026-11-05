@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   MdApartment,
   MdAir,
@@ -8,7 +9,9 @@ import {
   MdCheckCircle,
   MdDashboard,
   MdNotificationsActive,
+  MdKeyboardArrowUp,
 } from 'react-icons/md';
+import LandingMarquee from '../components/LandingMarquee';
 
 /* ── Inline Isometric SVGs Matching the Reference Layout ─────────────────── */
 
@@ -219,6 +222,42 @@ export default function LandingPage({
   data = {},
 }) {
   const d = data || {};
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 380);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Multi-directional bidirectional scroll-reveal for images and cards
+    const animElements = document.querySelectorAll('[data-anim]');
+    if (!('IntersectionObserver' in window)) {
+      animElements.forEach(el => el.classList.add('is-revealed'));
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+          } else {
+            // Remove when leaving viewport so animation triggers in BOTH directions (top to bottom & bottom to top)
+            entry.target.classList.remove('is-revealed');
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '20px 0px 20px 0px' }
+    );
+
+    animElements.forEach((el) => observer.observe(el));
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
+  }, []);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -234,11 +273,10 @@ export default function LandingPage({
         <div className="hero-banner-card">
           <div className="container-fluid">
             {/* Top Navigation */}
-            <header className="hero-nav-bar">
+            <header className="hero-nav-bar" data-anim="top">
               <div className="hero-nav-left" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                 <span className="brand-dot-pulse" />
-                <span className="hero-brand-name">Facility AI</span>
-                <span className="hero-badge-tag">PS04</span>
+                <span className="hero-brand-name">Greenexa</span>
               </div>
 
               <nav className="hero-nav-mid">
@@ -272,7 +310,7 @@ export default function LandingPage({
 
             {/* Hero Main Content (2 Columns) */}
             <div className="hero-body-columns">
-              <div className="hero-text-col">
+              <div className="hero-text-col" data-anim="left">
                 <h1 className="hero-headline-title">
                   Autonomous Campus & Facility Intelligence
                 </h1>
@@ -304,13 +342,13 @@ export default function LandingPage({
                   )}
                 </div>
 
-                <div className="hero-guarantee-line">
+                <div className="hero-guarantee-line" data-anim="bottom">
                   <span className="check-bullet">✓</span>
                   <span>Live REST Telemetry • 100% Real API Stream • Zero Synthetic Data</span>
                 </div>
               </div>
 
-              <div className="hero-graphic-col">
+              <div className="hero-graphic-col" data-anim="right">
                 <HeroIsometricIllustration />
               </div>
             </div>
@@ -318,48 +356,53 @@ export default function LandingPage({
         </div>
       </div>
 
+      {/* ════ Continuous Auto-Scroll Real-Time Telemetry Marquee ════ */}
+      <LandingMarquee data={d} onGoToDashboard={onGoToDashboard} />
+
       {/* ═══════════════════════════════════════════════════════════════════
           Section 1: Alternating Row (Workstation & Unified Sensor Telemetry)
           ═══════════════════════════════════════════════════════════════════ */}
       <section id="features-section" className="alt-feature-section light-bg">
         <div className="container-fluid">
           <div className="alt-feature-row">
-            <div className="alt-feature-col visual-col">
+            <div className="alt-feature-col visual-col" data-anim="left">
               <WorkstationIsometricIllustration />
             </div>
 
             <div className="alt-feature-col text-col">
-              <span className="section-sub-pill">EDGE-TO-CLOUD TELEMETRY</span>
-              <h2 className="section-main-heading">
-                Use Facility AI to Monitor & Control Campus Vitals
-              </h2>
+              <div className="feature-text-block" data-anim="right">
+                <span className="section-sub-pill">EDGE-TO-CLOUD TELEMETRY</span>
+                <h2 className="section-main-heading">
+                  Use Facility AI to Monitor & Control Campus Vitals
+                </h2>
 
-              <p className="section-body-text">
-                Facility AI connects directly with ESP32 microcontrollers deployed across laboratories,
-                hostels, and utility substations. It captures atmospheric chemistry, live power draw,
-                reservoir depth, and waste fill with sub-second responsiveness.
-              </p>
+                <p className="section-body-text">
+                  Facility AI connects directly with ESP32 microcontrollers deployed across laboratories,
+                  hostels, and utility substations. It captures atmospheric chemistry, live power draw,
+                  reservoir depth, and waste fill with sub-second responsiveness.
+                </p>
+              </div>
 
               <div className="feature-mini-stats-grid">
-                <div className="mini-stat-card">
+                <div className="mini-stat-card delay-1" data-anim="bottom">
                   <span className="mini-stat-label">Air Purity (AQI)</span>
                   <span className="mini-stat-value">{d.aqi ?? 54} AQI</span>
                 </div>
-                <div className="mini-stat-card">
+                <div className="mini-stat-card delay-2" data-anim="bottom">
                   <span className="mini-stat-label">Power Draw</span>
                   <span className="mini-stat-value">{d.livePower ?? 18.4} kW</span>
                 </div>
-                <div className="mini-stat-card">
+                <div className="mini-stat-card delay-3" data-anim="bottom">
                   <span className="mini-stat-label">Water Reserve</span>
                   <span className="mini-stat-value">{d.tankLevel ?? 78}% Level</span>
                 </div>
-                <div className="mini-stat-card">
+                <div className="mini-stat-card delay-4" data-anim="bottom">
                   <span className="mini-stat-label">Waste Bins</span>
                   <span className="mini-stat-value">{d.averageFill ?? 42}% Avg</span>
                 </div>
               </div>
 
-              <div className="section-cta-wrap">
+              <div className="section-cta-wrap" data-anim="bottom">
                 <button
                   type="button"
                   className="purple-action-btn"
@@ -383,44 +426,46 @@ export default function LandingPage({
       <section id="why-section" className="alt-feature-section light-bg">
         <div className="container-fluid">
           <div className="alt-feature-row reverse-on-desktop">
-            <div className="alt-feature-col visual-col">
+            <div className="alt-feature-col visual-col" data-anim="right">
               <QuestionIsometricIllustration />
             </div>
 
             <div className="alt-feature-col text-col">
-              <span className="section-sub-pill">PROBLEM & SOLUTION MATRIX</span>
-              <h2 className="section-main-heading">
-                Why Would You Need Autonomous Facility AI?
-              </h2>
+              <div className="feature-text-block" data-anim="left">
+                <span className="section-sub-pill">PROBLEM & SOLUTION MATRIX</span>
+                <h2 className="section-main-heading">
+                  Why Would You Need Autonomous Facility AI?
+                </h2>
 
-              <p className="section-body-text">
-                Traditional campus facilities rely on manual meter checks, leading to undetected pipe
-                ruptures, soaring electricity tariffs from phantom loads, and toxic gas buildup in
-                science departments.
-              </p>
+                <p className="section-body-text">
+                  Traditional campus facilities rely on manual meter checks, leading to undetected pipe
+                  ruptures, soaring electricity tariffs from phantom loads, and toxic gas buildup in
+                  science departments.
+                </p>
 
-              <p className="section-body-text">
-                Facility AI replaces reactive maintenance with cyber-physical automation: detecting
-                abnormal hydraulic flow instantly and shutting off solenoid valves before flood damage
-                occurs.
-              </p>
+                <p className="section-body-text">
+                  Facility AI replaces reactive maintenance with cyber-physical automation: detecting
+                  abnormal hydraulic flow instantly and shutting off solenoid valves before flood damage
+                  occurs.
+                </p>
+              </div>
 
               <ul className="styled-benefit-list">
-                <li>
+                <li data-anim="bottom" className="delay-1">
                   <MdCheckCircle color="#6366f1" size={20} />
                   <span>Eliminate water waste through acoustic and ultrasonic leak detection.</span>
                 </li>
-                <li>
+                <li data-anim="bottom" className="delay-2">
                   <MdCheckCircle color="#6366f1" size={20} />
                   <span>Optimize HVAC operations by monitoring indoor CO₂ and PM2.5 levels.</span>
                 </li>
-                <li>
+                <li data-anim="bottom" className="delay-3">
                   <MdCheckCircle color="#6366f1" size={20} />
                   <span>Prevent campus bin overflow with ultrasound volumetric fill alerts.</span>
                 </li>
               </ul>
 
-              <div className="section-cta-wrap">
+              <div className="section-cta-wrap" data-anim="bottom">
                 <button
                   type="button"
                   className="purple-action-btn"
@@ -440,7 +485,7 @@ export default function LandingPage({
           ═══════════════════════════════════════════════════════════════════ */}
       <section id="how-it-works-section" className="dark-contrast-section">
         <div className="container-fluid">
-          <div className="dark-section-header">
+          <div className="dark-section-header" data-anim="top">
             <h2>How does the IoT Edge-to-Cloud Pipeline work?</h2>
             <p>
               With our unified API, microcontrollers and sensors sync seamlessly in three effortless steps.
@@ -448,12 +493,12 @@ export default function LandingPage({
           </div>
 
           <div className="dark-columns-row">
-            <div className="dark-visual-col">
+            <div className="dark-visual-col" data-anim="left">
               <DarkStepIsometricIllustration />
             </div>
 
             <div className="dark-steps-col">
-              <div className="step-card-item">
+              <div className="step-card-item delay-1" data-anim="right">
                 <div className="step-number-badge">1</div>
                 <div className="step-content">
                   <h4>Sensor Telemetry Ingestion</h4>
@@ -464,7 +509,7 @@ export default function LandingPage({
                 </div>
               </div>
 
-              <div className="step-card-item">
+              <div className="step-card-item delay-2" data-anim="right">
                 <div className="step-number-badge">2</div>
                 <div className="step-content">
                   <h4>Snapshot Consolidation & Storage</h4>
@@ -475,7 +520,7 @@ export default function LandingPage({
                 </div>
               </div>
 
-              <div className="step-card-item">
+              <div className="step-card-item delay-3" data-anim="right">
                 <div className="step-number-badge">3</div>
                 <div className="step-content">
                   <h4>Real-time Actuation & Decision Support</h4>
@@ -486,7 +531,7 @@ export default function LandingPage({
                 </div>
               </div>
 
-              <div className="dark-step-cta">
+              <div className="dark-step-cta" data-anim="bottom">
                 <button
                   type="button"
                   className="purple-action-btn light-purple-btn"
@@ -506,14 +551,14 @@ export default function LandingPage({
           ═══════════════════════════════════════════════════════════════════ */}
       <section id="pillars-section" className="grid-cards-section light-bg">
         <div className="container-fluid">
-          <div className="grid-section-header">
+          <div className="grid-section-header" data-anim="top">
             <h2>What are the core systems of Facility AI?</h2>
             <p>Six integrated operational domains from the live Facility AI console powering campus intelligence.</p>
           </div>
 
           <div className="core-systems-grid">
-            {/* 1. Facility Overview */}
-            <div className="core-system-card card-overview">
+            {/* 1. Facility Overview (Slide from Left to Right) */}
+            <div className="core-system-card card-overview" data-anim="left">
               <div className="core-card-top">
                 <div className="core-card-icon overview-bg">
                   <MdApartment size={22} />
@@ -545,8 +590,8 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* 2. Air Quality Monitoring */}
-            <div className="core-system-card card-air">
+            {/* 2. Air Quality Monitoring (Slide from Top to Bottom) */}
+            <div className="core-system-card card-air" data-anim="top">
               <div className="core-card-top">
                 <div className="core-card-icon air-bg">
                   <MdAir size={22} />
@@ -578,8 +623,8 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* 3. Energy Optimization */}
-            <div className="core-system-card card-energy">
+            {/* 3. Energy Optimization (Slide from Right to Left) */}
+            <div className="core-system-card card-energy" data-anim="right">
               <div className="core-card-top">
                 <div className="core-card-icon energy-bg">
                   <MdElectricBolt size={22} />
@@ -611,8 +656,8 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* 4. Water Management */}
-            <div className="core-system-card card-water">
+            {/* 4. Water Management (Slide from Left to Right with Stagger Delay) */}
+            <div className="core-system-card card-water delay-1" data-anim="left">
               <div className="core-card-top">
                 <div className="core-card-icon water-bg">
                   <MdWaterDrop size={22} />
@@ -644,8 +689,8 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* 5. Waste Management */}
-            <div className="core-system-card card-waste">
+            {/* 5. Waste Management (Slide from Bottom to Top with Stagger Delay) */}
+            <div className="core-system-card card-waste delay-2" data-anim="bottom">
               <div className="core-card-top">
                 <div className="core-card-icon waste-bg">
                   <MdDelete size={22} />
@@ -677,8 +722,8 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* 6. Alert History */}
-            <div className="core-system-card card-alerts">
+            {/* 6. Alert History (Slide from Right to Left with Stagger Delay) */}
+            <div className="core-system-card card-alerts delay-3" data-anim="right">
               <div className="core-card-top">
                 <div className="core-card-icon alerts-bg">
                   <MdNotificationsActive size={22} />
@@ -728,6 +773,19 @@ export default function LandingPage({
           </div>
         </div>
       </footer>
+
+      {/* ════ Smooth Scroll-To-Top Button ════ */}
+      {showScrollTop && (
+        <button
+          type="button"
+          className="scroll-to-top-btn"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          title="Scroll to top"
+          aria-label="Scroll to top"
+        >
+          <MdKeyboardArrowUp size={24} />
+        </button>
+      )}
     </div>
   );
 }

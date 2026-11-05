@@ -27,6 +27,7 @@ import {
   resetDefaultAlerts,
 } from '../utils/alertEngine';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
+import StatCard from '../components/StatCard';
 
 const SYSTEM_ICONS = {
   water:  <MdWaterDrop size={22} color="#0284c7" />,
@@ -183,65 +184,65 @@ export default function AlertHistory({ data }) {
 
       {/* ════ KPI Summary Cards ════ */}
       <div className="grid">
-        <div className="card alert-kpi-card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdNotificationsActive size={20} color="#ef4444" />
-            <span>Active High Alerts</span>
-          </div>
-          <div className="kpi-value" style={{ color: activeCount > 0 ? '#ef4444' : 'var(--text)' }}>
-            {activeCount}
-          </div>
-          <div className="kpi-foot">
-            {activeCount > 0 ? (
-              <span style={{ color: '#ef4444', fontWeight: 600 }}>
-                {criticalCount} Critical • Requires Operator Action
-              </span>
-            ) : (
-              <span style={{ color: '#10b981', fontWeight: 600 }}>
-                ✓ Zero Unresolved Anomalies
-              </span>
-            )}
-          </div>
-        </div>
+        <StatCard
+          index={0}
+          icon={<MdNotificationsActive size={18} color="#ef4444" />}
+          label="Active High Alerts"
+          badgeText={activeCount > 0 ? `${activeCount} Pending` : 'All Clear'}
+          badgeType={activeCount > 0 ? 'red' : 'green'}
+          nowLabel="Now"
+          nowValue={activeCount}
+          secondaryLabel="Critical"
+          secondaryValue={`${criticalCount} Urgent`}
+          secondaryColor={criticalCount > 0 ? '#dc2626' : '#15803d'}
+          footerLeft={activeCount > 0 ? `${criticalCount} Critical • Operator action` : 'Zero unresolved anomalies'}
+          footerRight="Target: 0 alerts"
+        />
 
-        <div className="card alert-kpi-card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdCheckCircle size={20} color="#10b981" />
-            <span>Solved & Mitigated</span>
-          </div>
-          <div className="kpi-value" style={{ color: '#10b981' }}>
-            {solvedCount}
-          </div>
-          <div className="kpi-foot">
-            Resolved anomalies logged in facility audit
-          </div>
-        </div>
+        <StatCard
+          index={1}
+          icon={<MdCheckCircle size={18} color="#10b981" />}
+          label="Solved & Mitigated"
+          badgeText="Resolved"
+          badgeType="green"
+          nowLabel="Now"
+          nowValue={solvedCount}
+          secondaryLabel="Resolution Rate"
+          secondaryValue={totalCount > 0 ? `${Math.round((solvedCount / totalCount) * 100)}%` : '100%'}
+          secondaryColor="#15803d"
+          footerLeft="Resolved anomalies logged in facility audit"
+          footerRight="Audit logged"
+        />
 
-        <div className="card alert-kpi-card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdHealthAndSafety size={20} color="#3b82f6" />
-            <span>Total Logged Alerts</span>
-          </div>
-          <div className="kpi-value">
-            {totalCount}
-          </div>
-          <div className="kpi-foot">
-            Historical incidents across Air, Energy, Water, Waste
-          </div>
-        </div>
+        <StatCard
+          index={2}
+          icon={<MdHealthAndSafety size={18} color="#3b82f6" />}
+          label="Total Logged Alerts"
+          badgeText="4 Subsystems"
+          badgeType="blue"
+          nowLabel="Now"
+          nowValue={totalCount}
+          secondaryLabel="Historical"
+          secondaryValue="Active + Solved"
+          secondaryColor="#0284c7"
+          footerLeft="Incidents across Air, Energy, Water, Waste"
+          footerRight="Full triage enabled"
+        />
 
-        <div className="card alert-kpi-card">
-          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MdShield size={20} color={activeCount > 0 ? '#f59e0b' : '#10b981'} />
-            <span>Telemetry Protection</span>
-          </div>
-          <div className="kpi-value" style={{ fontSize: 22, paddingTop: 4 }}>
-            {activeCount > 2 ? 'ELEVATED' : activeCount > 0 ? 'MONITORED' : 'OPTIMAL'}
-          </div>
-          <div className="kpi-foot">
-            Continuous real-time IoT threshold surveillance
-          </div>
-        </div>
+        <StatCard
+          index={3}
+          icon={<MdShield size={18} color={activeCount > 0 ? '#f59e0b' : '#10b981'} />}
+          label="Telemetry Protection"
+          badgeText={activeCount > 2 ? 'Elevated' : activeCount > 0 ? 'Monitored' : 'Optimal'}
+          badgeType={activeCount > 2 ? 'red' : activeCount > 0 ? 'amber' : 'green'}
+          nowLabel="Status"
+          nowValue={activeCount > 2 ? 'ELEVATED' : activeCount > 0 ? 'MONITORED' : 'OPTIMAL'}
+          secondaryLabel="Surveillance"
+          secondaryValue="100% Guarded"
+          secondaryColor="#15803d"
+          footerLeft="Continuous real-time IoT surveillance"
+          footerRight="Live edge security"
+        />
       </div>
 
       {/* ════ Search, Filter & Action Toolbar ════ */}

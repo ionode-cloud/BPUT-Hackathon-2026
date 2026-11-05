@@ -2,6 +2,7 @@ import { MdDelete, MdOpacity, MdAir, MdScience, MdGrain } from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
 import { getOverviewChartData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
+import StatCard from '../components/StatCard';
 
 export default function Overview({ data, history = [] }) {
   const d = data || {};
@@ -38,54 +39,66 @@ export default function Overview({ data, history = [] }) {
         </div>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Row - Matching AI Forecast Card Design & Motion */}
       <div className="grid">
-        <div className="card">
-          <div className="kpi-label">Sustainability Score</div>
-          <div className="kpi-value">
-            {d.sustainabilityScore ?? '-'}
-            {d.sustainabilityScore != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>/100</span>}
-          </div>
-          <div className="kpi-foot">
-            {d.sustainabilityScore != null
-              ? (d.sustainabilityScore >= 80 ? '★ Excellent rating' : d.sustainabilityScore >= 60 ? '✓ Good standing' : 'Needs attention')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Sustainability Score"
+          badgeText={d.sustainabilityScore != null ? (d.sustainabilityScore >= 80 ? 'Optimal' : d.sustainabilityScore >= 60 ? 'Good' : 'Needs attention') : 'Monitoring'}
+          badgeType={d.sustainabilityScore != null ? (d.sustainabilityScore >= 80 ? 'green' : d.sustainabilityScore >= 60 ? 'blue' : 'amber') : 'gray'}
+          nowLabel="Current Score"
+          nowValue={d.sustainabilityScore ?? '-'}
+          unit={d.sustainabilityScore != null ? '/100' : ''}
+          secondaryLabel="Target Benchmark"
+          secondaryValue="85+"
+          secondaryColor="#15803d"
+          footerLeft={d.sustainabilityScore != null ? (d.sustainabilityScore >= 80 ? '★ Excellent rating' : 'Active monitoring') : 'Live Ingestion'}
+          footerRight="Benchmark: 80+"
+          index={0}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Air Quality Index (AQI)</div>
-          <div className="kpi-value">{d.aqi ?? '-'}</div>
-          <div className={`kpi-foot ${d.aqi > 100 ? 'bad' : d.aqi > 50 ? 'warn' : ''}`}>
-            {d.aqi != null
-              ? `${d.aqi > 200 ? 'Very Poor' : d.aqi > 100 ? 'Unhealthy' : d.aqi > 50 ? 'Moderate' : 'Good Quality'} • Continuous monitoring`
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Air Quality Index (AQI)"
+          badgeText={d.aqi != null ? (d.aqi <= 50 ? 'Good Quality' : d.aqi <= 100 ? 'Moderate' : 'Unhealthy') : 'Monitoring'}
+          badgeType={d.aqi != null ? (d.aqi <= 50 ? 'green' : d.aqi <= 100 ? 'amber' : 'red') : 'gray'}
+          nowLabel="AQI Now"
+          nowValue={d.aqi ?? '-'}
+          secondaryLabel="Threshold"
+          secondaryValue="< 50"
+          secondaryColor="#0284c7"
+          footerLeft={d.pm25 != null ? `PM2.5: ${d.pm25} µg/m³` : 'Continuous monitoring'}
+          footerRight="Safe range: 0–100"
+          index={1}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Today's Energy Usage</div>
-          <div className="kpi-value">
-            {d.todaysEnergy ?? '-'}
-            {d.todaysEnergy != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>kWh</span>}
-          </div>
-          <div className="kpi-foot">
-            {d.peakDemand != null ? `Peak demand: ${d.peakDemand} kW` : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Today's Energy Meter"
+          badgeText={d.livePower != null ? `Live ${d.livePower} kW` : 'Beats baseline'}
+          badgeType="green"
+          nowLabel="Consumed"
+          nowValue={d.todaysEnergy ?? '-'}
+          unit={d.todaysEnergy != null ? 'kWh' : ''}
+          secondaryLabel="Peak Demand"
+          secondaryValue={d.peakDemand != null ? `${d.peakDemand} kW` : '-'}
+          secondaryColor="#f59e0b"
+          footerLeft={d.estimatedCost != null ? `Est. Cost: ₹${d.estimatedCost}` : 'Grid draw active'}
+          footerRight="Within grid quota"
+          index={2}
+        />
 
-        <div className="card">
-          <div className="kpi-label">Water Consumption</div>
-          <div className="kpi-value">
-            {d.todaysUsage != null ? d.todaysUsage.toLocaleString('en-IN') : '-'}
-            {d.todaysUsage != null && <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--muted)' }}>L</span>}
-          </div>
-          <div className={`kpi-foot ${d.todaysUsage > 3000 ? 'warn' : ''}`}>
-            {d.todaysUsage != null
-              ? (d.todaysUsage > 3000 ? 'High consumption' : 'Within normal quota')
-              : '-'}
-          </div>
-        </div>
+        <StatCard
+          label="Water Storage & Consumption"
+          badgeText={d.tankLevel != null ? `Tank ${d.tankLevel}%` : 'Normal Quota'}
+          badgeType={d.tankLevel != null ? (d.tankLevel < 25 ? 'red' : d.tankLevel < 50 ? 'amber' : 'blue') : 'gray'}
+          nowLabel="Consumed"
+          nowValue={d.todaysUsage != null ? d.todaysUsage.toLocaleString('en-IN') : '-'}
+          unit={d.todaysUsage != null ? 'L' : ''}
+          secondaryLabel="Flow Rate"
+          secondaryValue={d.flowRate != null ? `${d.flowRate} L/m` : '0 L/m'}
+          secondaryColor="#0284c7"
+          footerLeft={d.leakStatus ? `Leak: ${d.leakStatus}` : 'Acoustic normal'}
+          footerRight="Quota: 5,000 L/day"
+          index={3}
+        />
       </div>
 
       {/* Real-time Energy & Water Trends Graph (Full Width) */}
