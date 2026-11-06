@@ -65,6 +65,170 @@ function attachDynamicDefaults(obj) {
   delete obj['Priority Engine'];
   delete obj['priority engine'];
 
+  // ── 1. Energy: AC vs DC Supply Power Profiling ──────────────────────────
+  const liveKw = typeof obj.livePower === 'number' && !isNaN(obj.livePower) ? obj.livePower : 18.4;
+  const todayKwh = typeof obj.todaysEnergy === 'number' && !isNaN(obj.todaysEnergy) ? obj.todaysEnergy : 142.5;
+
+  if (obj.acPower === undefined || obj.acPower === null) {
+    obj.acPower = Number((liveKw * 0.78).toFixed(1)); // 78% AC (Mains, Chillers, Heavy Lab loads)
+  }
+  if (obj.acEnergy === undefined || obj.acEnergy === null) {
+    obj.acEnergy = Number((todayKwh * 0.76).toFixed(1));
+  }
+  if (obj.dcPower === undefined || obj.dcPower === null) {
+    obj.dcPower = Number((liveKw * 0.22).toFixed(1)); // 22% DC (Solar PV bus, BESS, Server DC racks)
+  }
+  if (obj.dcEnergy === undefined || obj.dcEnergy === null) {
+    obj.dcEnergy = Number((todayKwh * 0.24).toFixed(1));
+  }
+
+  // ── 2. Energy: Automatic Generator Failover ─────────────────────────────
+  if (!obj.gridStatus) {
+    obj.gridStatus = 'ONLINE';
+  }
+  if (obj.gridStatus === 'OFF') {
+    // Autonomous failover: generator automatically switches ON when grid drops
+    obj.generatorStatus = 'RUNNING';
+    if (obj.generatorLoad === undefined || obj.generatorLoad === null || obj.generatorLoad === 0) {
+      obj.generatorLoad = Number((liveKw * 0.85).toFixed(1));
+    }
+  } else {
+    if (!obj.generatorStatus) {
+      obj.generatorStatus = 'STANDBY';
+    }
+    if (obj.generatorStatus === 'STANDBY' || obj.generatorStatus === 'OFF') {
+      obj.generatorLoad = 0;
+    }
+  }
+  if (obj.generatorFuel === undefined || obj.generatorFuel === null) {
+    obj.generatorFuel = 84; // % diesel capacity
+  }
+  if (obj.generatorRuntime === undefined || obj.generatorRuntime === null) {
+    obj.generatorRuntime = 142.5; // Cumulative operating hours
+  }
+
+  // ── 3. Street Light Monitoring ──────────────────────────────────────────
+  if (obj.streetLightTotal === undefined || obj.streetLightTotal === null) {
+    obj.streetLightTotal = 48; // 48 smart poles across campus ring road & avenues
+  }
+  if (!obj.streetLightStatus) {
+    const lux = typeof obj.lightIntensity === 'number' ? obj.lightIntensity : 120;
+    obj.streetLightStatus = lux < 50 ? 'ON' : 'OFF';
+  }
+  if (obj.streetLightsActive === undefined || obj.streetLightsActive === null) {
+    obj.streetLightsActive = obj.streetLightStatus === 'OFF' ? 0 : 44; // 44/48 active when ON
+  }
+  if (obj.streetLightPower === undefined || obj.streetLightPower === null) {
+    obj.streetLightPower = obj.streetLightStatus === 'OFF' ? 0 : 4.4; // kW
+  }
+  if (obj.streetLightEnergy === undefined || obj.streetLightEnergy === null) {
+    obj.streetLightEnergy = 38.6; // kWh
+  }
+  if (obj.streetLightDimming === undefined || obj.streetLightDimming === null) {
+    obj.streetLightDimming = 80; // % brightness
+  }
+
+  // ── 4. Waste Management: Dry vs Wet Waste Block-Wise ────────────────────
+  if (!Array.isArray(obj.wasteBlocks) || obj.wasteBlocks.length === 0) {
+    obj.wasteBlocks = [
+      {
+        id: 'block-a',
+        name: 'Block A (Academic & Lecture Theatres)',
+        code: 'BL-A',
+        dryFill: 42,
+        wetFill: 28,
+        dryWeight: 26.5,
+        wetWeight: 9.8,
+        status: 'Optimal',
+        complianceScore: 94,
+        lastCollection: '2h ago',
+      },
+      {
+        id: 'block-b',
+        name: 'Block B (Hostel Towers & Residential)',
+        code: 'BL-B',
+        dryFill: 68,
+        wetFill: 62,
+        dryWeight: 42.0,
+        wetWeight: 38.5,
+        status: 'Moderate',
+        complianceScore: 88,
+        lastCollection: '3h ago',
+      },
+      {
+        id: 'block-c',
+        name: 'Block C (Central Library & Administration)',
+        code: 'BL-C',
+        dryFill: 36,
+        wetFill: 18,
+        dryWeight: 19.5,
+        wetWeight: 5.2,
+        status: 'Optimal',
+        complianceScore: 96,
+        lastCollection: '1h ago',
+      },
+      {
+        id: 'block-d',
+        name: 'Block D (Campus Canteen & Food Courts)',
+        code: 'BL-D',
+        dryFill: 58,
+        wetFill: 88,
+        dryWeight: 31.0,
+        wetWeight: 59.5,
+        status: 'Wet Overflow Risk',
+        complianceScore: 82,
+        lastCollection: '4h ago',
+      },
+      {
+        id: 'block-e',
+        name: 'Block E (R&D Labs & Technical Complex)',
+        code: 'BL-E',
+        dryFill: 52,
+        wetFill: 24,
+        dryWeight: 23.0,
+        wetWeight: 7.5,
+        status: 'Optimal',
+        complianceScore: 91,
+        lastCollection: '2h ago',
+      },
+    ];
+  }
+
+  // Compute dry/wet aggregates from block matrix
+  if (obj.wasteDry === undefined || obj.wasteDry === null) {
+    const totalDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryWeight || 0), 0);
+    obj.wasteDry = Number(totalDry.toFixed(1));
+  }
+  if (obj.wasteWet === undefined || obj.wasteWet === null) {
+    const totalWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetWeight || 0), 0);
+    obj.wasteWet = Number(totalWet.toFixed(1));
+  }
+  if (obj.wasteDryFill === undefined || obj.wasteDryFill === null) {
+    const avgDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryFill || 0), 0) / obj.wasteBlocks.length;
+    obj.wasteDryFill = Math.round(avgDry);
+  }
+  if (obj.wasteWetFill === undefined || obj.wasteWetFill === null) {
+    const avgWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetFill || 0), 0) / obj.wasteBlocks.length;
+    obj.wasteWetFill = Math.round(avgWet);
+  }
+
+  // ── 5. Parking & Digital Twin Bay Matrix ────────────────────────────────
+  if (obj.totalSlots === undefined || obj.totalSlots === null) {
+    obj.totalSlots = 48;
+  }
+  if (obj.occupiedSlots === undefined || obj.occupiedSlots === null) {
+    obj.occupiedSlots = 36;
+  }
+  if (obj.parkingOccupancy === undefined || obj.parkingOccupancy === null) {
+    obj.parkingOccupancy = Math.round((obj.occupiedSlots / obj.totalSlots) * 100);
+  }
+  if (obj.vehiclesToday === undefined || obj.vehiclesToday === null) {
+    obj.vehiclesToday = 482;
+  }
+  if (obj.avgWaitingTime === undefined || obj.avgWaitingTime === null) {
+    obj.avgWaitingTime = 3.5;
+  }
+
   return obj;
 }
 
@@ -296,6 +460,25 @@ router.put('/', async (req, res) => {
     delete updateData.createdAt;
     delete updateData.updatedAt;
     delete updateData.__v;
+
+    // Automatic Generator Failover logic when grid drops
+    if (updateData.gridStatus === 'OFF') {
+      updateData.generatorStatus = 'RUNNING';
+      const liveP = updateData.livePower || (record ? record.livePower : 18.4);
+      updateData.generatorLoad = Number((liveP * 0.85).toFixed(1));
+    } else if (updateData.gridStatus === 'ONLINE' && updateData.generatorStatus === undefined) {
+      updateData.generatorStatus = 'STANDBY';
+      updateData.generatorLoad = 0;
+    }
+
+    // Street Light actuator status synchronization
+    if (updateData.streetLightStatus === 'ON') {
+      updateData.streetLightsActive = updateData.streetLightTotal || (record ? record.streetLightTotal : 48);
+      updateData.streetLightPower = 4.4;
+    } else if (updateData.streetLightStatus === 'OFF') {
+      updateData.streetLightsActive = 0;
+      updateData.streetLightPower = 0;
+    }
 
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
     updateData.timestamp = new Date();

@@ -1,6 +1,7 @@
 // Navigation items and page titles for Sustainable Facility AI
 export const NAV_ITEMS = [
   { id: 'overview',    label: 'Overview' },
+  { id: 'digitaltwin', label: 'Digital Twin & Parking' },
   { id: 'air',         label: 'Air Quality' },
   { id: 'energy',      label: 'Energy' },
   { id: 'water',       label: 'Water' },
@@ -12,6 +13,7 @@ export const NAV_ITEMS = [
 
 export const PAGE_TITLES = {
   overview:    'Overview',
+  digitaltwin: 'Digital Twin and Smart Parking',
   air:         'Air and Weather Quality',
   energy:      'Energy Optimization',
   water:       'Water Management',

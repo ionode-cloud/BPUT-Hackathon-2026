@@ -1,24 +1,48 @@
-import { MdDelete, MdOpacity, MdAir, MdScience, MdGrain } from 'react-icons/md';
+import { useState } from 'react';
+import {
+  MdAir,
+  MdElectricBolt,
+  MdWaterDrop,
+  MdDelete,
+  MdLocalParking,
+  MdArrowForward,
+  MdFilterList,
+  MdPieChart,
+  MdTimeline,
+} from 'react-icons/md';
 import ChartBox from '../components/ChartBox';
-import { getOverviewChartData } from '../utils/chartHelpers';
+import {
+  getOverviewChartData,
+  getAirQualityChartData,
+  getEnergyBarData,
+  getAcDcEnergyData,
+  getWaterTrendData,
+  getDryWetBlockData,
+  getParkingDistribution,
+} from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 import StatCard from '../components/StatCard';
 
-export default function Overview({ data, history = [] }) {
+export default function Overview({ data, history = [], onNavigate }) {
   const d = data || {};
-  const chartData = getOverviewChartData(d, history);
+  const [tabFilter, setTabFilter] = useState('all'); // 'all' | 'air' | 'energy' | 'water' | 'waste' | 'digitaltwin'
 
-  // Dynamic Sustainability Scorecard
-  const energyEff = d.todaysEnergy ? Math.min(Math.round((1 - d.todaysEnergy / 220) * 100 + 40), 100) : 0;
-  const waterEff = d.todaysUsage ? Math.min(Math.round((1 - d.todaysUsage / 5000) * 100 + 30), 100) : 0;
-  const wasteEff = d.averageFill ? Math.max(100 - d.averageFill, 15) : 0;
-  const safetyEff = d.safetyScore ?? 0;
+  // Dynamic Telemetry Datasets for each Dashboard Tab
+  const overviewTrend = getOverviewChartData(d, history);
+  const airQualityData = getAirQualityChartData(d, history);
+  const energyBarData = getEnergyBarData(d, history);
+  const acDcData = getAcDcEnergyData(d);
+  const waterTrendData = getWaterTrendData(d, history);
+  const wasteBlockData = getDryWetBlockData(d);
+  const parkingData = getParkingDistribution(d);
 
-  const scorecard = [
-    { label: 'Energy Efficiency', val: d.todaysEnergy != null ? `${energyEff}/100` : '-', pct: energyEff, color: 'var(--primary)' },
-    { label: 'Water Conservation', val: d.todaysUsage != null ? `${waterEff}/100` : '-', pct: waterEff, color: 'var(--green)' },
-    { label: 'Waste Management', val: d.averageFill != null ? `${wasteEff}/100` : '-', pct: wasteEff, color: 'var(--orange)' },
-    { label: 'Safety Rating', val: d.safetyScore != null ? `${safetyEff}/100` : '-', pct: safetyEff, color: 'var(--primary)' },
+  const tabsConfig = [
+    { id: 'all', label: 'All Tab Graphs', icon: <MdTimeline size={14} /> },
+    { id: 'air', label: 'Air Quality Tab', icon: <MdAir size={14} /> },
+    { id: 'energy', label: 'Energy Tab', icon: <MdElectricBolt size={14} /> },
+    { id: 'water', label: 'Water Tab', icon: <MdWaterDrop size={14} /> },
+    { id: 'waste', label: 'Waste Tab', icon: <MdDelete size={14} /> },
+    { id: 'digitaltwin', label: 'Digital Twin & Parking', icon: <MdLocalParking size={14} /> },
   ];
 
   return (
@@ -31,7 +55,7 @@ export default function Overview({ data, history = [] }) {
             <span>Campus Cross-Domain Overview Telemetry</span>
           </div>
           <p className="banner-subtext">
-            Integrated sustainability scorecards, live power & water draw curves, and multi-zone sensor health.
+            Unified multi-domain operational vitals displaying synchronized sensor curves for Air Quality, Energy, Water, Waste, and Smart Parking.
           </p>
         </div>
         <div className="banner-right-actions">
@@ -39,7 +63,7 @@ export default function Overview({ data, history = [] }) {
         </div>
       </div>
 
-      {/* KPI Row - Matching AI Forecast Card Design & Motion */}
+      {/* Primary KPI Row */}
       <div className="grid">
         <StatCard
           label="Sustainability Score"
@@ -101,86 +125,419 @@ export default function Overview({ data, history = [] }) {
         />
       </div>
 
-      {/* Real-time Energy & Water Trends Graph (Full Width) */}
-      <div className="card card-full">
-        <h3>
-          <span>Real-time Energy & Water Trends</span>
-          <span className="card-tag">Live Sensor Feed</span>
-        </h3>
-        <ChartBox id="overviewChart" type="line" labels={chartData.labels} datasets={chartData.datasets} />
-      </div>
-
-      {/* Alerts and Scorecard */}
-      <div className="two">
-        <div className="card">
-          <h3>Active Alerts</h3>
-          {d.pm25 > 35 && (
-            <div className="alert">
-              <div className="alert-icon"><MdAir size={22} color="#f59e0b" /></div>
-              <div>
-                <b>Elevated PM2.5 — {d.pm25} µg/m³</b><br />
-                <span className="small">Filter checks recommended</span>
-              </div>
-            </div>
-          )}
-          {d.overflowRisk > 0 && (
-            <div className="alert">
-              <div className="alert-icon"><MdDelete size={22} color="#ef4444" /></div>
-              <div>
-                <b>{d.overflowRisk} bin(s) at overflow risk</b><br />
-                <span className="small">Collection advised within {d.overflowPrediction ?? '-'} hrs</span>
-              </div>
-            </div>
-          )}
-          {d.leakStatus && d.leakStatus !== 'Normal' && (
-            <div className="alert">
-              <div className="alert-icon"><MdOpacity size={22} color="#ef4444" /></div>
-              <div>
-                <b>Water alert: {d.leakStatus}</b><br />
-                <span className="small">Check flow rate ({d.flowRate ?? '-'} L/min)</span>
-              </div>
-            </div>
-          )}
-          {d.nh3 > 25 && (
-            <div className="alert">
-              <div className="alert-icon"><MdScience size={22} color="#ef4444" /></div>
-              <div>
-                <b>Ammonia Hazard: {d.nh3} ppm</b><br />
-                <span className="small">Chemical fume alert; activate exhaust system</span>
-              </div>
-            </div>
-          )}
-          {d.voc > 0.5 && (
-            <div className="alert">
-              <div className="alert-icon"><MdGrain size={22} color="#f59e0b" /></div>
-              <div>
-                <b>Elevated VOC: {d.voc} ppm</b><br />
-                <span className="small">Volatile organic vapor density high</span>
-              </div>
-            </div>
-          )}
-          {(!d.pm25 || d.pm25 <= 35) && (!d.overflowRisk || d.overflowRisk === 0) && (!d.leakStatus || d.leakStatus === 'Normal') && (!d.nh3 || d.nh3 <= 25) && (!d.voc || d.voc <= 0.5) && (
-            <div className="small" style={{ padding: '16px 0', color: 'var(--green)', fontWeight: 600 }}>
-              {d.sustainabilityScore != null ? '✔ All environmental systems operating within safe thresholds' : '-'}
-            </div>
-          )}
+      {/* ═══════════════════════════════════════════════════════════════════
+          Section: Filter Controls for Tab-Specific Graphs
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, margin: '24px 0 16px' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>Subsystem Graphs According to Tabs</span>
+          </h2>
+          <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+            Real-time live sensor curves and telemetry distributions organized by dashboard functional tabs.
+          </p>
         </div>
 
-        <div className="card">
-          <h3>Sustainability Breakdown</h3>
-          {scorecard.map(s => (
-            <div key={s.label} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span className="small">{s.label}</span>
-                <b>{s.val}</b>
-              </div>
-              <div className="progress">
-                <i style={{ width: `${s.pct}%`, background: s.color }} />
-              </div>
-            </div>
+        <div className="filter-pill-group">
+          <span className="filter-label"><MdFilterList size={14} /> View Tab:</span>
+          {tabsConfig.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`filter-tab-pill ${tabFilter === tab.id ? 'active' : ''}`}
+              onClick={() => setTabFilter(tab.id)}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Master Overview Campus Trend (shown when "All" or toggled) */}
+      {(tabFilter === 'all') && (
+        <div className="card card-full" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MdTimeline size={20} color="#2563eb" />
+              <span>Campus Multi-System Telemetry: Real-time Energy & Water Trends</span>
+            </h3>
+            <span className="card-tag">Cross-Domain Baseline</span>
+          </div>
+          <ChartBox id="overviewMasterChart" type="line" labels={overviewTrend.labels} datasets={overviewTrend.datasets} />
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          Graphs According to Tabs
+          ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* 1. AIR QUALITY TAB GRAPH */}
+      {(tabFilter === 'all' || tabFilter === 'air') && (
+        <div className={tabFilter === 'air' ? 'card card-full' : ''}>
+          {tabFilter !== 'air' ? null : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MdAir size={22} color="#0284c7" />
+                <span>Air Quality & Multi-Pollutant Live Stream (Air Quality Tab)</span>
+              </h3>
+              {onNavigate && (
+                <button
+                  type="button"
+                  className="btn-action btn-action--primary"
+                  onClick={() => onNavigate('dashboard', 'air')}
+                  style={{ gap: 6, fontSize: 12.5 }}
+                >
+                  <span>Open Full Air Quality Tab</span>
+                  <MdArrowForward size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* When 'all' is selected: Render balanced 2-column grid */}
+      {tabFilter === 'all' && (
+        <>
+          {/* Row 1: Air Quality + Energy Power Draw */}
+          <div className="two-even">
+            {/* Air Quality Tab Graph */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdAir size={20} color="#0284c7" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Air Quality: Pollutants Timeline</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Air Quality Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'air')}
+                      title="Open Air Quality Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewAirChart" type="line" labels={airQualityData.labels} datasets={airQualityData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>PM2.5: <b>{d.pm25 ?? 18} µg/m³</b> • PM10: <b>{d.pm10 ?? 42}</b></span>
+                <span>AQI: <b>{d.aqi ?? 42}</b></span>
+              </div>
+            </div>
+
+            {/* Energy Tab Graph */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdElectricBolt size={20} color="#f59e0b" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Energy: Power Draw & Daily Curve</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Energy Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'energy')}
+                      title="Open Energy Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewEnergyChart" type="bar" labels={energyBarData.labels} datasets={energyBarData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Live Power: <b>{d.livePower ?? 18.4} kW</b></span>
+                <span>Today's Energy: <b>{d.todaysEnergy ?? 142.5} kWh</b></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Water Consumption + Block-Wise Waste */}
+          <div className="two-even">
+            {/* Water Tab Graph */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdWaterDrop size={20} color="#06b6d4" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Water: Consumption & Flow Rates</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Water Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'water')}
+                      title="Open Water Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewWaterChart" type="line" labels={waterTrendData.labels} datasets={waterTrendData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Consumed: <b>{d.todaysUsage ? d.todaysUsage.toLocaleString('en-IN') : '3,420'} L</b></span>
+                <span>Flow: <b>{d.flowRate ?? 14.2} L/m</b> • Tank: <b>{d.tankLevel ?? 78}%</b></span>
+              </div>
+            </div>
+
+            {/* Waste Tab Graph */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdDelete size={20} color="#10b981" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Waste: Block-Wise Dry vs. Wet</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Waste Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'waste')}
+                      title="Open Waste Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewWasteChart" type="bar" labels={wasteBlockData.labels} datasets={wasteBlockData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Dry: <b>{d.wasteDry ?? 142} kg</b> • Wet: <b>{d.wasteWet ?? 120} kg</b></span>
+                <span>Blocks A–E Monitored</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: AC/DC Distribution + Smart Parking Allocation */}
+          <div className="two-even">
+            {/* Energy AC vs DC Doughnut */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdPieChart size={20} color="#2563eb" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Energy: AC vs. DC Sub-Metering</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Energy Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'energy')}
+                      title="Open Energy Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewAcDcChart" type="doughnut" labels={acDcData.labels} datasets={acDcData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>AC Mains (415V): <b>78%</b></span>
+                <span>DC Clean Infeed (380V): <b>22%</b></span>
+              </div>
+            </div>
+
+            {/* Smart Parking Allocation Doughnut */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MdLocalParking size={20} color="#8b5cf6" />
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Parking: Bay Status & Availability</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="card-tag">Digital Twin Tab</span>
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, gap: 3 }}
+                      onClick={() => onNavigate('dashboard', 'digitaltwin')}
+                      title="Open Digital Twin & Parking Tab"
+                    >
+                      <span>Tab</span>
+                      <MdArrowForward size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ChartBox id="overviewParkingChart" type="doughnut" labels={parkingData.labels} datasets={parkingData.datasets} />
+              <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Occupied: <b>{d.occupiedSlots ?? 36} Bays</b></span>
+                <span>Free: <b>{(d.totalSlots ?? 48) - (d.occupiedSlots ?? 36)} Bays</b> ({Math.round(((d.occupiedSlots ?? 36) / (d.totalSlots ?? 48)) * 100)}% Cap)</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Specific Filtered Tab Views (Enlarged Full-Width View) */}
+      {tabFilter === 'air' && (
+        <div className="card card-full">
+          <ChartBox id="overviewSingleAirChart" type="line" labels={airQualityData.labels} datasets={airQualityData.datasets} />
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Live Pollutant Ingestion: PM2.5 (<b>{d.pm25 ?? 18} µg/m³</b>), PM10 (<b>{d.pm10 ?? 42} µg/m³</b>), VOC (<b>{d.voc ?? 0.12} ppm</b>), NH3 (<b>{d.nh3 ?? 8} ppm</b>)
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: (d.aqi ?? 42) <= 50 ? '#15803d' : '#d97706' }}>
+              AQI Score: {d.aqi ?? 42} (Safe Baseline)
+            </span>
+          </div>
+        </div>
+      )}
+
+      {tabFilter === 'energy' && (
+        <div className="two-even">
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 15.5 }}>Hourly Power Draw & Energy Timeline</h3>
+              <span className="card-tag">Energy Profile</span>
+            </div>
+            <ChartBox id="overviewSingleEnergyBar" type="bar" labels={energyBarData.labels} datasets={energyBarData.datasets} />
+          </div>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 15.5 }}>AC Supply vs. DC Supply Share</h3>
+              <span className="card-tag">Sub-Metering</span>
+            </div>
+            <ChartBox id="overviewSingleAcDc" type="doughnut" labels={acDcData.labels} datasets={acDcData.datasets} />
+          </div>
+        </div>
+      )}
+
+      {tabFilter === 'water' && (
+        <div className="card card-full">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MdWaterDrop size={22} color="#06b6d4" />
+              <span>Water Consumption & Solenoid Flow Rate Timeline (Water Tab)</span>
+            </h3>
+            {onNavigate && (
+              <button
+                type="button"
+                className="btn-action btn-action--primary"
+                onClick={() => onNavigate('dashboard', 'water')}
+                style={{ gap: 6, fontSize: 12.5 }}
+              >
+                <span>Open Full Water Tab</span>
+                <MdArrowForward size={14} />
+              </button>
+            )}
+          </div>
+          <ChartBox id="overviewSingleWaterChart" type="line" labels={waterTrendData.labels} datasets={waterTrendData.datasets} />
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Hydraulic Status: Flow Rate <b>{d.flowRate ?? 14.2} L/min</b> • Reservoir Storage <b>{d.tankLevel ?? 78}%</b>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0284c7' }}>
+              Today's Water Quota: {d.todaysUsage ? d.todaysUsage.toLocaleString('en-IN') : '3,420'} / 5,000 L
+            </span>
+          </div>
+        </div>
+      )}
+
+      {tabFilter === 'waste' && (
+        <div className="card card-full">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MdDelete size={22} color="#10b981" />
+              <span>Block-Wise Dry vs. Wet Waste Segregation (Waste Tab)</span>
+            </h3>
+            {onNavigate && (
+              <button
+                type="button"
+                className="btn-action btn-action--primary"
+                onClick={() => onNavigate('dashboard', 'waste')}
+                style={{ gap: 6, fontSize: 12.5 }}
+              >
+                <span>Open Full Waste Tab</span>
+                <MdArrowForward size={14} />
+              </button>
+            )}
+          </div>
+          <ChartBox id="overviewSingleWasteChart" type="bar" labels={wasteBlockData.labels} datasets={wasteBlockData.datasets} />
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Campus Blocks A through E Ultrasound Sonar Tracking: Dry Recyclables vs. Organic Wet Waste
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+              Sorting Compliance: 91.2%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {tabFilter === 'digitaltwin' && (
+        <div className="two-even">
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MdLocalParking size={22} color="#8b5cf6" />
+                <span>Smart Parking Bay Status (Digital Twin Tab)</span>
+              </h3>
+              {onNavigate && (
+                <button
+                  type="button"
+                  className="btn-action"
+                  onClick={() => onNavigate('dashboard', 'digitaltwin')}
+                  style={{ gap: 4, fontSize: 11 }}
+                >
+                  <span>Open Twin</span>
+                  <MdArrowForward size={12} />
+                </button>
+              )}
+            </div>
+            <ChartBox id="overviewSingleParkingDoughnut" type="doughnut" labels={parkingData.labels} datasets={parkingData.datasets} />
+          </div>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h4 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 800 }}>Campus Spatial & Parking Summary</h4>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px' }}>
+              The Digital Twin integrates 7 active campus nodes, 48 ultrasonic bay detectors, and automated ANPR turnstiles with sub-second MongoDB sync.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total Bays</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{d.totalSlots ?? 48} Bays</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Available Free</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{(d.totalSlots ?? 48) - (d.occupiedSlots ?? 36)} Free</div>
+              </div>
+            </div>
+            {onNavigate && (
+              <button
+                type="button"
+                className="btn-action btn-action--primary"
+                onClick={() => onNavigate('dashboard', 'digitaltwin')}
+                style={{ width: '100%', justifyContent: 'center', gap: 6 }}
+              >
+                <span>Launch Interactive 3D Digital Twin</span>
+                <MdArrowForward size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

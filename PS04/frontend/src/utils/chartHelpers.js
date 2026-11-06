@@ -275,6 +275,59 @@ export function getWasteTrendData(data, history = []) {
 }
 
 /**
+ * Waste Tab: Block-wise Dry vs Wet Waste Segregation Comparison
+ */
+export function getDryWetBlockData(data) {
+  const blocks = data?.wasteBlocks && Array.isArray(data.wasteBlocks) && data.wasteBlocks.length > 0
+    ? data.wasteBlocks
+    : [
+        { code: 'Block A', dryFill: 42, wetFill: 28 },
+        { code: 'Block B', dryFill: 68, wetFill: 62 },
+        { code: 'Block C', dryFill: 36, wetFill: 18 },
+        { code: 'Block D', dryFill: 58, wetFill: 88 },
+        { code: 'Block E', dryFill: 52, wetFill: 24 },
+      ];
+
+  return {
+    labels: blocks.map(b => b.code || (b.name ? b.name.split(' ')[0] : 'Block')),
+    datasets: [
+      {
+        label: 'Dry Waste Fill (%)',
+        data: blocks.map(b => b.dryFill ?? 0),
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
+      },
+      {
+        label: 'Wet Waste Fill (%)',
+        data: blocks.map(b => b.wetFill ?? 0),
+        backgroundColor: '#10b981',
+        borderRadius: 6,
+      },
+    ],
+  };
+}
+
+/**
+ * Energy Tab: AC Supply vs DC Supply Breakdown
+ */
+export function getAcDcEnergyData(data) {
+  const acKwh = data?.acEnergy ?? (data?.todaysEnergy ? Number((data.todaysEnergy * 0.76).toFixed(1)) : 108.3);
+  const dcKwh = data?.dcEnergy ?? (data?.todaysEnergy ? Number((data.todaysEnergy * 0.24).toFixed(1)) : 34.2);
+
+  return {
+    labels: ['AC Supply (Mains/HVAC)', 'DC Supply (Solar/BESS)'],
+    datasets: [
+      {
+        data: [acKwh, dcKwh],
+        backgroundColor: ['#2563eb', '#10b981'],
+        borderWidth: 2,
+        borderColor: '#ffffff',
+      },
+    ],
+  };
+}
+
+/**
  * Waste Tab: Real Bin Allocation
  */
 export function getWasteBinDistribution(data) {

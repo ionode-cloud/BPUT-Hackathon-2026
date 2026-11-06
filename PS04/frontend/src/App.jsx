@@ -15,6 +15,7 @@ import {
   MdNotificationsActive,
   MdAutoAwesome,
   MdTune,
+  MdLayers,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
@@ -25,6 +26,7 @@ import LandingPage      from './pages/LandingPage';
 import AdminLoginModal  from './components/AdminLoginModal';
 import ExcelDownloadBtn from './components/ExcelDownloadBtn';
 import Overview         from './pages/Overview';
+import DigitalTwin      from './pages/DigitalTwin';
 import AirQuality       from './pages/AirQuality';
 import Energy           from './pages/Energy';
 import Water            from './pages/Water';
@@ -35,6 +37,7 @@ import AlertHistory     from './pages/AlertHistory';
 
 const PAGE_MAP = {
   overview:    Overview,
+  digitaltwin: DigitalTwin,
   air:         AirQuality,
   energy:      Energy,
   water:       Water,
@@ -46,6 +49,7 @@ const PAGE_MAP = {
 
 const NAV_ICONS = {
   overview:    <MdApartment           size={18} />,
+  digitaltwin: <MdLayers              size={18} />,
   air:         <MdAir                 size={18} />,
   energy:      <MdElectricBolt        size={18} />,
   water:       <MdWaterDrop           size={18} />,

@@ -284,6 +284,7 @@ export default function LandingPage({
                 <button type="button" onClick={() => scrollTo('why-section')}>Why Facility AI</button>
                 <button type="button" onClick={() => scrollTo('how-it-works-section')}>How It Works</button>
                 <button type="button" onClick={() => scrollTo('pillars-section')}>Core Systems</button>
+                <button type="button" onClick={() => onGoToDashboard('digitaltwin')}>Digital Twin & Parking</button>
               </nav>
 
               <div className="hero-nav-right">
@@ -630,16 +631,16 @@ export default function LandingPage({
                   <MdElectricBolt size={22} />
                 </div>
                 <span className="core-card-live-pill">
-                  <span className="pulse-dot-small" /> Grid Active
+                  <span className="pulse-dot-small" /> AC & DC Active
                 </span>
               </div>
-              <h3>Energy Optimization</h3>
+              <h3>Energy Sub-Metering</h3>
               <div className="core-card-kpi-highlight">
-                {d.livePower ?? 18.4} kW Live Draw
+                AC: {d.acPower ?? 14.4} kW • DC: {d.dcPower ?? 4.0} kW
               </div>
               <p>
-                Precision electrical wattage profiling, cumulative kilowatt-hours, peak demand spikes,
-                and dynamic tariff cost estimation.
+                Separate sub-metering profiling 415V AC mains and 380V DC solar infeed, peak demand shaving,
+                and dynamic utility tariff cost optimization.
               </p>
               <div className="core-card-footer">
                 <div className="core-card-metric-tag">
@@ -696,20 +697,20 @@ export default function LandingPage({
                   <MdDelete size={22} />
                 </div>
                 <span className="core-card-live-pill">
-                  <span className="pulse-dot-small" /> Sonar Active
+                  <span className="pulse-dot-small" /> Dry & Wet Active
                 </span>
               </div>
-              <h3>Waste Management</h3>
+              <h3>Waste & Block-Wise Segregation</h3>
               <div className="core-card-kpi-highlight">
-                {d.totalBins ?? 12} Monitored Bins
+                Dry: {d.wasteDry ?? 142} kg • Wet: {d.wasteWet ?? 120} kg
               </div>
               <p>
-                Sonar fill level sensors streaming bin status across campus blocks, paired with
-                predictive overflow dispatch alerts.
+                Block-wise Dry (recyclables) and Wet (organic food waste) tracking across Block A–E with
+                sonar volumetric sensors and predictive route dispatch.
               </p>
               <div className="core-card-footer">
                 <div className="core-card-metric-tag">
-                  Avg: {d.averageFill ?? 54}% Fill • {d.overflowRisk ? `${d.overflowRisk} at Risk` : '0 Overflows'}
+                  91.2% Compliance • Block A–E Monitored
                 </div>
                 <button
                   type="button"

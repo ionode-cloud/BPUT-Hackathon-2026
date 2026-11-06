@@ -248,6 +248,47 @@ export function scanLiveHighAlerts(data) {
     });
   }
 
+  // 8. Waste - Block-wise Wet Waste Alert
+  const wetAtRiskBlock = Array.isArray(data.wasteBlocks) && data.wasteBlocks.find(b => b.wetFill > 80);
+  if (wetAtRiskBlock) {
+    alerts.push({
+      id: `live-waste-wet-overflow-${wetAtRiskBlock.id}`,
+      system: 'waste',
+      systemLabel: 'Waste',
+      severity: 'HIGH',
+      title: `${wetAtRiskBlock.name} Wet Waste Overflow Hazard`,
+      metric: 'Wet Organic Sonar Fill',
+      value: `${wetAtRiskBlock.wetFill}% Fill (${wetAtRiskBlock.wetWeight} kg)`,
+      threshold: '≤ 75% Fill',
+      location: `${wetAtRiskBlock.name} Sanitation Bay`,
+      recommendation: 'Prioritize Sanitation Vehicle 02 dispatch to empty organic waste container and prevent decomposition odors.',
+      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  // 9. Parking - Plaza Saturation
+  if (data.parkingOccupancy != null && data.parkingOccupancy > 85) {
+    alerts.push({
+      id: `live-parking-saturation-${data.parkingOccupancy}`,
+      system: 'digitaltwin',
+      systemLabel: 'Digital Twin & Parking',
+      severity: 'HIGH',
+      title: 'Smart Parking Plaza Nearing Total Saturation',
+      metric: 'Bay Occupancy',
+      value: `${data.parkingOccupancy}% Occupied (${data.occupiedSlots}/${data.totalSlots} Slots)`,
+      threshold: '≤ 85% Capacity',
+      location: 'Main Campus Parking Plaza & EV Station',
+      recommendation: 'Activate dynamic message signs at Gate 1 directing incoming vehicles to East Overflow Bay.',
+      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
   return alerts;
 }
 

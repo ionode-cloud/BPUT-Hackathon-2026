@@ -130,38 +130,38 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
 
     case 'energy': {
       // 1. Energy Metrics & Grid Tariff
+      const liveKw = d.livePower ?? 18.4;
+      const todayKwh = d.todaysEnergy ?? 142.5;
+      const acPower = d.acPower ?? Number((liveKw * 0.78).toFixed(1));
+      const acEnergy = d.acEnergy ?? Number((todayKwh * 0.76).toFixed(1));
+      const dcPower = d.dcPower ?? Number((liveKw * 0.22).toFixed(1));
+      const dcEnergy = d.dcEnergy ?? Number((todayKwh * 0.24).toFixed(1));
+
       const energyRows = [
-        ['Facility AI - Energy & Electrical Optimization Report', ''],
+        ['Facility AI - Energy & Sub-Metered Electrical Report', ''],
         ['Export Timestamp', new Date().toLocaleString()],
         ['Substation ID', 'Main Campus Grid Feeder #1'],
         ['', ''],
         ['Electrical Parameter', 'Current Value', 'Unit', 'Operational Target / Tariff'],
-        ['Instantaneous Active Power', safeVal(d.livePower, 18.4), 'kW', 'Substation Baseline Active'],
-        ['Today\'s Cumulative Energy', safeVal(d.todaysEnergy, 142), 'kWh', 'Budget Target: ≤ 220 kWh/day'],
+        ['Instantaneous Active Power', safeVal(d.livePower, liveKw), 'kW', 'Total Campus Load'],
+        ['AC Supply Active Draw', acPower, 'kW', '415V 3-Phase AC (Mains, Chillers, Heavy Labs)'],
+        ['AC Supply Daily Energy', acEnergy, 'kWh', '78% of Total Campus Consumption'],
+        ['DC Supply Active Draw', dcPower, 'kW', '380V DC Bus (Solar PV & BESS Battery)'],
+        ['DC Supply Daily Energy', dcEnergy, 'kWh', '22% Clean Infeed Offset'],
         ['Peak Demand Today', safeVal(d.peakDemand, 32.5), 'kW', 'Grid Max Contract: 50 kW'],
-        ['Grid AC Voltage', safeVal(d.voltage, 230.8), 'V', '230V Nominal (±5%)'],
-        ['Electrical Current Draw', safeVal(d.current, 79.8), 'A', 'Within Main Busbar Rating'],
-        ['System Power Factor (PF)', safeVal(d.powerFactor, 0.96), 'Ratio', 'High Efficiency (> 0.95)'],
-        ['AC Grid Frequency', safeVal(d.frequency, 50.0), 'Hz', '50.0 Hz Synchronized'],
         ['Calculated Energy Tariff Rate', '₹ 8.00 / kWh', 'INR/kWh', 'Commercial Campus Tariff Tier'],
-        ['Estimated Today\'s Cost', `₹ ${d.todaysEnergy ? (d.todaysEnergy * 8).toLocaleString('en-IN') : '1,136'}`, 'INR', 'Daily Bill Accrual'],
-        ['Estimated Monthly Bill', `₹ ${d.todaysEnergy ? (d.todaysEnergy * 8 * 30).toLocaleString('en-IN') : '34,080'}`, 'INR', 'Projected 30-Day Extrapolation'],
-        ['Solar Rooftop Output', safeVal(d.solarGeneration, 12.8), 'kW', 'Green Offset Active (41% Load)'],
-        ['CO2 Footprint Offset', safeVal(d.co2Offset, '118 kg'), 'kg CO2', 'Solar Energy Displacement'],
+        ['Estimated Today\'s Cost', `₹ ${d.estimatedCost ? d.estimatedCost.toLocaleString('en-IN') : '1,136'}`, 'INR', 'Daily Bill Accrual'],
       ];
       const wsEnergy = XLSX.utils.aoa_to_sheet(energyRows);
-      XLSX.utils.book_append_sheet(wb, wsEnergy, 'Energy & Tariffs');
+      XLSX.utils.book_append_sheet(wb, wsEnergy, 'Energy & Sub-Metering');
 
       // 2. Power Time Series
       const energyHist = records.map((r, idx) => ({
         '#': idx + 1,
         'Timestamp': r.timestamp || r.updatedAt ? new Date(r.timestamp || r.updatedAt).toLocaleString() : `T-${idx}`,
-        'Active Power (kW)': safeVal(r.livePower, '-'),
-        'Cumulative Energy (kWh)': safeVal(r.todaysEnergy, '-'),
-        'AC Voltage (V)': safeVal(r.voltage, 230),
-        'Current Draw (A)': safeVal(r.current, '-'),
-        'Power Factor': safeVal(r.powerFactor, 0.96),
-        'Frequency (Hz)': safeVal(r.frequency, 50.0),
+        'Total Power (kW)': safeVal(r.livePower, '-'),
+        'AC Power (kW)': r.acPower != null ? r.acPower : (r.livePower ? Number((r.livePower * 0.78).toFixed(1)) : '-'),
+        'DC Power (kW)': r.dcPower != null ? r.dcPower : (r.livePower ? Number((r.livePower * 0.22).toFixed(1)) : '-'),
       }));
       const wsEnergyHist = XLSX.utils.json_to_sheet(energyHist.length > 0 ? energyHist : [{ Status: 'No power logs' }]);
       XLSX.utils.book_append_sheet(wb, wsEnergyHist, 'Power Grid History');
@@ -207,39 +207,87 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
 
     case 'waste': {
       // 1. Waste Management Summary
+      const blocks = Array.isArray(d.wasteBlocks) && d.wasteBlocks.length > 0
+        ? d.wasteBlocks
+        : [
+            { name: 'Block A (Academic)', code: 'BL-A', dryFill: 42, wetFill: 28, dryWeight: 26.5, wetWeight: 9.8, status: 'Optimal', complianceScore: 94 },
+            { name: 'Block B (Hostels)', code: 'BL-B', dryFill: 68, wetFill: 62, dryWeight: 42.0, wetWeight: 38.5, status: 'Moderate', complianceScore: 88 },
+            { name: 'Block C (Library)', code: 'BL-C', dryFill: 36, wetFill: 18, dryWeight: 19.5, wetWeight: 5.2, status: 'Optimal', complianceScore: 96 },
+            { name: 'Block D (Canteen)', code: 'BL-D', dryFill: 58, wetFill: 88, dryWeight: 31.0, wetWeight: 59.5, status: 'Wet Overflow Risk', complianceScore: 82 },
+            { name: 'Block E (Tech Labs)', code: 'BL-E', dryFill: 52, wetFill: 24, dryWeight: 23.0, wetWeight: 7.5, status: 'Optimal', complianceScore: 91 },
+          ];
+
       const wasteRows = [
-        ['Facility AI - Smart Sanitation & Waste Logistics Report', ''],
+        ['Facility AI - Smart Sanitation & Waste Segregation Report', ''],
         ['Export Timestamp', new Date().toLocaleString()],
-        ['Campus Sanitation Division', 'North & South Academic Blocks'],
+        ['Campus Sanitation Division', 'North & South Campus Blocks (A through E)'],
         ['', ''],
         ['Metric / Indicator', 'Current Value', 'Unit', 'Logistics Directive'],
         ['Average Bin Volumetric Fill', safeVal(d.averageFill, 54), '%', 'Safe Holding Threshold (< 80%)'],
+        ['Total Dry Waste Recyclables', safeVal(d.wasteDry, 142.0), 'kg', 'Clean Paper, Plastics, Cardboard'],
+        ['Total Wet Waste Organic', safeVal(d.wasteWet, 120.5), 'kg', 'Bio-degradable & Food Waste'],
+        ['Dry Waste Avg Fill Level', safeVal(d.wasteDryFill, 51), '%', 'Recyclables Container Capacity'],
+        ['Wet Waste Avg Fill Level', safeVal(d.wasteWetFill, 44), '%', 'Compost Container Capacity'],
+        ['Campus Segregation Compliance', '91.2%', 'Score', 'High Sorting Compliance at Source'],
         ['Total Monitored Smart Bins', safeVal(d.totalBins, 12), 'Units', '100% Sensor Network Online'],
-        ['Bins at Critical Overflow Risk', safeVal(d.overflowRisk, 1), 'Units', (d.overflowRisk ?? 0) > 0 ? 'Route Dispatch Cart Required' : 'All Bins Safe'],
-        ['Predicted Hours to Overflow', safeVal(d.overflowPrediction, 4.2), 'Hours', 'Time until first bin hits 100%'],
-        ['Daily Recycled Waste Volume', safeVal(d.recycledToday, 68), 'kg', 'Segregated Organic & Dry Waste'],
-        ['Campus Solar Compactors', '2 Units Online', 'Units', 'Compaction Cycle: Operational'],
+        ['Bins at Critical Overflow Risk', safeVal(d.overflowRisk, 1), 'Units', (d.overflowRisk ?? 0) > 0 ? 'Block D Canteen Route Dispatch' : 'All Bins Safe'],
+        ['Predicted Hours to Overflow', safeVal(d.overflowPrediction, 3.5), 'Hours', 'Time until Canteen wet bin hits 100%'],
       ];
       const wsWaste = XLSX.utils.aoa_to_sheet(wasteRows);
       XLSX.utils.book_append_sheet(wb, wsWaste, 'Waste Overview');
 
-      // 2. Smart Bins Inventory (12 Campus Bins)
-      const campusBins = [
-        { 'Bin ID': 'BIN-01', 'Location': 'Main Admin Building Entrance', 'Waste Stream': 'Dry / Recyclables', 'Fill (%)': 48, 'Status': 'Normal', 'Battery (%)': 94 },
-        { 'Bin ID': 'BIN-02', 'Location': 'Central Library Foyer', 'Waste Stream': 'Paper / Cardboard', 'Fill (%)': 35, 'Status': 'Normal', 'Battery (%)': 92 },
-        { 'Bin ID': 'BIN-03', 'Location': 'Science Wing Lab A', 'Waste Stream': 'General / Non-Hazardous', 'Fill (%)': 62, 'Status': 'Moderate', 'Battery (%)': 88 },
-        { 'Bin ID': 'BIN-04', 'Location': 'Science Wing Chemical Annex', 'Waste Stream': 'Hazardous Laboratory', 'Fill (%)': 28, 'Status': 'Normal', 'Battery (%)': 96 },
-        { 'Bin ID': 'BIN-05', 'Location': 'Student Cafeteria Ground Floor', 'Waste Stream': 'Organic Food Waste', 'Fill (%)': 88, 'Status': 'CRITICAL / OVERFLOW', 'Battery (%)': 85 },
-        { 'Bin ID': 'BIN-06', 'Location': 'Student Cafeteria Terrace', 'Waste Stream': 'Plastic / Bottles', 'Fill (%)': 74, 'Status': 'Elevated', 'Battery (%)': 89 },
-        { 'Bin ID': 'BIN-07', 'Location': 'Auditorium Quadrangle', 'Waste Stream': 'Dry General', 'Fill (%)': 42, 'Status': 'Normal', 'Battery (%)': 95 },
-        { 'Bin ID': 'BIN-08', 'Location': 'Sports Complex Gym Entrance', 'Waste Stream': 'Hydration Plastic', 'Fill (%)': 51, 'Status': 'Normal', 'Battery (%)': 90 },
-        { 'Bin ID': 'BIN-09', 'Location': 'Hostel Block 1 Lobby', 'Waste Stream': 'Mixed Municipal', 'Fill (%)': 68, 'Status': 'Moderate', 'Battery (%)': 87 },
-        { 'Bin ID': 'BIN-10', 'Location': 'Hostel Block 2 Lobby', 'Waste Stream': 'Mixed Municipal', 'Fill (%)': 59, 'Status': 'Normal', 'Battery (%)': 91 },
-        { 'Bin ID': 'BIN-11', 'Location': 'Computer Science Department', 'Waste Stream': 'E-Waste & General', 'Fill (%)': 38, 'Status': 'Normal', 'Battery (%)': 97 },
-        { 'Bin ID': 'BIN-12', 'Location': 'Innovation Center & Incubator', 'Waste Stream': 'Packaging & Dry', 'Fill (%)': 55, 'Status': 'Normal', 'Battery (%)': 93 },
+      // 2. Block-Wise Segregation Sheet
+      const blockRows = blocks.map((b) => ({
+        'Campus Block': b.name,
+        'Code': b.code,
+        'Dry Fill (%)': `${b.dryFill}%`,
+        'Dry Weight (kg)': b.dryWeight,
+        'Wet Fill (%)': `${b.wetFill}%`,
+        'Wet Weight (kg)': b.wetWeight,
+        'Total Weight (kg)': Number(((b.dryWeight || 0) + (b.wetWeight || 0)).toFixed(1)),
+        'Segregation Score': `${b.complianceScore}%`,
+        'Current Status': b.status,
+      }));
+      const wsBlocks = XLSX.utils.json_to_sheet(blockRows);
+      XLSX.utils.book_append_sheet(wb, wsBlocks, 'Block-Wise Segregation');
+      break;
+    }
+
+    case 'digitaltwin': {
+      // 1. Digital Twin Nodes & Spatial Layout
+      const twinRows = [
+        ['Facility AI - Campus Digital Twin & Smart Parking Report', ''],
+        ['Export Timestamp', new Date().toLocaleString()],
+        ['Campus Model ID', '2.5D Isometric Digital Twin V2'],
+        ['', ''],
+        ['Campus Zone Node', 'Type', 'Status Tag', 'Primary Vitals', 'Operational Assessment'],
+        ['Substation & AC/DC Array', 'Electrical Grid', 'SUB-METER ONLINE', `${d.livePower ?? 18.4} kW`, 'AC Mains 415V & Solar DC 380V Bus Sub-Metered'],
+        ['Block A (Academic)', 'Educational', 'Optimal AQI', `${d.aqi ?? 42} AQI • 42% Dry Waste`, '18 Lecture Halls Normal'],
+        ['Block B (Hostels)', 'Residential', 'Domestic Feed', `${d.tankLevel ?? 78}% Water • 65% Waste`, '860 Residents Online'],
+        ['Block C (Library)', 'Administrative', 'Rooftop Solar', '12.4 kW Solar • 96% Recycled', 'Silent Reading & Archives Safe'],
+        ['Block D (Canteen)', 'Dining & Food', 'Wet Waste Alert', '88% Wet Waste (59.5 kg)', 'Dispatch Sanitation Vehicle 02'],
+        ['Central Campus Environmental Sentinel', 'Environmental', 'OPTIMAL BASELINE', `${d.aqi ?? 42} AQI • ${d.tankLevel ?? 78}% Water`, 'Ambient Weather & Water Storage Telemetry Active'],
+        ['Smart Parking Plaza', 'Mobility', `${d.parkingOccupancy ?? 75}% Occupied`, `${d.occupiedSlots ?? 36}/${d.totalSlots ?? 48} Bays`, `${d.vehiclesToday ?? 482} Vehicles Logged`],
       ];
-      const wsBins = XLSX.utils.json_to_sheet(campusBins);
-      XLSX.utils.book_append_sheet(wb, wsBins, 'Campus Smart Bins');
+      const wsTwin = XLSX.utils.aoa_to_sheet(twinRows);
+      XLSX.utils.book_append_sheet(wb, wsTwin, 'Digital Twin Vitals');
+
+      // 2. Parking Bay Roster
+      const parkingRows = Array.from({ length: 48 }, (_, i) => {
+        const slotNum = i + 1;
+        const isEv = slotNum > 40;
+        const zone = slotNum <= 24 ? 'Zone A (General)' : slotNum <= 40 ? 'Zone B (Faculty)' : 'Zone C (EV Fast-Charge)';
+        const occupied = [1, 2, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 17, 18, 20, 21, 22, 24, 25, 26, 27, 29, 30, 31, 33, 34, 35, 41, 42, 43, 45, 46, 47].includes(slotNum);
+        return {
+          'Bay ID': `BAY-${String(slotNum).padStart(2, '0')}`,
+          'Zone': zone,
+          'Status': occupied ? 'OCCUPIED' : 'AVAILABLE',
+          'Vehicle Type': isEv ? 'Electric Vehicle (11kW Fast Plug)' : occupied ? 'Passenger Car' : 'Vacant',
+          'Sensor Health': 'Ground-loop Sonar Active (100%)',
+        };
+      });
+      const wsParking = XLSX.utils.json_to_sheet(parkingRows);
+      XLSX.utils.book_append_sheet(wb, wsParking, 'Parking Bay Status');
       break;
     }
 

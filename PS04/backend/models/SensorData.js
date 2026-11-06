@@ -26,6 +26,23 @@ const sensorDataSchema = new mongoose.Schema(
     todaysEnergy:     { type: Number, default: null }, // kWh
     peakDemand:       { type: Number, default: null }, // kW
     estimatedCost:    { type: Number, default: null }, // ₹
+    acPower:          { type: Number, default: null }, // kW (AC Mains & Heavy HVAC)
+    acEnergy:         { type: Number, default: null }, // kWh (AC Consumption)
+    dcPower:          { type: Number, default: null }, // kW (DC Solar & Battery Infeed)
+    dcEnergy:         { type: Number, default: null }, // kWh (DC Infeed)
+    gridStatus:       { type: String, default: 'ONLINE' }, // "ONLINE" | "OFF"
+    generatorStatus:  { type: String, default: 'STANDBY' }, // "STANDBY" | "RUNNING" | "AUTO_SWITCHED" | "OFF"
+    generatorFuel:    { type: Number, default: 85 },   // % fuel reserve
+    generatorLoad:    { type: Number, default: null }, // kW active backup load
+    generatorRuntime: { type: Number, default: 142.5 },// Cumulative hours
+
+    // ── Street Light Subsystem ─────────────────────────────────────────────
+    streetLightStatus:   { type: String, default: 'AUTO' }, // "ON" | "OFF" | "AUTO"
+    streetLightsActive:  { type: Number, default: null },   // count of lit poles
+    streetLightTotal:    { type: Number, default: 48 },     // total campus poles
+    streetLightPower:    { type: Number, default: null },   // kW live lighting load
+    streetLightEnergy:   { type: Number, default: null },   // kWh cumulative lighting energy
+    streetLightDimming:  { type: Number, default: 80 },     // % brightness level
 
     // ── Water ─────────────────────────────────────────────────────────────
     tankLevel:        { type: Number,  default: null }, // %
@@ -40,6 +57,11 @@ const sensorDataSchema = new mongoose.Schema(
     averageFill:      { type: Number, default: null }, // %
     wasteCollected:   { type: Number, default: null }, // kg
     overflowRisk:     { type: Number, default: null }, // count of at-risk bins
+    wasteDry:         { type: Number, default: null }, // kg dry recyclables
+    wasteWet:         { type: Number, default: null }, // kg wet organic
+    wasteDryFill:     { type: Number, default: null }, // % dry fill
+    wasteWetFill:     { type: Number, default: null }, // % wet fill
+    wasteBlocks:      { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Block-wise dry/wet array
 
     // ── Traffic & Parking ─────────────────────────────────────────────────
     parkingOccupancy: { type: Number, default: null }, // %
@@ -47,6 +69,8 @@ const sensorDataSchema = new mongoose.Schema(
     totalSlots:       { type: Number, default: null },
     vehiclesToday:    { type: Number, default: null },
     avgWaitingTime:   { type: Number, default: null }, // minutes
+    parkingSlots:     { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Interactive slot matrix
+    parkingZones:     { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Zone A, Zone B, Zone C
 
     // ── Asset Utilization ─────────────────────────────────────────────────
     totalEquipment:   { type: Number, default: null },
