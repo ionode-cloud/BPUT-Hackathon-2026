@@ -45,6 +45,7 @@ export default function StatCard({
   badgeType = 'green',
   nowLabel = 'Now',
   nowValue = '-',
+  nowColor = null,
   unit = '',
   secondaryLabel = null,
   secondaryValue = null,
@@ -225,7 +226,7 @@ export default function StatCard({
             style={{
               fontSize: 28,
               fontWeight: 700,
-              color: '#111827',
+              color: nowColor || '#111827',
               lineHeight: 1.1,
               letterSpacing: '-0.02em',
             }}

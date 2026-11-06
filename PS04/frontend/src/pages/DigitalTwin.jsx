@@ -5,6 +5,7 @@ import {
   MdElectricBolt,
   MdWaterDrop,
   MdDelete,
+  MdLightbulb,
   MdDirectionsCar,
   MdEvStation,
   MdCheckCircle,
@@ -33,6 +34,13 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
   const totalSlots = d.totalSlots ?? 48;
   const occupiedSlots = d.occupiedSlots ?? 36;
   const occupancyPct = Math.round((occupiedSlots / totalSlots) * 100);
+
+  // Street Light Vitals (Show Only: ON / OFF)
+  const streetLightStatus = (d.streetLightStatus || 'AUTO').toUpperCase();
+  const isLightOn =
+    streetLightStatus === 'ON' ||
+    (streetLightStatus === 'AUTO' && ((d.lightIntensity != null && d.lightIntensity < 60) || (d.streetLightsActive != null && d.streetLightsActive > 0)));
+  const streetLightDisplay = streetLightStatus === 'OFF' ? 'OFF' : (streetLightStatus === 'ON' ? 'ON' : (isLightOn ? 'ON' : 'OFF'));
 
   // Digital Twin Campus Nodes
   const campusNodes = [
@@ -228,8 +236,9 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
         </div>
       </div>
 
-      {/* Top Twin & Parking Vitals */}
-      <div className="grid">
+      {/* Top Twin & Parking Vitals (3/3 Grid Layout: 2 Rows of 3 Cards) */}
+      <div className="three" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 20 }}>
+        {/* Row 1 - Card 1: Digital Twin Active Nodes */}
         <StatCard
           label="Digital Twin Active Nodes"
           icon={<MdLayers size={20} color="#2563eb" />}
@@ -246,6 +255,7 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
           index={0}
         />
 
+        {/* Row 1 - Card 2: Smart Parking Bay Status */}
         <StatCard
           label="Smart Parking Bay Status"
           icon={<MdLocalParking size={20} color="#10b981" />}
@@ -262,6 +272,42 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
           index={1}
         />
 
+        {/* Row 1 - Card 3: EV Fast-Charging Plaza */}
+        <StatCard
+          label="EV Fast-Charging Plaza"
+          icon={<MdEvStation size={20} color="#7c3aed" />}
+          badgeText="Fast Charging"
+          badgeType="blue"
+          nowLabel="Active EV Chargers"
+          nowValue={`${evActiveCount}/8`}
+          unit=" Bays"
+          secondaryLabel="Charging Draw"
+          secondaryValue="28.4 kW"
+          secondaryColor="#7c3aed"
+          footerLeft="11 kW Type-2 DC Fast Chargers"
+          footerRight="Zone C EV Plaza"
+          index={2}
+        />
+
+        {/* Row 2 - Card 4: Street Light Status (ON / OFF Show Only) */}
+        <StatCard
+          label="Street Light Status"
+          icon={<MdLightbulb size={20} color={isLightOn ? '#16a34a' : '#dc2626'} />}
+          badgeText={isLightOn ? 'LIGHTS ON' : 'LIGHTS OFF'}
+          badgeType={isLightOn ? 'green' : 'red'}
+          nowLabel="Illumination"
+          nowValue={streetLightDisplay}
+          nowColor={isLightOn ? '#16a34a' : '#dc2626'}
+          unit=""
+          secondaryLabel="Active Poles"
+          secondaryValue={isLightOn ? `${d.streetLightsActive ?? 44}/48 Poles` : '0/48 Poles'}
+          secondaryColor={isLightOn ? '#16a34a' : '#dc2626'}
+          footerLeft={`Ambient Lux: ${d.lightIntensity ?? 140} lux (LDR sensor)`}
+          footerRight={isLightOn ? 'Lamps ON' : 'Lamps OFF'}
+          index={3}
+        />
+
+        {/* Row 2 - Card 5: AC & DC Power Sub-Metering */}
         <StatCard
           label="AC & DC Power Sub-Metering"
           icon={<MdElectricBolt size={20} color="#2563eb" />}
@@ -275,9 +321,10 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
           secondaryColor="#10b981"
           footerLeft="Dual AC grid feeder and rooftop solar DC bus"
           footerRight="Continuous telemetry"
-          index={2}
+          index={4}
         />
 
+        {/* Row 2 - Card 6: Campus Environmental Sentinel */}
         <StatCard
           label="Campus Environmental Sentinel"
           icon={<MdWaterDrop size={20} color="#0284c7" />}
@@ -291,7 +338,7 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
           secondaryColor="#0284c7"
           footerLeft={`Ambient: ${d.temp ?? 27.4}°C • ${d.humidity ?? 64}% RH`}
           footerRight="Atmospheric purity"
-          index={3}
+          index={5}
         />
       </div>
 
