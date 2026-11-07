@@ -373,7 +373,7 @@ export function getTrafficFlowData(data, history = []) {
         pointRadius: records.length === 1 ? 6 : 4,
       },
       {
-        label: 'Parking Bay Occupancy (%)',
+        label: 'Parking Occupancy (%)',
         data: records.map(r => r.parkingOccupancy ?? 0),
         borderColor: '#f59e0b',
         tension: 0.35,
@@ -385,22 +385,25 @@ export function getTrafficFlowData(data, history = []) {
 }
 
 /**
- * Traffic Tab: Real Parking Allocation
+ * Traffic Tab: Real Parking Allocation (3 Parking: A1, A2, A3)
+ * true = Free / Available, false = Occupied
  */
 export function getParkingDistribution(data) {
-  if (!data || (data.totalSlots == null && data.occupiedSlots == null && data.parkingOccupancy == null)) {
-    return { labels: [], datasets: [] };
-  }
-  const total = data.totalSlots || 100;
-  const occupied = data.occupiedSlots ?? (data.parkingOccupancy != null ? Math.round(data.parkingOccupancy * total / 100) : 0);
-  const available = Math.max(0, total - occupied);
+  if (!data) return { labels: [], datasets: [] };
+
+  const isA1Free = data.a1 !== undefined ? (data.a1 === true || data.a1 === 'true' || data.a1 === 1 || data.a1 === '1') : true;
+  const isA2Free = data.a2 !== undefined ? (data.a2 === true || data.a2 === 'true' || data.a2 === 1 || data.a2 === '1') : false;
+  const isA3Free = data.a3 !== undefined ? (data.a3 === true || data.a3 === 'true' || data.a3 === 1 || data.a3 === '1') : true;
+
+  const occupied = [!isA1Free, !isA2Free, !isA3Free].filter(Boolean).length;
+  const available = 3 - occupied;
 
   return {
-    labels: ['Occupied Slots', 'Available Slots'],
+    labels: ['Occupied Parking (false)', 'Available Parking (true)'],
     datasets: [
       {
         data: [occupied, available],
-        backgroundColor: ['#6366f1', '#10b981'],
+        backgroundColor: ['#ef4444', '#10b981'],
         borderWidth: 2,
         borderColor: '#ffffff',
       },

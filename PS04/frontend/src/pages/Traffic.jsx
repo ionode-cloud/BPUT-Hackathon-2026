@@ -17,7 +17,7 @@ export default function Traffic({ data, history = [] }) {
         <div className="card">
           <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <MdLocalParking size={20} color="#6366f1" />
-            <span>Parking Bay Occupancy</span>
+            <span>Parking Occupancy</span>
           </div>
           <div className="kpi-value">
             {d.parkingOccupancy ?? '-'}
@@ -45,7 +45,7 @@ export default function Traffic({ data, history = [] }) {
             </span>
           </div>
           <div className="kpi-foot">
-            {d.totalSlots != null && d.occupiedSlots != null ? `${d.totalSlots - d.occupiedSlots} bays available` : '-'}
+            {d.totalSlots != null && d.occupiedSlots != null ? `${d.totalSlots - d.occupiedSlots} parking available` : '-'}
           </div>
         </div>
 

@@ -267,27 +267,44 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
         ['Block C (Library)', 'Administrative', 'Rooftop Solar', '12.4 kW Solar • 96% Recycled', 'Silent Reading & Archives Safe'],
         ['Block D (Canteen)', 'Dining & Food', 'Wet Waste Alert', '88% Wet Waste (59.5 kg)', 'Dispatch Sanitation Vehicle 02'],
         ['Central Campus Environmental Sentinel', 'Environmental', 'OPTIMAL BASELINE', `${d.aqi ?? 42} AQI • ${d.tankLevel ?? 78}% Water`, 'Ambient Weather & Water Storage Telemetry Active'],
-        ['Smart Parking Plaza', 'Mobility', `${d.parkingOccupancy ?? 75}% Occupied`, `${d.occupiedSlots ?? 36}/${d.totalSlots ?? 48} Bays`, `${d.vehiclesToday ?? 482} Vehicles Logged`],
+        ['Smart Parking Plaza (A1, A2, A3)', 'Mobility', `${d.parkingOccupancy ?? 33}% Occupied`, `${d.occupiedSlots ?? 1}/3 Parking Occupied`, 'Real Ultrasonic Sonar Active'],
       ];
       const wsTwin = XLSX.utils.aoa_to_sheet(twinRows);
       XLSX.utils.book_append_sheet(wb, wsTwin, 'Digital Twin Vitals');
 
-      // 2. Parking Bay Roster
-      const parkingRows = Array.from({ length: 48 }, (_, i) => {
-        const slotNum = i + 1;
-        const isEv = slotNum > 40;
-        const zone = slotNum <= 24 ? 'Zone A (General)' : slotNum <= 40 ? 'Zone B (Faculty)' : 'Zone C (EV Fast-Charge)';
-        const occupied = [1, 2, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 17, 18, 20, 21, 22, 24, 25, 26, 27, 29, 30, 31, 33, 34, 35, 41, 42, 43, 45, 46, 47].includes(slotNum);
-        return {
-          'Bay ID': `BAY-${String(slotNum).padStart(2, '0')}`,
-          'Zone': zone,
-          'Status': occupied ? 'OCCUPIED' : 'AVAILABLE',
-          'Vehicle Type': isEv ? 'Electric Vehicle (11kW Fast Plug)' : occupied ? 'Passenger Car' : 'Vacant',
-          'Sensor Health': 'Ground-loop Sonar Active (100%)',
-        };
-      });
+      // 2. Parking Roster (3 Real Parking: A1, A2, A3)
+      const isA1 = d.a1 !== undefined ? (d.a1 === true || d.a1 === 'true' || d.a1 === 1 || d.a1 === '1') : true;
+      const isA2 = d.a2 !== undefined ? (d.a2 === true || d.a2 === 'true' || d.a2 === 1 || d.a2 === '1') : false;
+      const isA3 = d.a3 !== undefined ? (d.a3 === true || d.a3 === 'true' || d.a3 === 1 || d.a3 === '1') : true;
+
+      const parkingRows = [
+        {
+          'Parking ID': 'A1',
+          'Backend Key': 'a1',
+          'Raw Telemetry': String(isA1),
+          'Status': isA1 ? 'FREE / AVAILABLE' : 'OCCUPIED',
+          'Vehicle State': isA1 ? 'Vacant' : 'Vehicle Parked',
+          'Sensor Health': 'Ground-loop Sonar Online',
+        },
+        {
+          'Parking ID': 'A2',
+          'Backend Key': 'a2',
+          'Raw Telemetry': String(isA2),
+          'Status': isA2 ? 'FREE / AVAILABLE' : 'OCCUPIED',
+          'Vehicle State': isA2 ? 'Vacant' : 'Vehicle Parked',
+          'Sensor Health': 'Ground-loop Sonar Online',
+        },
+        {
+          'Parking ID': 'A3',
+          'Backend Key': 'a3',
+          'Raw Telemetry': String(isA3),
+          'Status': isA3 ? 'FREE / AVAILABLE' : 'OCCUPIED',
+          'Vehicle State': isA3 ? 'Vacant' : 'Vehicle Parked',
+          'Sensor Health': 'Ground-loop Sonar Online',
+        },
+      ];
       const wsParking = XLSX.utils.json_to_sheet(parkingRows);
-      XLSX.utils.book_append_sheet(wb, wsParking, 'Parking Bay Status');
+      XLSX.utils.book_append_sheet(wb, wsParking, 'Parking Status');
       break;
     }
 

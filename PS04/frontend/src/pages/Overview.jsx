@@ -363,7 +363,7 @@ export default function Overview({ data, history = [], onNavigate }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <MdLocalParking size={20} color="#8b5cf6" />
-                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Parking: Bay Status & Availability</span>
+                  <span style={{ fontSize: 15.5, fontWeight: 750 }}>Parking: Status & Availability</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="card-tag">Digital Twin Tab</span>
@@ -383,8 +383,8 @@ export default function Overview({ data, history = [], onNavigate }) {
               </div>
               <ChartBox id="overviewParkingChart" type="doughnut" labels={parkingData.labels} datasets={parkingData.datasets} />
               <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Occupied: <b>{d.occupiedSlots ?? 36} Bays</b></span>
-                <span>Free: <b>{(d.totalSlots ?? 48) - (d.occupiedSlots ?? 36)} Bays</b> ({Math.round(((d.occupiedSlots ?? 36) / (d.totalSlots ?? 48)) * 100)}% Cap)</span>
+                <span>Occupied: <b>{d.occupiedSlots ?? 1} / 3 Parking</b></span>
+                <span>Free: <b>{(d.totalSlots ?? 3) - (d.occupiedSlots ?? 1)} Parking</b> ({Math.round(((d.occupiedSlots ?? 1) / (d.totalSlots ?? 3)) * 100)}% Cap)</span>
               </div>
             </div>
           </div>
@@ -493,7 +493,7 @@ export default function Overview({ data, history = [], onNavigate }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <MdLocalParking size={22} color="#8b5cf6" />
-                <span>Smart Parking Bay Status (Digital Twin Tab)</span>
+                <span>Smart Parking Status (Digital Twin Tab)</span>
               </h3>
               {onNavigate && (
                 <button
@@ -512,16 +512,16 @@ export default function Overview({ data, history = [], onNavigate }) {
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <h4 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 800 }}>Campus Spatial & Parking Summary</h4>
             <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px' }}>
-              The Digital Twin integrates 7 active campus nodes, 48 ultrasonic bay detectors, and automated ANPR turnstiles with sub-second MongoDB sync.
+              The Digital Twin integrates 7 active campus nodes, 3 ultrasonic parking detectors (A1, A2, A3), and automated ANPR turnstiles with sub-second MongoDB sync.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
               <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total Bays</div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>{d.totalSlots ?? 48} Bays</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total Parking</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>3 Parking (A1, A2, A3)</div>
               </div>
               <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>Available Free</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{(d.totalSlots ?? 48) - (d.occupiedSlots ?? 36)} Free</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981' }}>{(d.totalSlots ?? 3) - (d.occupiedSlots ?? 1)} Free</div>
               </div>
             </div>
             {onNavigate && (

@@ -43,6 +43,81 @@ function normalizeDynamicFields(body) {
   delete body['Priority Engine'];
   delete body['priority engine'];
 
+  // Normalize Waste fields (handle PascalCase and variations e.g. WasteWetFill)
+  if (body.wasteWetFill === undefined) {
+    if (body.WasteWetFill !== undefined) body.wasteWetFill = body.WasteWetFill;
+    else if (body['waste_wet_fill'] !== undefined) body.wasteWetFill = body['waste_wet_fill'];
+  }
+  if (body.WasteWetFill === undefined && body.wasteWetFill !== undefined) {
+    body.WasteWetFill = body.wasteWetFill;
+  }
+  delete body['waste_wet_fill'];
+
+  if (body.wasteDryFill === undefined) {
+    if (body.WasteDryFill !== undefined) body.wasteDryFill = body.WasteDryFill;
+    else if (body['waste_dry_fill'] !== undefined) body.wasteDryFill = body['waste_dry_fill'];
+  }
+  if (body.WasteDryFill === undefined && body.wasteDryFill !== undefined) {
+    body.WasteDryFill = body.wasteDryFill;
+  }
+  delete body['waste_dry_fill'];
+
+  if (body.wasteWet === undefined) {
+    if (body.WasteWet !== undefined) body.wasteWet = body.WasteWet;
+    else if (body['waste_wet'] !== undefined) body.wasteWet = body['waste_wet'];
+  }
+  delete body.WasteWet;
+  delete body['waste_wet'];
+
+  if (body.wasteDry === undefined) {
+    if (body.WasteDry !== undefined) body.wasteDry = body.WasteDry;
+    else if (body['waste_dry'] !== undefined) body.wasteDry = body.WasteDry;
+  }
+  delete body.WasteDry;
+  delete body['waste_dry'];
+
+  // Smart Parking Bays: a1, a2, a3 (true = Free, false = Occupied)
+  if (body.a1 === undefined) {
+    if (body.A1 !== undefined) body.a1 = body.A1;
+    else if (body['bayA1'] !== undefined) body.a1 = body['bayA1'];
+    else if (body['bay_a1'] !== undefined) body.a1 = body['bay_a1'];
+  }
+  if (body.a2 === undefined) {
+    if (body.A2 !== undefined) body.a2 = body.A2;
+    else if (body['bayA2'] !== undefined) body.a2 = body['bayA2'];
+    else if (body['bay_a2'] !== undefined) body.a2 = body['bay_a2'];
+  }
+  if (body.a3 === undefined) {
+    if (body.A3 !== undefined) body.a3 = body.A3;
+    else if (body['bayA3'] !== undefined) body.a3 = body['bayA3'];
+    else if (body['bay_a3'] !== undefined) body.a3 = body['bay_a3'];
+  }
+  delete body.A1;
+  delete body.A2;
+  delete body.A3;
+  delete body['bayA1'];
+  delete body['bayA2'];
+  delete body['bayA3'];
+  delete body['bay_a1'];
+  delete body['bay_a2'];
+  delete body['bay_a3'];
+
+  // Remove generator fields
+  delete body.generatorStatus;
+  delete body.generatorFuel;
+  delete body.generatorLoad;
+  delete body.generatorRuntime;
+
+  if (body.a1 !== undefined) {
+    body.a1 = body.a1 === true || body.a1 === 'true' || body.a1 === 1 || body.a1 === '1';
+  }
+  if (body.a2 !== undefined) {
+    body.a2 = body.a2 === true || body.a2 === 'true' || body.a2 === 1 || body.a2 === '1';
+  }
+  if (body.a3 !== undefined) {
+    body.a3 = body.a3 === true || body.a3 === 'true' || body.a3 === 1 || body.a3 === '1';
+  }
+
   return body;
 }
 
@@ -82,30 +157,14 @@ function attachDynamicDefaults(obj) {
     obj.dcEnergy = Number((todayKwh * 0.24).toFixed(1));
   }
 
-  // ── 2. Energy: Automatic Generator Failover ─────────────────────────────
+  // ── 2. Energy: Grid Status ─────────────────────────────────────────────
   if (!obj.gridStatus) {
     obj.gridStatus = 'ONLINE';
   }
-  if (obj.gridStatus === 'OFF') {
-    // Autonomous failover: generator automatically switches ON when grid drops
-    obj.generatorStatus = 'RUNNING';
-    if (obj.generatorLoad === undefined || obj.generatorLoad === null || obj.generatorLoad === 0) {
-      obj.generatorLoad = Number((liveKw * 0.85).toFixed(1));
-    }
-  } else {
-    if (!obj.generatorStatus) {
-      obj.generatorStatus = 'STANDBY';
-    }
-    if (obj.generatorStatus === 'STANDBY' || obj.generatorStatus === 'OFF') {
-      obj.generatorLoad = 0;
-    }
-  }
-  if (obj.generatorFuel === undefined || obj.generatorFuel === null) {
-    obj.generatorFuel = 84; // % diesel capacity
-  }
-  if (obj.generatorRuntime === undefined || obj.generatorRuntime === null) {
-    obj.generatorRuntime = 142.5; // Cumulative operating hours
-  }
+  delete obj.generatorStatus;
+  delete obj.generatorFuel;
+  delete obj.generatorLoad;
+  delete obj.generatorRuntime;
 
   // ── 3. Street Light Monitoring ──────────────────────────────────────────
   if (obj.streetLightTotal === undefined || obj.streetLightTotal === null) {
@@ -204,24 +263,52 @@ function attachDynamicDefaults(obj) {
     obj.wasteWet = Number(totalWet.toFixed(1));
   }
   if (obj.wasteDryFill === undefined || obj.wasteDryFill === null) {
-    const avgDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryFill || 0), 0) / obj.wasteBlocks.length;
-    obj.wasteDryFill = Math.round(avgDry);
+    if (obj.WasteDryFill !== undefined && obj.WasteDryFill !== null) {
+      obj.wasteDryFill = obj.WasteDryFill;
+    } else {
+      const avgDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryFill || 0), 0) / obj.wasteBlocks.length;
+      obj.wasteDryFill = Math.round(avgDry);
+    }
   }
+  obj.WasteDryFill = obj.wasteDryFill;
+
   if (obj.wasteWetFill === undefined || obj.wasteWetFill === null) {
-    const avgWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetFill || 0), 0) / obj.wasteBlocks.length;
-    obj.wasteWetFill = Math.round(avgWet);
+    if (obj.WasteWetFill !== undefined && obj.WasteWetFill !== null) {
+      obj.wasteWetFill = obj.WasteWetFill;
+    } else {
+      const avgWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetFill || 0), 0) / obj.wasteBlocks.length;
+      obj.wasteWetFill = Math.round(avgWet);
+    }
+  }
+  obj.WasteWetFill = obj.wasteWetFill;
+
+  // ── 5. Smart Parking: 3 Real Bays (a1, a2, a3) ──────────────────────────
+  // Rule: true = Free / Available, false = Occupied
+  if (obj.a1 === undefined || obj.a1 === null) {
+    obj.a1 = true; // default Free
+  } else {
+    obj.a1 = obj.a1 === true || obj.a1 === 'true' || obj.a1 === 1 || obj.a1 === '1';
   }
 
-  // ── 5. Parking & Digital Twin Bay Matrix ────────────────────────────────
-  if (obj.totalSlots === undefined || obj.totalSlots === null) {
-    obj.totalSlots = 48;
+  if (obj.a2 === undefined || obj.a2 === null) {
+    obj.a2 = false; // default Occupied
+  } else {
+    obj.a2 = obj.a2 === true || obj.a2 === 'true' || obj.a2 === 1 || obj.a2 === '1';
   }
-  if (obj.occupiedSlots === undefined || obj.occupiedSlots === null) {
-    obj.occupiedSlots = 36;
+
+  if (obj.a3 === undefined || obj.a3 === null) {
+    obj.a3 = true; // default Free
+  } else {
+    obj.a3 = obj.a3 === true || obj.a3 === 'true' || obj.a3 === 1 || obj.a3 === '1';
   }
-  if (obj.parkingOccupancy === undefined || obj.parkingOccupancy === null) {
-    obj.parkingOccupancy = Math.round((obj.occupiedSlots / obj.totalSlots) * 100);
-  }
+
+  obj.totalSlots = 3;
+  const isA1Occ = !obj.a1;
+  const isA2Occ = !obj.a2;
+  const isA3Occ = !obj.a3;
+  obj.occupiedSlots = [isA1Occ, isA2Occ, isA3Occ].filter(Boolean).length;
+  obj.parkingOccupancy = Math.round((obj.occupiedSlots / 3) * 100);
+
   if (obj.vehiclesToday === undefined || obj.vehiclesToday === null) {
     obj.vehiclesToday = 482;
   }
@@ -326,8 +413,40 @@ router.get('/', async (req, res) => {
     delete consolidated.Valve1;
     delete consolidated.Valve2;
 
-    // Attach dynamic AI Forecast and Priority Engine defaults if not already present
+    // Attach dynamic AI Forecast, Priority Engine, and Parking Bay (a1, a2, a3) defaults
     attachDynamicDefaults(consolidated);
+
+    // If the latest document in MongoDB has generator fields, remove them permanently
+    if (records[0] && (records[0].generatorStatus !== undefined || records[0].generatorFuel !== undefined || records[0].generatorLoad !== undefined || records[0].generatorRuntime !== undefined)) {
+      SensorData.updateMany(
+        {},
+        {
+          $unset: {
+            generatorStatus: 1,
+            generatorFuel: 1,
+            generatorLoad: 1,
+            generatorRuntime: 1,
+          }
+        }
+      ).catch(() => {});
+    }
+
+    // If the latest document in MongoDB is missing a1, a2, or a3, persist them to MongoDB now so MongoDB Atlas has them permanently
+    if (records[0] && (records[0].a1 === undefined || records[0].a2 === undefined || records[0].a3 === undefined)) {
+      SensorData.updateOne(
+        { _id: records[0]._id },
+        {
+          $set: {
+            a1: consolidated.a1,
+            a2: consolidated.a2,
+            a3: consolidated.a3,
+            totalSlots: 3,
+            occupiedSlots: consolidated.occupiedSlots,
+            parkingOccupancy: consolidated.parkingOccupancy,
+          }
+        }
+      ).catch(() => {});
+    }
 
     res.json({ success: true, data: consolidated });
   } catch (err) {
@@ -405,13 +524,13 @@ router.post('/', async (req, res) => {
       payload.valve2 = persistentValveState.valve2;
     }
 
-    // Always assign fresh current timestamp so new Postman requests become the latest active snapshot
+    // Guarantee all dynamic fields, including a1, a2, a3, are defaulted and attached directly to payload BEFORE saving to MongoDB
+    attachDynamicDefaults(payload);
     payload.timestamp = new Date();
     const record = await SensorData.create(payload);
     const postData = record.toObject ? record.toObject() : { ...record };
     delete postData.Valve1;
     delete postData.Valve2;
-    attachDynamicDefaults(postData);
     res.status(201).json({ success: true, message: 'Sensor data created.', data: postData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -461,15 +580,11 @@ router.put('/', async (req, res) => {
     delete updateData.updatedAt;
     delete updateData.__v;
 
-    // Automatic Generator Failover logic when grid drops
-    if (updateData.gridStatus === 'OFF') {
-      updateData.generatorStatus = 'RUNNING';
-      const liveP = updateData.livePower || (record ? record.livePower : 18.4);
-      updateData.generatorLoad = Number((liveP * 0.85).toFixed(1));
-    } else if (updateData.gridStatus === 'ONLINE' && updateData.generatorStatus === undefined) {
-      updateData.generatorStatus = 'STANDBY';
-      updateData.generatorLoad = 0;
-    }
+    // Remove generator fields
+    delete updateData.generatorStatus;
+    delete updateData.generatorFuel;
+    delete updateData.generatorLoad;
+    delete updateData.generatorRuntime;
 
     // Street Light actuator status synchronization
     if (updateData.streetLightStatus === 'ON') {
@@ -480,12 +595,37 @@ router.put('/', async (req, res) => {
       updateData.streetLightPower = 0;
     }
 
+    // Guarantee Smart Parking Bays a1, a2, a3 are always present and saved to MongoDB on every PUT
+    const curA1 = updateData.a1 !== undefined
+      ? updateData.a1
+      : (record && record.a1 !== undefined ? record.a1 : true);
+    const curA2 = updateData.a2 !== undefined
+      ? updateData.a2
+      : (record && record.a2 !== undefined ? record.a2 : false);
+    const curA3 = updateData.a3 !== undefined
+      ? updateData.a3
+      : (record && record.a3 !== undefined ? record.a3 : true);
+    updateData.a1 = curA1;
+    updateData.a2 = curA2;
+    updateData.a3 = curA3;
+    updateData.totalSlots = 3;
+    updateData.occupiedSlots = [!curA1, !curA2, !curA3].filter(Boolean).length;
+    updateData.parkingOccupancy = Math.round((updateData.occupiedSlots / 3) * 100);
+
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
     updateData.timestamp = new Date();
 
     const updated = await SensorData.findByIdAndUpdate(
       record._id,
-      { $set: updateData },
+      {
+        $set: updateData,
+        $unset: {
+          generatorStatus: 1,
+          generatorFuel: 1,
+          generatorLoad: 1,
+          generatorRuntime: 1,
+        },
+      },
       { new: true, runValidators: false, strict: false }
     );
     const putData = updated.toObject ? updated.toObject() : { ...updated };
@@ -526,6 +666,10 @@ router.put('/:id', async (req, res) => {
     delete updateData.createdAt;
     delete updateData.updatedAt;
     delete updateData.__v;
+    delete updateData.generatorStatus;
+    delete updateData.generatorFuel;
+    delete updateData.generatorLoad;
+    delete updateData.generatorRuntime;
 
     if (!body.timestamp) {
       updateData.timestamp = new Date();
@@ -533,7 +677,15 @@ router.put('/:id', async (req, res) => {
 
     const record = await SensorData.findByIdAndUpdate(
       req.params.id,
-      { $set: updateData },
+      {
+        $set: updateData,
+        $unset: {
+          generatorStatus: 1,
+          generatorFuel: 1,
+          generatorLoad: 1,
+          generatorRuntime: 1,
+        },
+      },
       { new: true, runValidators: false, strict: false }
     );
     if (!record) {

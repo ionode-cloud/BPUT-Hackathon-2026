@@ -185,7 +185,8 @@ export default function App() {
   // Sync hash in address bar silently when state changes
   useEffect(() => {
     const targetHash = view === 'landing' ? '#/' : `#/${page}`;
-    if (window.location.hash !== targetHash && window.location.hash !== `#${page}`) {
+    if (window.location.hash !== targetHash && window
+      .location.hash !== `#${page}`) {
       window.history.replaceState(null, '', targetHash);
     }
     try {

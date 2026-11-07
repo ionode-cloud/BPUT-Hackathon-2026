@@ -433,8 +433,13 @@ print("Priority Engine:", data.get("priorityEngine"))
 | `todaysUsage` | `Number` | Daily cumulative water consumed (L). |
 | `leakStatus` | `String` | `"Normal"` or `"Leak Detected"`. |
 | `valve1`, `valve2` | `Boolean` | Solenoid actuator states (`true` = OPEN, `false` = CLOSED). |
+| `wasteWetFill` / `WasteWetFill` | `Number` | Wet waste fill level (%). |
+| `wasteDryFill` / `WasteDryFill` | `Number` | Dry recyclable waste fill level (%). |
 | `averageFill` | `Number` | Waste bin fill level (%). |
 | `overflowRisk` | `Number` | Count of bins approaching 90%+ volume. |
+| `a1`, `a2`, `a3` | `Boolean` | Real Parking Bay allocation (`true` = Free / Available, `false` = Occupied). |
+| `totalSlots` | `Number` | Total real bays (defaults to `3`). |
+| `occupiedSlots` | `Number` | Count of occupied bays (`false` bays). |
 | `parkingOccupancy` | `Number` | Parking lot capacity utilization (%). |
 | `safetyScore` | `Number` | Safety & incident readiness index (0 - 100). |
 | `source` | `String` | Origin of snapshot (`"sensor"`, `"manual"`, `"synthetic"`). |

@@ -125,13 +125,20 @@ Each document in the `sensordatas` MongoDB collection contains the following fie
 | `averageFill` | `Number` | % | Average bin fill level |
 | `wasteCollected` | `Number` | kg | Total waste collected today |
 | `overflowRisk` | `Number` | — | Count of bins at overflow risk |
+| `wasteDryFill` / `WasteDryFill` | `Number` | % | Dry recyclable bin fill % |
+| `wasteWetFill` / `WasteWetFill` | `Number` | % | Wet organic bin fill % |
+| `wasteDry` / `WasteDry` | `Number` | kg | Dry waste mass |
+| `wasteWet` / `WasteWet` | `Number` | kg | Wet waste mass |
 
-#### 🚗 Traffic & Parking
+#### 🚗 Traffic & Parking (3 Real Bays: a1, a2, a3)
 | Field | Type | Unit | Description |
 |-------|------|------|-------------|
-| `parkingOccupancy` | `Number` | % | Overall parking lot occupancy |
-| `occupiedSlots` | `Number` | — | Number of occupied parking slots |
-| `totalSlots` | `Number` | — | Total parking capacity |
+| `a1` | `Boolean` | — | Bay A1 Status (`true` = Free / Available, `false` = Occupied) |
+| `a2` | `Boolean` | — | Bay A2 Status (`true` = Free / Available, `false` = Occupied) |
+| `a3` | `Boolean` | — | Bay A3 Status (`true` = Free / Available, `false` = Occupied) |
+| `totalSlots` | `Number` | — | Total parking capacity (defaults to `3`) |
+| `occupiedSlots` | `Number` | — | Number of occupied parking slots (`false` bays count) |
+| `parkingOccupancy` | `Number` | % | Overall parking lot occupancy percentage |
 | `vehiclesToday` | `Number` | — | Total vehicles entered today |
 | `avgWaitingTime` | `Number` | minutes | Average vehicle queue waiting time |
 

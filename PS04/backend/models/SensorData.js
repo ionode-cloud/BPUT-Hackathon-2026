@@ -31,10 +31,6 @@ const sensorDataSchema = new mongoose.Schema(
     dcPower:          { type: Number, default: null }, // kW (DC Solar & Battery Infeed)
     dcEnergy:         { type: Number, default: null }, // kWh (DC Infeed)
     gridStatus:       { type: String, default: 'ONLINE' }, // "ONLINE" | "OFF"
-    generatorStatus:  { type: String, default: 'STANDBY' }, // "STANDBY" | "RUNNING" | "AUTO_SWITCHED" | "OFF"
-    generatorFuel:    { type: Number, default: 85 },   // % fuel reserve
-    generatorLoad:    { type: Number, default: null }, // kW active backup load
-    generatorRuntime: { type: Number, default: 142.5 },// Cumulative hours
 
     // ── Street Light Subsystem ─────────────────────────────────────────────
     streetLightStatus:   { type: String, default: 'AUTO' }, // "ON" | "OFF" | "AUTO"
@@ -61,16 +57,19 @@ const sensorDataSchema = new mongoose.Schema(
     wasteWet:         { type: Number, default: null }, // kg wet organic
     wasteDryFill:     { type: Number, default: null }, // % dry fill
     wasteWetFill:     { type: Number, default: null }, // % wet fill
+    WasteWetFill:     { type: Number, default: null }, // % wet fill alias for direct IoT payloads
+    WasteDryFill:     { type: Number, default: null }, // % dry fill alias for direct IoT payloads
     wasteBlocks:      { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Block-wise dry/wet array
 
-    // ── Traffic & Parking ─────────────────────────────────────────────────
+    // ── Traffic & Parking (3 Real Bays: a1, a2, a3 where true = Free, false = Occupied) ───
+    a1:               { type: Boolean, default: true },  // true = Free / Available, false = Occupied
+    a2:               { type: Boolean, default: false }, // true = Free / Available, false = Occupied
+    a3:               { type: Boolean, default: true },  // true = Free / Available, false = Occupied
     parkingOccupancy: { type: Number, default: null }, // %
     occupiedSlots:    { type: Number, default: null },
-    totalSlots:       { type: Number, default: null },
+    totalSlots:       { type: Number, default: 3 },
     vehiclesToday:    { type: Number, default: null },
     avgWaitingTime:   { type: Number, default: null }, // minutes
-    parkingSlots:     { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Interactive slot matrix
-    parkingZones:     { type: mongoose.Schema.Types.Mixed, default: () => [] }, // Zone A, Zone B, Zone C
 
     // ── Asset Utilization ─────────────────────────────────────────────────
     totalEquipment:   { type: Number, default: null },

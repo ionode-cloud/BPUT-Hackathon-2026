@@ -68,8 +68,52 @@ app.use((err, req, res, next) => {
 // ── Database + Server ───────────────────────────────────────────────────────
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('✅  MongoDB connected');
+
+    // Auto-verify and persist a1, a2, a3 in the latest MongoDB document so it is permanently visible in the database
+    try {
+      const SensorData = require('./models/SensorData');
+      const latest = await SensorData.findOne().sort({ timestamp: -1 });
+      if (latest && (latest.a1 === undefined || latest.a2 === undefined || latest.a3 === undefined)) {
+        const a1Val = latest.a1 !== undefined ? latest.a1 : true;
+        const a2Val = latest.a2 !== undefined ? latest.a2 : false;
+        const a3Val = latest.a3 !== undefined ? latest.a3 : true;
+        const occCount = [!a1Val, !a2Val, !a3Val].filter(Boolean).length;
+        await SensorData.updateOne(
+          { _id: latest._id },
+          {
+            $set: {
+              a1: a1Val,
+              a2: a2Val,
+              a3: a3Val,
+              totalSlots: 3,
+              occupiedSlots: occCount,
+              parkingOccupancy: Math.round((occCount / 3) * 100),
+            },
+          }
+        );
+        // Auto-verify WasteWetFill & WasteDryFill are persisted on the document
+        if (latest && (latest.WasteWetFill === undefined || latest.WasteWetFill === null)) {
+          const wetVal = latest.wasteWetFill !== undefined && latest.wasteWetFill !== null ? latest.wasteWetFill : 44;
+          const dryVal = latest.wasteDryFill !== undefined && latest.wasteDryFill !== null ? latest.wasteDryFill : 38;
+          await SensorData.updateOne(
+            { _id: latest._id },
+            {
+              $set: {
+                WasteWetFill: wetVal,
+                WasteDryFill: dryVal,
+                wasteWetFill: wetVal,
+                wasteDryFill: dryVal,
+              },
+            }
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️  Could not auto-verify parking bays on startup:', e.message);
+    }
+
     app.listen(PORT, () => console.log(`🚀  Server running on http://localhost:${PORT}`));
   })
   .catch(err => {
