@@ -102,6 +102,56 @@ function normalizeDynamicFields(body) {
   delete body['bay_a2'];
   delete body['bay_a3'];
 
+  // Normalize val1 and val2 fields
+  if (body.val1 === undefined) {
+    if (body.Val1 !== undefined) body.val1 = body.Val1;
+    else if (body.VAL1 !== undefined) body.val1 = body.VAL1;
+  }
+  if (body.val2 === undefined) {
+    if (body.Val2 !== undefined) body.val2 = body.Val2;
+    else if (body.VAL2 !== undefined) body.val2 = body.VAL2;
+  }
+  delete body.Val1;
+  delete body.Val2;
+  delete body.VAL1;
+  delete body.VAL2;
+
+  // Normalize flow rate fields for val1 and val2 (val1Flow & val2Flow in L/m)
+  if (body.val1Flow === undefined) {
+    if (body.flowRate1 !== undefined) body.val1Flow = body.flowRate1;
+    else if (body.val1_flow !== undefined) body.val1Flow = body.val1_flow;
+    else if (body.flow1 !== undefined) body.val1Flow = body.flow1;
+    else if (body.Flow1 !== undefined) body.val1Flow = body.Flow1;
+    else if (body.flow_rate_1 !== undefined) body.val1Flow = body.flow_rate_1;
+    else if (body.flowRate_1 !== undefined) body.val1Flow = body.flowRate_1;
+  }
+  if (body.val2Flow === undefined) {
+    if (body.flowRate2 !== undefined) body.val2Flow = body.flowRate2;
+    else if (body.val2_flow !== undefined) body.val2Flow = body.val2_flow;
+    else if (body.flow2 !== undefined) body.val2Flow = body.flow2;
+    else if (body.Flow2 !== undefined) body.val2Flow = body.Flow2;
+    else if (body.flow_rate_2 !== undefined) body.val2Flow = body.flow_rate_2;
+    else if (body.flowRate_2 !== undefined) body.val2Flow = body.flowRate_2;
+  }
+  if (body.val1Flow !== undefined) {
+    body.val1Flow = Number(body.val1Flow);
+  }
+  if (body.val2Flow !== undefined) {
+    body.val2Flow = Number(body.val2Flow);
+  }
+  delete body.flowRate1;
+  delete body.flowRate2;
+  delete body.flow1;
+  delete body.flow2;
+  delete body.Flow1;
+  delete body.Flow2;
+  delete body.val1_flow;
+  delete body.val2_flow;
+  delete body.flow_rate_1;
+  delete body.flow_rate_2;
+  delete body.flowRate_1;
+  delete body.flowRate_2;
+
   // Remove generator fields
   delete body.generatorStatus;
   delete body.generatorFuel;
@@ -316,6 +366,36 @@ function attachDynamicDefaults(obj) {
     obj.avgWaitingTime = 3.5;
   }
 
+  // ── 6. Water: Acoustic Leak Telemetry (val1 & val2) ─────────────────────
+  if (obj.val1 === undefined || obj.val1 === null) {
+    obj.val1 = obj.leakStatus && obj.leakStatus !== 'Normal' ? obj.leakStatus : 'Normal';
+  }
+  if (obj.val2 === undefined || obj.val2 === null) {
+    obj.val2 = 'Normal';
+  }
+
+  // ── 7. Water: Individual Flow Rates for val1 & val2 (val1Flow & val2Flow in L/m) ──────────────
+  const baseFlow = typeof obj.flowRate === 'number' && !isNaN(obj.flowRate) ? obj.flowRate : 0;
+  if (obj.val1Flow === undefined || obj.val1Flow === null) {
+    obj.val1Flow = obj.flowRate1 !== undefined && obj.flowRate1 !== null
+      ? Number(obj.flowRate1)
+      : (baseFlow > 0 ? Number((baseFlow * 0.65).toFixed(1)) : 0);
+  }
+  if (obj.val2Flow === undefined || obj.val2Flow === null) {
+    obj.val2Flow = obj.flowRate2 !== undefined && obj.flowRate2 !== null
+      ? Number(obj.flowRate2)
+      : (baseFlow > 0 ? Number((baseFlow * 0.35).toFixed(1)) : 0);
+  }
+  obj.val1Flow = Number(Number(obj.val1Flow).toFixed(1));
+  obj.val2Flow = Number(Number(obj.val2Flow).toFixed(1));
+  delete obj.flowRate1;
+  delete obj.flowRate2;
+  delete obj.flow1;
+  delete obj.flow2;
+  if (obj.flowRate === undefined || obj.flowRate === null || obj.flowRate === 0) {
+    obj.flowRate = Number((obj.val1Flow + obj.val2Flow).toFixed(1));
+  }
+
   return obj;
 }
 
@@ -443,6 +523,47 @@ router.get('/', async (req, res) => {
             totalSlots: 3,
             occupiedSlots: consolidated.occupiedSlots,
             parkingOccupancy: consolidated.parkingOccupancy,
+          }
+        }
+      ).catch(() => {});
+    }
+
+    // If the latest document in MongoDB is missing val1 or val2, persist them to MongoDB now
+    if (records[0] && (records[0].val1 === undefined || records[0].val2 === undefined)) {
+      SensorData.updateOne(
+        { _id: records[0]._id },
+        {
+          $set: {
+            val1: consolidated.val1,
+            val2: consolidated.val2,
+          }
+        }
+      ).catch(() => {});
+    }
+
+    // Unset flowRate1, flowRate2, flow1, flow2 if present in existing document
+    if (records[0] && (records[0].flowRate1 !== undefined || records[0].flowRate2 !== undefined || records[0].flow1 !== undefined || records[0].flow2 !== undefined)) {
+      SensorData.updateMany(
+        {},
+        {
+          $unset: {
+            flowRate1: 1,
+            flowRate2: 1,
+            flow1: 1,
+            flow2: 1,
+          }
+        }
+      ).catch(() => {});
+    }
+
+    // If the latest document in MongoDB is missing val1Flow or val2Flow, persist them to MongoDB now
+    if (records[0] && (records[0].val1Flow === undefined || records[0].val2Flow === undefined)) {
+      SensorData.updateOne(
+        { _id: records[0]._id },
+        {
+          $set: {
+            val1Flow: consolidated.val1Flow,
+            val2Flow: consolidated.val2Flow,
           }
         }
       ).catch(() => {});
@@ -586,6 +707,50 @@ router.put('/', async (req, res) => {
     delete updateData.generatorLoad;
     delete updateData.generatorRuntime;
 
+    // Handle val1 and val2 in PUT
+    if (updateData.val1 === undefined) {
+      if (record && record.val1 !== undefined) updateData.val1 = record.val1;
+      else updateData.val1 = 'Normal';
+    }
+    if (updateData.val2 === undefined) {
+      if (record && record.val2 !== undefined) updateData.val2 = record.val2;
+      else updateData.val2 = 'Normal';
+    }
+
+    const isVal1Leaking = updateData.val1 === false || updateData.val1 === 'false' || updateData.val1 === 'Leak Detected' || updateData.val1 === 'Leak';
+    const isVal2Leaking = updateData.val2 === false || updateData.val2 === 'false' || updateData.val2 === 'Leak Detected' || updateData.val2 === 'Leak';
+    if (updateData.leakStatus === undefined) {
+      if (isVal1Leaking || isVal2Leaking) {
+        updateData.leakStatus = 'Leak Detected';
+      }
+    }
+
+    // Handle val1Flow and val2Flow in PUT
+    if (updateData.val1Flow !== undefined) {
+      updateData.val1Flow = Number(updateData.val1Flow);
+    } else if (updateData.flowRate1 !== undefined) {
+      updateData.val1Flow = Number(updateData.flowRate1);
+    } else if (record && record.val1Flow !== undefined) {
+      updateData.val1Flow = record.val1Flow;
+    } else {
+      updateData.val1Flow = 0;
+    }
+
+    if (updateData.val2Flow !== undefined) {
+      updateData.val2Flow = Number(updateData.val2Flow);
+    } else if (updateData.flowRate2 !== undefined) {
+      updateData.val2Flow = Number(updateData.flowRate2);
+    } else if (record && record.val2Flow !== undefined) {
+      updateData.val2Flow = record.val2Flow;
+    } else {
+      updateData.val2Flow = 0;
+    }
+
+    delete updateData.flowRate1;
+    delete updateData.flowRate2;
+    delete updateData.flow1;
+    delete updateData.flow2;
+
     // Street Light actuator status synchronization
     if (updateData.streetLightStatus === 'ON') {
       updateData.streetLightsActive = updateData.streetLightTotal || (record ? record.streetLightTotal : 48);
@@ -624,6 +789,10 @@ router.put('/', async (req, res) => {
           generatorFuel: 1,
           generatorLoad: 1,
           generatorRuntime: 1,
+          flowRate1: 1,
+          flowRate2: 1,
+          flow1: 1,
+          flow2: 1,
         },
       },
       { new: true, runValidators: false, strict: false }
@@ -684,6 +853,10 @@ router.put('/:id', async (req, res) => {
           generatorFuel: 1,
           generatorLoad: 1,
           generatorRuntime: 1,
+          flowRate1: 1,
+          flowRate2: 1,
+          flow1: 1,
+          flow2: 1,
         },
       },
       { new: true, runValidators: false, strict: false }

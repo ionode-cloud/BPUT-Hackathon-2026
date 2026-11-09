@@ -43,8 +43,12 @@ const sensorDataSchema = new mongoose.Schema(
     // ── Water ─────────────────────────────────────────────────────────────
     tankLevel:        { type: Number,  default: null }, // %
     todaysUsage:      { type: Number,  default: null }, // Litres
-    flowRate:         { type: Number,  default: null }, // L/min
+    flowRate:         { type: Number,  default: null }, // L/min (Combined / main line)
+    val1Flow:         { type: Number,  default: 0 },    // L/m for val1 flow rate
+    val2Flow:         { type: Number,  default: 0 },    // L/m for val2 flow rate
     leakStatus:       { type: String,  default: null }, // "Normal" | "Leak Detected"
+    val1:             { type: mongoose.Schema.Types.Mixed, default: 'Normal' }, // Line 1 Acoustic Leak Status ("Normal" | "Leak Detected" | true | false)
+    val2:             { type: mongoose.Schema.Types.Mixed, default: 'Normal' }, // Line 2 Acoustic Leak Status ("Normal" | "Leak Detected" | true | false)
     valve1:           { type: Boolean, default: false }, // Valve 1 status (true=ON, false=OFF)
     valve2:           { type: Boolean, default: false }, // Valve 2 status (true=ON, false=OFF)
 

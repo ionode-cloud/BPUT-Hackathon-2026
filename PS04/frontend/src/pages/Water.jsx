@@ -21,6 +21,43 @@ export default function Water({ data, history = [], onUpdate }) {
   const tankLevel = d.tankLevel ?? 0;
   const isLeaking = d.leakStatus && d.leakStatus !== 'Normal';
 
+  // Val1 & Val2 Acoustic Telemetry (individual status)
+  const rawVal1 = d.val1 !== undefined ? d.val1 : (isLeaking ? 'Leak Detected' : 'Normal');
+  const rawVal2 = d.val2 !== undefined ? d.val2 : 'Normal';
+
+  const isVal1Leaking =
+    rawVal1 === false ||
+    rawVal1 === 'false' ||
+    rawVal1 === 0 ||
+    rawVal1 === '0' ||
+    String(rawVal1).toLowerCase().includes('leak');
+  const isVal1Ok = !isVal1Leaking;
+  const val1StatusText = typeof rawVal1 === 'boolean'
+    ? (rawVal1 ? 'Normal' : 'Leak Detected')
+    : (rawVal1 === 'true' ? 'Normal' : (rawVal1 === 'false' ? 'Leak Detected' : String(rawVal1)));
+
+  const isVal2Leaking =
+    rawVal2 === false ||
+    rawVal2 === 'false' ||
+    rawVal2 === 0 ||
+    rawVal2 === '0' ||
+    String(rawVal2).toLowerCase().includes('leak');
+  const isVal2Ok = !isVal2Leaking;
+  const val2StatusText = typeof rawVal2 === 'boolean'
+    ? (rawVal2 ? 'Normal' : 'Leak Detected')
+    : (rawVal2 === 'true' ? 'Normal' : (rawVal2 === 'false' ? 'Leak Detected' : String(rawVal2)));
+
+  const anyLeak = isVal1Leaking || isVal2Leaking;
+
+  // Val1 & Val2 Individual Flow Rates (L/m)
+  const rawFlow1 = d.val1Flow ?? d.flowRate1;
+  const rawFlow2 = d.val2Flow ?? d.flowRate2;
+  const baseFlow = typeof d.flowRate === 'number' && !isNaN(d.flowRate) ? d.flowRate : 0;
+  const val1Flow = rawFlow1 != null ? Number(rawFlow1) : (baseFlow > 0 ? Number((baseFlow * 0.65).toFixed(1)) : 0);
+  const val2Flow = rawFlow2 != null ? Number(rawFlow2) : (baseFlow > 0 ? Number((baseFlow * 0.35).toFixed(1)) : 0);
+  const totalFlow = Number((val1Flow + val2Flow).toFixed(1));
+  const isHighVelocity = val1Flow > 20 || val2Flow > 20 || totalFlow > 25;
+
   // Read current valve state directly from API telemetry
   const apiValve1 = Boolean(d.valve1 ?? false);
   const apiValve2 = Boolean(d.valve2 ?? false);
@@ -151,35 +188,202 @@ export default function Water({ data, history = [], onUpdate }) {
 
         <StatCard
           index={2}
-          icon={<MdSpeed size={18} color="#10b981" />}
+          icon={<MdSpeed size={18} color={isHighVelocity ? '#f59e0b' : '#10b981'} />}
           label="Current Flow Rate"
-          badgeText={d.flowRate > 20 ? 'High Velocity' : 'Steady Flow'}
-          badgeType={d.flowRate > 20 ? 'amber' : 'green'}
-          nowLabel="Now"
-          nowValue={d.flowRate ?? '-'}
-          unit={d.flowRate != null ? 'L/min' : ''}
-          secondaryLabel="Line Limit"
-          secondaryValue="35 L/m"
-          secondaryColor="#15803d"
-          footerLeft={d.flowRate != null ? (d.flowRate > 20 ? 'High velocity detected' : 'Steady hydraulic pressure') : '-'}
-          footerRight="Threshold: < 25 L/m"
-        />
+          badgeText={isHighVelocity ? 'High Velocity' : (totalFlow > 0 ? 'Steady Flow' : 'Nominal Flow')}
+          badgeType={isHighVelocity ? 'amber' : 'green'}
+          nowValue={totalFlow}
+          footerLeft={isHighVelocity ? 'High velocity detected' : 'Steady hydraulic pressure'}
+          footerRight="Line Limit: 35 L/m"
+        >
+          {/* Two Sub-Widgets: val1 and val2 showing individual flow rates in L/m */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '2px 0 8px' }}>
+            {/* val1 Flow Rate Sub-Widget */}
+            <div
+              style={{
+                background: val1Flow > 20 ? '#fffbeb' : '#f0fdf4',
+                border: `1.5px solid ${val1Flow > 20 ? '#fcd34d' : '#86efac'}`,
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxShadow: val1Flow > 20 ? '0 1px 3px rgba(245, 158, 11, 0.08)' : '0 1px 3px rgba(16, 185, 129, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  val1
+                </span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: val1Flow > 20 ? '#f59e0b' : '#10b981',
+                    boxShadow: val1Flow > 20 ? '0 0 6px rgba(245, 158, 11, 0.6)' : '0 0 6px rgba(16, 185, 129, 0.6)',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 850,
+                  color: val1Flow > 20 ? '#b45309' : '#0f172a',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {val1Flow}{' '}
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>L/m</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: val1Flow > 20 ? '#b45309' : '#059669', fontWeight: 600 }}>
+                {val1Flow > 20 ? 'High Velocity' : (val1Flow > 0 ? 'Active Flow' : 'Zero Flow • Idle')}
+              </div>
+            </div>
+
+            {/* val2 Flow Rate Sub-Widget */}
+            <div
+              style={{
+                background: val2Flow > 20 ? '#fffbeb' : '#f0fdf4',
+                border: `1.5px solid ${val2Flow > 20 ? '#fcd34d' : '#86efac'}`,
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxShadow: val2Flow > 20 ? '0 1px 3px rgba(245, 158, 11, 0.08)' : '0 1px 3px rgba(16, 185, 129, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  val2
+                </span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: val2Flow > 20 ? '#f59e0b' : '#10b981',
+                    boxShadow: val2Flow > 20 ? '0 0 6px rgba(245, 158, 11, 0.6)' : '0 0 6px rgba(16, 185, 129, 0.6)',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 850,
+                  color: val2Flow > 20 ? '#b45309' : '#0f172a',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {val2Flow}{' '}
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>L/m</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: val2Flow > 20 ? '#b45309' : '#059669', fontWeight: 600 }}>
+                {val2Flow > 20 ? 'High Velocity' : (val2Flow > 0 ? 'Active Flow' : 'Zero Flow • Idle')}
+              </div>
+            </div>
+          </div>
+        </StatCard>
 
         <StatCard
           index={3}
-          icon={<MdWarningAmber size={18} color={isLeaking ? '#ef4444' : '#10b981'} />}
+          icon={<MdWarningAmber size={18} color={anyLeak ? '#ef4444' : '#10b981'} />}
           label="Acoustic Leak Detection"
-          badgeText={isLeaking ? 'Leak Detected' : 'All Intact'}
-          badgeType={isLeaking ? 'red' : 'green'}
-          nowLabel="Status"
-          nowValue={d.leakStatus ?? 'Normal'}
-          unit=""
-          secondaryLabel="Sensor Grid"
-          secondaryValue="100% OK"
-          secondaryColor={isLeaking ? '#dc2626' : '#15803d'}
-          footerLeft={isLeaking ? 'Pressure drop detected!' : 'All pipes integrity intact'}
-          footerRight="Acoustic grid active"
-        />
+          badgeText={anyLeak ? (isVal1Leaking && isVal2Leaking ? '2 Leaks Detected' : (isVal1Leaking ? 'val1 Leaking' : 'val2 Leaking')) : 'All Intact'}
+          badgeType={anyLeak ? 'red' : 'green'}
+          footerLeft={anyLeak ? 'Acoustic pipe rupture detected!' : 'val1 & val2 integrity intact'}
+          footerRight="Dual Acoustic Grid"
+        >
+          {/* Two Sub-Widgets: val1 and val2 showing individual status */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '2px 0 8px' }}>
+            {/* val1 Sub-Widget */}
+            <div
+              style={{
+                background: isVal1Ok ? '#f0fdf4' : '#fef2f2',
+                border: `1.5px solid ${isVal1Ok ? '#86efac' : '#fca5a5'}`,
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxShadow: isVal1Ok ? '0 1px 3px rgba(16, 185, 129, 0.08)' : '0 1px 3px rgba(239, 68, 68, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  val1
+                </span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: isVal1Ok ? '#10b981' : '#ef4444',
+                    boxShadow: isVal1Ok ? '0 0 6px rgba(16, 185, 129, 0.6)' : '0 0 6px rgba(239, 68, 68, 0.6)',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 850,
+                  color: isVal1Ok ? '#15803d' : '#dc2626',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {val1StatusText}
+              </div>
+              <div style={{ fontSize: 10.5, color: isVal1Ok ? '#059669' : '#b91c1c', fontWeight: 600 }}>
+                {isVal1Ok ? 'No Leak • Intact' : 'Acoustic Alert'}
+              </div>
+            </div>
+
+            {/* val2 Sub-Widget */}
+            <div
+              style={{
+                background: isVal2Ok ? '#f0fdf4' : '#fef2f2',
+                border: `1.5px solid ${isVal2Ok ? '#86efac' : '#fca5a5'}`,
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxShadow: isVal2Ok ? '0 1px 3px rgba(16, 185, 129, 0.08)' : '0 1px 3px rgba(239, 68, 68, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  val2
+                </span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: isVal2Ok ? '#10b981' : '#ef4444',
+                    boxShadow: isVal2Ok ? '0 0 6px rgba(16, 185, 129, 0.6)' : '0 0 6px rgba(239, 68, 68, 0.6)',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 850,
+                  color: isVal2Ok ? '#15803d' : '#dc2626',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {val2StatusText}
+              </div>
+              <div style={{ fontSize: 10.5, color: isVal2Ok ? '#059669' : '#b91c1c', fontWeight: 600 }}>
+                {isVal2Ok ? 'No Leak • Intact' : 'Acoustic Alert'}
+              </div>
+            </div>
+          </div>
+        </StatCard>
       </div>
 
       {/* ════ Water Valve Actuator Controls (Valve 1 & Valve 2) ════ */}

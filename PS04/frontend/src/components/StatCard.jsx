@@ -56,6 +56,7 @@ export default function StatCard({
   icon = null,
   index = 0,
   style = {},
+  children = null,
 }) {
   const badge = getBadgeStyle(badgeType);
 
@@ -211,54 +212,58 @@ export default function StatCard({
         )}
       </div>
 
-      {/* ── Values: Now vs Secondary/Benchmark ── */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          marginBottom: 10,
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{nowLabel}</div>
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: nowColor || '#111827',
-              lineHeight: 1.1,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {nowValue}
-            {unit && (
-              <span style={{ fontSize: 15, fontWeight: 500, color: '#64748b', marginLeft: 4 }}>
-                {unit}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {secondaryValue != null && (
-          <div style={{ textAlign: 'right' }}>
-            {secondaryLabel && (
-              <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{secondaryLabel}</div>
-            )}
+      {/* ── Values: Now vs Secondary/Benchmark OR Custom Sub-Widgets ── */}
+      {children ? (
+        children
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{nowLabel}</div>
             <div
               style={{
                 fontSize: 28,
                 fontWeight: 700,
-                color: secondaryColor,
+                color: nowColor || '#111827',
                 lineHeight: 1.1,
                 letterSpacing: '-0.02em',
               }}
             >
-              {secondaryValue}
+              {nowValue}
+              {unit && (
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#64748b', marginLeft: 4 }}>
+                  {unit}
+                </span>
+              )}
             </div>
           </div>
-        )}
-      </div>
+
+          {secondaryValue != null && (
+            <div style={{ textAlign: 'right' }}>
+              {secondaryLabel && (
+                <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{secondaryLabel}</div>
+              )}
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: secondaryColor,
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {secondaryValue}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Visual: Animated Mini Curve / Trend Area ── */}
       <div style={{ margin: '4px 0 10px' }}>
