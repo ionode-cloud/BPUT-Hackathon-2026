@@ -278,14 +278,15 @@ export function getWasteTrendData(data, history = []) {
  * Waste Tab: Block-wise Dry vs Wet Waste Segregation Comparison
  */
 export function getDryWetBlockData(data) {
-  const blocks = data?.wasteBlocks && Array.isArray(data.wasteBlocks) && data.wasteBlocks.length > 0
-    ? data.wasteBlocks
+  const allowedBlocks = Array.isArray(data?.wasteBlocks)
+    ? data.wasteBlocks.filter(b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B'))
+    : [];
+
+  const blocks = allowedBlocks.length > 0
+    ? allowedBlocks
     : [
-        { code: 'Block A', dryFill: 42, wetFill: 28 },
-        { code: 'Block B', dryFill: 68, wetFill: 62 },
-        { code: 'Block C', dryFill: 36, wetFill: 18 },
-        { code: 'Block D', dryFill: 58, wetFill: 88 },
-        { code: 'Block E', dryFill: 52, wetFill: 24 },
+        { code: 'BL-A', name: 'Block A', dryFill: 0, wetFill: 28 },
+        { code: 'BL-B', name: 'Block B', dryFill: 68, wetFill: 0 },
       ];
 
   return {

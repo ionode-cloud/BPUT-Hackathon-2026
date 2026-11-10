@@ -248,8 +248,11 @@ export function scanLiveHighAlerts(data) {
     });
   }
 
-  // 8. Waste - Block-wise Wet Waste Alert
-  const wetAtRiskBlock = Array.isArray(data.wasteBlocks) && data.wasteBlocks.find(b => b.wetFill > 80);
+  // 8. Waste - Block-wise Wet Waste Alert (Block A & Block B only)
+  const allowedWasteBlocks = Array.isArray(data.wasteBlocks)
+    ? data.wasteBlocks.filter(b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B'))
+    : [];
+  const wetAtRiskBlock = allowedWasteBlocks.find(b => b.wetFill > 80 || b.dryFill > 80);
   if (wetAtRiskBlock) {
     alerts.push({
       id: `live-waste-wet-overflow-${wetAtRiskBlock.id}`,

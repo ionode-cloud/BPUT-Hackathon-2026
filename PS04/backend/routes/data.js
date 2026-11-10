@@ -171,6 +171,160 @@ function normalizeDynamicFields(body) {
   return body;
 }
 
+const DEFAULT_WASTE_BLOCKS = [
+  {
+    id: 'block-a',
+    name: 'Block A',
+    code: 'BL-A',
+    dryFill: 0,
+    wetFill: 28,
+    dryWeight: 0,
+    wetWeight: 9.8,
+    status: 'Optimal',
+    complianceScore: 94,
+    lastCollection: '2h ago',
+    directive: 'Organic bio-feed stream active. Next sweep at 16:30.',
+  },
+  {
+    id: 'block-b',
+    name: 'Block B',
+    code: 'BL-B',
+    dryFill: 68,
+    wetFill: 0,
+    dryWeight: 42.0,
+    wetWeight: 0,
+    status: 'Moderate',
+    complianceScore: 88,
+    lastCollection: '3h ago',
+    directive: 'Block B dry recyclables container at 68% capacity. Dispatch in evening run.',
+  },
+];
+
+function computeBlockStatus(block) {
+  const wet = Number(block.wetFill || 0);
+  const dry = Number(block.dryFill || 0);
+  if (wet > 80) return 'Wet Overflow Risk';
+  if (dry > 80) return 'Dry Overflow Risk';
+  if (wet > 60 || dry > 60) return 'Moderate';
+  return 'Optimal';
+}
+
+function normalizeWasteBlocks(rawBlocks) {
+  const allowedIds = new Set(['block-a', 'block-b']);
+  const allowedCodes = new Set(['BL-A', 'BL-B']);
+  const source = Array.isArray(rawBlocks)
+    ? rawBlocks.filter(b => b && (allowedIds.has(b.id) || allowedCodes.has(b.code)))
+    : [];
+
+  return DEFAULT_WASTE_BLOCKS.map(def => {
+    const existing = source.find(b => b.id === def.id || b.code === def.code);
+    if (!existing) return { ...def };
+    const merged = { ...def, ...existing };
+    if (!merged.name || merged.name.includes('Academic') || merged.name.includes('Hostel')) {
+      merged.name = def.name;
+    }
+    merged.status = computeBlockStatus(merged);
+    if (!existing.directive) {
+      merged.directive = merged.wetFill > 80 || merged.dryFill > 80
+        ? 'High fill surge! Dispatch sanitation collection immediately.'
+        : (merged.wetFill > 60 || merged.dryFill > 60
+          ? 'Approaching capacity. Schedule collection in next sweep.'
+          : def.directive);
+    }
+    return merged;
+  });
+}
+
+function computeActiveAvgFill(blocks, field) {
+  const active = blocks.map(b => Number(b[field] || 0)).filter(v => v > 0);
+  if (active.length === 0) return 0;
+  return Math.round(active.reduce((acc, v) => acc + v, 0) / active.length);
+}
+
+function syncWasteTelemetry(obj, explicitBody = null) {
+  const hadExtraBlocks = Array.isArray(obj.wasteBlocks) && obj.wasteBlocks.length > 2;
+  obj.wasteBlocks = normalizeWasteBlocks(obj.wasteBlocks);
+
+  const blockA = obj.wasteBlocks[0];
+  const blockB = obj.wasteBlocks[1];
+
+  const hasExplicitBlocks = explicitBody && Array.isArray(explicitBody.wasteBlocks);
+  const hasExplicitScalars = explicitBody && (
+    explicitBody.wasteWetFill !== undefined ||
+    explicitBody.WasteWetFill !== undefined ||
+    explicitBody.wasteWet !== undefined ||
+    explicitBody.wasteDryFill !== undefined ||
+    explicitBody.WasteDryFill !== undefined ||
+    explicitBody.wasteDry !== undefined
+  );
+
+  // When IoT/API updates top-level waste scalars without wasteBlocks, sync Block A (wet) & Block B (dry)
+  if (hasExplicitScalars && !hasExplicitBlocks) {
+    if (explicitBody.wasteWetFill !== undefined || explicitBody.WasteWetFill !== undefined) {
+      const wf = Number(explicitBody.wasteWetFill ?? explicitBody.WasteWetFill);
+      if (!isNaN(wf)) {
+        blockA.wetFill = wf;
+        blockA.status = computeBlockStatus(blockA);
+      }
+    }
+    if (explicitBody.wasteWet !== undefined) {
+      const ww = Number(explicitBody.wasteWet);
+      if (!isNaN(ww)) blockA.wetWeight = ww;
+    }
+    if (explicitBody.wasteDryFill !== undefined || explicitBody.WasteDryFill !== undefined) {
+      const df = Number(explicitBody.wasteDryFill ?? explicitBody.WasteDryFill);
+      if (!isNaN(df)) {
+        blockB.dryFill = df;
+        blockB.status = computeBlockStatus(blockB);
+      }
+    }
+    if (explicitBody.wasteDry !== undefined) {
+      const dw = Number(explicitBody.wasteDry);
+      if (!isNaN(dw)) blockB.dryWeight = dw;
+    }
+  }
+
+  const totalDry = obj.wasteBlocks.reduce((acc, b) => acc + Number(b.dryWeight || 0), 0);
+  const totalWet = obj.wasteBlocks.reduce((acc, b) => acc + Number(b.wetWeight || 0), 0);
+  const calcDryFill = computeActiveAvgFill(obj.wasteBlocks, 'dryFill');
+  const calcWetFill = computeActiveAvgFill(obj.wasteBlocks, 'wetFill');
+  const calcOverflow = obj.wasteBlocks.filter(b => Number(b.wetFill || 0) > 80 || Number(b.dryFill || 0) > 80).length;
+
+  const shouldRecomputeAll = hadExtraBlocks || hasExplicitBlocks || hasExplicitScalars;
+
+  if (shouldRecomputeAll || obj.wasteDry === undefined || obj.wasteDry === null) {
+    obj.wasteDry = (hasExplicitScalars && explicitBody.wasteDry !== undefined) ? Number(explicitBody.wasteDry) : Number(totalDry.toFixed(1));
+  }
+  if (shouldRecomputeAll || obj.wasteWet === undefined || obj.wasteWet === null) {
+    obj.wasteWet = (hasExplicitScalars && explicitBody.wasteWet !== undefined) ? Number(explicitBody.wasteWet) : Number(totalWet.toFixed(1));
+  }
+  if (shouldRecomputeAll || obj.wasteDryFill === undefined || obj.wasteDryFill === null) {
+    if (hasExplicitScalars && (explicitBody.wasteDryFill !== undefined || explicitBody.WasteDryFill !== undefined)) {
+      obj.wasteDryFill = Number(explicitBody.wasteDryFill ?? explicitBody.WasteDryFill);
+    } else {
+      obj.wasteDryFill = (obj.WasteDryFill != null && !hadExtraBlocks && !hasExplicitBlocks) ? Number(obj.WasteDryFill) : calcDryFill;
+    }
+  }
+  obj.WasteDryFill = obj.wasteDryFill;
+
+  if (shouldRecomputeAll || obj.wasteWetFill === undefined || obj.wasteWetFill === null) {
+    if (hasExplicitScalars && (explicitBody.wasteWetFill !== undefined || explicitBody.WasteWetFill !== undefined)) {
+      obj.wasteWetFill = Number(explicitBody.wasteWetFill ?? explicitBody.WasteWetFill);
+    } else {
+      obj.wasteWetFill = (obj.WasteWetFill != null && !hadExtraBlocks && !hasExplicitBlocks) ? Number(obj.WasteWetFill) : calcWetFill;
+    }
+  }
+  obj.WasteWetFill = obj.wasteWetFill;
+
+  if (shouldRecomputeAll || obj.overflowRisk === undefined || obj.overflowRisk === null) {
+    if (!explicitBody || explicitBody.overflowRisk === undefined) {
+      obj.overflowRisk = calcOverflow;
+    }
+  }
+
+  return hadExtraBlocks;
+}
+
 function attachDynamicDefaults(obj) {
   if (!obj || typeof obj !== 'object') return obj;
 
@@ -237,100 +391,8 @@ function attachDynamicDefaults(obj) {
     obj.streetLightDimming = 80; // % brightness
   }
 
-  // ── 4. Waste Management: Dry vs Wet Waste Block-Wise ────────────────────
-  if (!Array.isArray(obj.wasteBlocks) || obj.wasteBlocks.length === 0) {
-    obj.wasteBlocks = [
-      {
-        id: 'block-a',
-        name: 'Block A (Academic & Lecture Theatres)',
-        code: 'BL-A',
-        dryFill: 42,
-        wetFill: 28,
-        dryWeight: 26.5,
-        wetWeight: 9.8,
-        status: 'Optimal',
-        complianceScore: 94,
-        lastCollection: '2h ago',
-      },
-      {
-        id: 'block-b',
-        name: 'Block B (Hostel Towers & Residential)',
-        code: 'BL-B',
-        dryFill: 68,
-        wetFill: 62,
-        dryWeight: 42.0,
-        wetWeight: 38.5,
-        status: 'Moderate',
-        complianceScore: 88,
-        lastCollection: '3h ago',
-      },
-      {
-        id: 'block-c',
-        name: 'Block C (Central Library & Administration)',
-        code: 'BL-C',
-        dryFill: 36,
-        wetFill: 18,
-        dryWeight: 19.5,
-        wetWeight: 5.2,
-        status: 'Optimal',
-        complianceScore: 96,
-        lastCollection: '1h ago',
-      },
-      {
-        id: 'block-d',
-        name: 'Block D (Campus Canteen & Food Courts)',
-        code: 'BL-D',
-        dryFill: 58,
-        wetFill: 88,
-        dryWeight: 31.0,
-        wetWeight: 59.5,
-        status: 'Wet Overflow Risk',
-        complianceScore: 82,
-        lastCollection: '4h ago',
-      },
-      {
-        id: 'block-e',
-        name: 'Block E (R&D Labs & Technical Complex)',
-        code: 'BL-E',
-        dryFill: 52,
-        wetFill: 24,
-        dryWeight: 23.0,
-        wetWeight: 7.5,
-        status: 'Optimal',
-        complianceScore: 91,
-        lastCollection: '2h ago',
-      },
-    ];
-  }
-
-  // Compute dry/wet aggregates from block matrix
-  if (obj.wasteDry === undefined || obj.wasteDry === null) {
-    const totalDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryWeight || 0), 0);
-    obj.wasteDry = Number(totalDry.toFixed(1));
-  }
-  if (obj.wasteWet === undefined || obj.wasteWet === null) {
-    const totalWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetWeight || 0), 0);
-    obj.wasteWet = Number(totalWet.toFixed(1));
-  }
-  if (obj.wasteDryFill === undefined || obj.wasteDryFill === null) {
-    if (obj.WasteDryFill !== undefined && obj.WasteDryFill !== null) {
-      obj.wasteDryFill = obj.WasteDryFill;
-    } else {
-      const avgDry = obj.wasteBlocks.reduce((acc, b) => acc + (b.dryFill || 0), 0) / obj.wasteBlocks.length;
-      obj.wasteDryFill = Math.round(avgDry);
-    }
-  }
-  obj.WasteDryFill = obj.wasteDryFill;
-
-  if (obj.wasteWetFill === undefined || obj.wasteWetFill === null) {
-    if (obj.WasteWetFill !== undefined && obj.WasteWetFill !== null) {
-      obj.wasteWetFill = obj.WasteWetFill;
-    } else {
-      const avgWet = obj.wasteBlocks.reduce((acc, b) => acc + (b.wetFill || 0), 0) / obj.wasteBlocks.length;
-      obj.wasteWetFill = Math.round(avgWet);
-    }
-  }
-  obj.WasteWetFill = obj.wasteWetFill;
+  // ── 4. Waste Management: Only Block A & Block B ─────────────────────────
+  syncWasteTelemetry(obj);
 
   // ── 5. Smart Parking: 3 Real Bays (a1, a2, a3) ──────────────────────────
   // Rule: true = Free / Available, false = Occupied
@@ -569,6 +631,32 @@ router.get('/', async (req, res) => {
       ).catch(() => {});
     }
 
+    // If the latest document still has Block C/D/E, old block names, or missing wasteBlocks, update MongoDB
+    const hasStaleWasteBlocks = !records[0] || !Array.isArray(records[0].wasteBlocks) ||
+      records[0].wasteBlocks.length !== 2 ||
+      records[0].wasteBlocks.some(b =>
+        (b.id !== 'block-a' && b.id !== 'block-b') ||
+        (b.name || '').includes('Academic') ||
+        (b.name || '').includes('Hostel')
+      );
+    if (records[0] && hasStaleWasteBlocks) {
+      SensorData.updateOne(
+        { _id: records[0]._id },
+        {
+          $set: {
+            wasteBlocks: consolidated.wasteBlocks,
+            wasteDry: consolidated.wasteDry,
+            wasteWet: consolidated.wasteWet,
+            wasteDryFill: consolidated.wasteDryFill,
+            WasteDryFill: consolidated.WasteDryFill,
+            wasteWetFill: consolidated.wasteWetFill,
+            WasteWetFill: consolidated.WasteWetFill,
+            overflowRisk: consolidated.overflowRisk,
+          }
+        }
+      ).catch(() => {});
+    }
+
     res.json({ success: true, data: consolidated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -645,6 +733,9 @@ router.post('/', async (req, res) => {
       payload.valve2 = persistentValveState.valve2;
     }
 
+    // Sync waste blocks (Block A & Block B only) with any updated scalar waste values before attaching defaults
+    syncWasteTelemetry(payload, body);
+
     // Guarantee all dynamic fields, including a1, a2, a3, are defaulted and attached directly to payload BEFORE saving to MongoDB
     attachDynamicDefaults(payload);
     payload.timestamp = new Date();
@@ -686,6 +777,7 @@ router.put('/', async (req, res) => {
       delete newPayload.createdAt;
       delete newPayload.updatedAt;
       delete newPayload.__v;
+      syncWasteTelemetry(newPayload, body);
       record = await SensorData.create(newPayload);
       const createdData = record.toObject ? record.toObject() : { ...record };
       delete createdData.Valve1;
@@ -776,6 +868,19 @@ router.put('/', async (req, res) => {
     updateData.totalSlots = 3;
     updateData.occupiedSlots = [!curA1, !curA2, !curA3].filter(Boolean).length;
     updateData.parkingOccupancy = Math.round((updateData.occupiedSlots / 3) * 100);
+
+    // Keep only Block A & Block B and synchronize live waste telemetry
+    const recordObj = record.toObject ? record.toObject() : { ...record };
+    const wasteMerged = { ...recordObj, ...updateData };
+    syncWasteTelemetry(wasteMerged, body);
+    updateData.wasteBlocks = wasteMerged.wasteBlocks;
+    updateData.wasteDry = wasteMerged.wasteDry;
+    updateData.wasteWet = wasteMerged.wasteWet;
+    updateData.wasteDryFill = wasteMerged.wasteDryFill;
+    updateData.WasteDryFill = wasteMerged.WasteDryFill;
+    updateData.wasteWetFill = wasteMerged.wasteWetFill;
+    updateData.WasteWetFill = wasteMerged.WasteWetFill;
+    updateData.overflowRisk = wasteMerged.overflowRisk;
 
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
     updateData.timestamp = new Date();

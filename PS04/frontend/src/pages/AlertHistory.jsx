@@ -349,10 +349,20 @@ export default function AlertHistory({ data }) {
         </div>
       </div>
 
-      {/* ════ Alert List ════ */}
-      <div className="alerts-list">
+      {/* ════ Alerts Table ════ */}
+      <div className="card" style={{ marginTop: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MdWarning size={20} color="#ef4444" />
+            <span>Alert History Log</span>
+          </h3>
+          <span className="card-tag">
+            Showing {filteredAlerts.length} of {totalCount} Alert{totalCount === 1 ? '' : 's'}
+          </span>
+        </div>
+
         {filteredAlerts.length === 0 ? (
-          <div className="card alerts-empty-state">
+          <div className="alerts-empty-state">
             <div className="empty-icon-wrap">
               <MdCheckCircle size={54} color="#10b981" />
             </div>
@@ -388,116 +398,118 @@ export default function AlertHistory({ data }) {
             )}
           </div>
         ) : (
-          filteredAlerts.map(alert => {
-            const isSolved = alert.status === 'solved';
-            const isCritical = alert.severity === 'CRITICAL';
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>System</th>
+                  <th>Severity / Status</th>
+                  <th>Incident & Location</th>
+                  <th>Telemetry vs. Baseline</th>
+                  <th>Automated Directive</th>
+                  <th>Logged Time</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAlerts.map(alert => {
+                  const isSolved = alert.status === 'solved';
+                  const isCritical = alert.severity === 'CRITICAL';
 
-            return (
-              <div
-                key={alert.id}
-                className={`alert-card ${isSolved ? 'is-solved' : isCritical ? 'is-critical' : 'is-high'}`}
-              >
-                {/* Left Colored Severity Indicator Bar */}
-                <div className={`alert-edge-bar ${isSolved ? 'bar-solved' : isCritical ? 'bar-critical' : 'bar-high'}`} />
+                  return (
+                    <tr
+                      key={alert.id}
+                      style={{
+                        opacity: isSolved ? 0.78 : 1,
+                        background: isSolved ? '#f8fafc' : undefined,
+                      }}
+                    >
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                            {SYSTEM_ICONS[alert.system] || <MdWarning size={20} color="#f59e0b" />}
+                          </span>
+                          <span className={`alert-system-pill ${SYSTEM_BADGE_CLASSES[alert.system] || ''}`}>
+                            {alert.systemLabel || 'Facility System'}
+                          </span>
+                        </div>
+                      </td>
 
-                <div className="alert-card-inner">
-                  {/* Top Row: System Tag, Severity Badge, Time */}
-                  <div className="alert-card-header">
-                    <div className="alert-meta-left">
-                      <div className="alert-icon-avatar">
-                        {SYSTEM_ICONS[alert.system] || <MdWarning size={20} color="#f59e0b" />}
-                      </div>
-
-                      <div className="alert-system-tags">
-                        <span className={`alert-system-pill ${SYSTEM_BADGE_CLASSES[alert.system] || ''}`}>
-                          {alert.systemLabel || 'Facility System'}
-                        </span>
-
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <span className={`alert-severity-badge ${isSolved ? 'sev-solved' : isCritical ? 'sev-critical' : 'sev-high'}`}>
                           {isSolved ? '✓ SOLVED' : isCritical ? 'CRITICAL ALERT' : 'HIGH ALERT'}
                         </span>
-                      </div>
-                    </div>
+                      </td>
 
-                    <div className="alert-meta-right">
-                      <span className="alert-timestamp">
-                        <MdAccessTime size={14} />
-                        <span>{formatAlertTime(alert.timestamp)}</span>
-                      </span>
-                    </div>
-                  </div>
+                      <td style={{ minWidth: 220 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', textDecoration: isSolved ? 'line-through' : 'none' }}>
+                          {alert.title}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                          <MdLocationOn size={13} color="#64748b" />
+                          <span>{alert.location || 'Campus Facilities'}</span>
+                        </div>
+                      </td>
 
-                  {/* Middle Content: Title, Location, Metrics */}
-                  <div className="alert-body">
-                    <h3 className="alert-title">{alert.title}</h3>
+                      <td style={{ minWidth: 170 }}>
+                        <div style={{ fontWeight: 700, color: isSolved ? '#059669' : '#dc2626' }}>
+                          {alert.value}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
+                          Safe: {alert.threshold}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                          Sensor: {alert.metric}
+                        </div>
+                      </td>
 
-                    <div className="alert-location-line">
-                      <MdLocationOn size={16} color="#64748b" />
-                      <span>{alert.location || 'Campus Facilities'}</span>
-                    </div>
+                      <td style={{ minWidth: 210, fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
+                        {alert.recommendation}
+                      </td>
 
-                    {/* Metric Comparison Strip */}
-                    <div className="alert-metrics-strip">
-                      <div className="metric-box trigger-value">
-                        <span className="metric-box-label">Triggered Telemetry</span>
-                        <span className="metric-box-val">{alert.value}</span>
-                      </div>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 12, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <MdAccessTime size={13} />
+                          <span>{formatAlertTime(alert.timestamp)}</span>
+                        </div>
+                        {isSolved && alert.solvedAt && (
+                          <div style={{ fontSize: 11, color: '#059669', fontWeight: 600, marginTop: 3 }}>
+                            Solved: {formatAlertTime(alert.solvedAt)}
+                          </div>
+                        )}
+                      </td>
 
-                      <div className="metric-box safe-threshold">
-                        <span className="metric-box-label">Safe Normal Baseline</span>
-                        <span className="metric-box-val">{alert.threshold}</span>
-                      </div>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button
+                            type="button"
+                            className={`alert-action-btn btn-solved ${isSolved ? 'is-active-solved' : ''}`}
+                            style={{ padding: '6px 11px', fontSize: 12 }}
+                            onClick={() => handleToggleSolved(alert.id, alert.title)}
+                            title={isSolved ? 'Mark as Unresolved / Reopen' : 'Mark incident as Solved and mitigated'}
+                          >
+                            <MdCheckCircle size={14} />
+                            <span>{isSolved ? 'Solved' : 'Solve'}</span>
+                          </button>
 
-                      <div className="metric-box telemetry-key">
-                        <span className="metric-box-label">Monitored Sensor</span>
-                        <span className="metric-box-val">{alert.metric}</span>
-                      </div>
-                    </div>
-
-                    {/* Operational Directive / Action Note */}
-                    <div className="alert-recommendation">
-                      <strong>Automated Directive:</strong> {alert.recommendation}
-                    </div>
-
-                    {/* Solved Timestamp if resolved */}
-                    {isSolved && alert.solvedAt && (
-                      <div className="alert-solved-notice">
-                        <MdCheckCircle size={15} color="#10b981" />
-                        <span>Mitigated and confirmed resolved at {formatAlertTime(alert.solvedAt)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bottom Row: Actions (Two Buttons: Solved & Clear) */}
-                  <div className="alert-card-footer">
-                    <div className="alert-action-buttons">
-                      {/* Action Button 1: Solved */}
-                      <button
-                        type="button"
-                        className={`alert-action-btn btn-solved ${isSolved ? 'is-active-solved' : ''}`}
-                        onClick={() => handleToggleSolved(alert.id, alert.title)}
-                        title={isSolved ? 'Mark as Unresolved / Reopen' : 'Mark incident as Solved and mitigated'}
-                      >
-                        <MdCheckCircle size={16} />
-                        <span>{isSolved ? '✓ Solved (Reopen)' : 'Solved'}</span>
-                      </button>
-
-                      {/* Action Button 2: Clear */}
-                      <button
-                        type="button"
-                        className="alert-action-btn btn-clear"
-                        onClick={() => handleClearAlert(alert.id, alert.title)}
-                        title="Dismiss and clear this alert incident from history"
-                      >
-                        <MdDelete size={16} />
-                        <span>Clear</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })
+                          <button
+                            type="button"
+                            className="alert-action-btn btn-clear"
+                            style={{ padding: '6px 11px', fontSize: 12 }}
+                            onClick={() => handleClearAlert(alert.id, alert.title)}
+                            title="Dismiss and clear this alert incident from history"
+                          >
+                            <MdDelete size={14} />
+                            <span>Clear</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

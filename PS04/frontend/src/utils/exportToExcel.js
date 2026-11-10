@@ -213,32 +213,35 @@ export function exportTabToExcel({ tabName = 'overview', data = {}, history = []
     }
 
     case 'waste': {
-      // 1. Waste Management Summary
-      const blocks = Array.isArray(d.wasteBlocks) && d.wasteBlocks.length > 0
-        ? d.wasteBlocks
+      // 1. Waste Management Summary (Block A & Block B only)
+      const filteredWasteBlocks = Array.isArray(d.wasteBlocks)
+        ? d.wasteBlocks.filter(b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B'))
+        : [];
+      const blocks = filteredWasteBlocks.length > 0
+        ? filteredWasteBlocks.map(b => ({
+            ...b,
+            name: b.id === 'block-a' || b.code === 'BL-A' ? 'Block A' : 'Block B',
+          }))
         : [
-            { name: 'Block A (Academic)', code: 'BL-A', dryFill: 42, wetFill: 28, dryWeight: 26.5, wetWeight: 9.8, status: 'Optimal', complianceScore: 94 },
-            { name: 'Block B (Hostels)', code: 'BL-B', dryFill: 68, wetFill: 62, dryWeight: 42.0, wetWeight: 38.5, status: 'Moderate', complianceScore: 88 },
-            { name: 'Block C (Library)', code: 'BL-C', dryFill: 36, wetFill: 18, dryWeight: 19.5, wetWeight: 5.2, status: 'Optimal', complianceScore: 96 },
-            { name: 'Block D (Canteen)', code: 'BL-D', dryFill: 58, wetFill: 88, dryWeight: 31.0, wetWeight: 59.5, status: 'Wet Overflow Risk', complianceScore: 82 },
-            { name: 'Block E (Tech Labs)', code: 'BL-E', dryFill: 52, wetFill: 24, dryWeight: 23.0, wetWeight: 7.5, status: 'Optimal', complianceScore: 91 },
+            { name: 'Block A', code: 'BL-A', dryFill: 0, wetFill: 28, dryWeight: 0, wetWeight: 9.8, status: 'Optimal', complianceScore: 94 },
+            { name: 'Block B', code: 'BL-B', dryFill: 68, wetFill: 0, dryWeight: 42.0, wetWeight: 0, status: 'Moderate', complianceScore: 88 },
           ];
 
       const wasteRows = [
         ['Facility AI - Smart Sanitation & Waste Segregation Report', ''],
         ['Export Timestamp', new Date().toLocaleString()],
-        ['Campus Sanitation Division', 'North & South Campus Blocks (A through E)'],
+        ['Campus Sanitation Division', 'Monitored Campus Blocks (Block A & Block B)'],
         ['', ''],
         ['Metric / Indicator', 'Current Value', 'Unit', 'Logistics Directive'],
         ['Average Bin Volumetric Fill', safeVal(d.averageFill, 54), '%', 'Safe Holding Threshold (< 80%)'],
-        ['Total Dry Waste Recyclables', safeVal(d.wasteDry, 142.0), 'kg', 'Clean Paper, Plastics, Cardboard'],
-        ['Total Wet Waste Organic', safeVal(d.wasteWet, 120.5), 'kg', 'Bio-degradable & Food Waste'],
-        ['Dry Waste Avg Fill Level', safeVal(d.wasteDryFill, 51), '%', 'Recyclables Container Capacity'],
-        ['Wet Waste Avg Fill Level', safeVal(d.wasteWetFill, 44), '%', 'Compost Container Capacity'],
-        ['Campus Segregation Compliance', '91.2%', 'Score', 'High Sorting Compliance at Source'],
-        ['Total Monitored Smart Bins', safeVal(d.totalBins, 12), 'Units', '100% Sensor Network Online'],
-        ['Bins at Critical Overflow Risk', safeVal(d.overflowRisk, 1), 'Units', (d.overflowRisk ?? 0) > 0 ? 'Block D Canteen Route Dispatch' : 'All Bins Safe'],
-        ['Predicted Hours to Overflow', safeVal(d.overflowPrediction, 3.5), 'Hours', 'Time until Canteen wet bin hits 100%'],
+        ['Block B Dry Waste Weight', safeVal(d.wasteDry, 42.0), 'kg', 'Clean Paper, Plastics, Cardboard'],
+        ['Block A Wet Waste Weight', safeVal(d.wasteWet, 9.8), 'kg', 'Bio-degradable & Organic Waste'],
+        ['Block B Avg Fill Level', safeVal(d.wasteDryFill, 68), '%', 'Recyclables Container Capacity'],
+        ['Block A Avg Fill Level', safeVal(d.wasteWetFill, 28), '%', 'Organic Container Capacity'],
+        ['Campus Segregation Compliance', '91.0%', 'Score', 'High Sorting Compliance at Source'],
+        ['Total Monitored Smart Bins', safeVal(d.totalBins, 2), 'Units', '100% Sensor Network Online'],
+        ['Bins at Critical Overflow Risk', safeVal(d.overflowRisk, 0), 'Units', (d.overflowRisk ?? 0) > 0 ? 'Route Dispatch Required' : 'All Bins Safe'],
+        ['Predicted Hours to Overflow', safeVal(d.overflowPrediction, 3.5), 'Hours', 'Estimated fill runway'],
       ];
       const wsWaste = XLSX.utils.aoa_to_sheet(wasteRows);
       XLSX.utils.book_append_sheet(wb, wsWaste, 'Waste Overview');
