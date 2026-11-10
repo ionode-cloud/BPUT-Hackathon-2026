@@ -325,6 +325,37 @@ function syncWasteTelemetry(obj, explicitBody = null) {
   return hadExtraBlocks;
 }
 
+function hasValidForecasts(af) {
+  return Boolean(af && typeof af === 'object' && Array.isArray(af.forecasts) && af.forecasts.length > 0);
+}
+
+function mergeForecastPreservingValid(currentAi, fallbackAi) {
+  if (hasValidForecasts(currentAi)) return currentAi;
+  if (hasValidForecasts(fallbackAi)) {
+    return {
+      ...fallbackAi,
+      generated_at: (currentAi && currentAi.generated_at) || fallbackAi.generated_at,
+    };
+  }
+  return currentAi || {};
+}
+
+async function resolveValidForecasts(currentAi, prevAi = null) {
+  if (hasValidForecasts(currentAi)) return currentAi;
+  if (hasValidForecasts(prevAi)) return mergeForecastPreservingValid(currentAi, prevAi);
+  try {
+    const validRec = await SensorData.findOne({ 'aiForecasting.forecasts.0': { $exists: true } })
+      .sort({ timestamp: -1 })
+      .lean();
+    if (validRec) {
+      return mergeForecastPreservingValid(currentAi, validRec.aiForecasting);
+    }
+  } catch (e) {
+    // ignore
+  }
+  return currentAi || {};
+}
+
 function attachDynamicDefaults(obj) {
   if (!obj || typeof obj !== 'object') return obj;
 
@@ -558,6 +589,25 @@ router.get('/', async (req, res) => {
     // Attach dynamic AI Forecast, Priority Engine, and Parking Bay (a1, a2, a3) defaults
     attachDynamicDefaults(consolidated);
 
+    // If the newest snapshot has empty forecasts (e.g. skipped after a sensor gap), retain the latest valid trained forecasts
+    if (!hasValidForecasts(consolidated.aiForecasting)) {
+      let validRec = records.find(r => hasValidForecasts(r.aiForecasting));
+      if (!validRec) {
+        validRec = await SensorData.findOne({ 'aiForecasting.forecasts.0': { $exists: true } })
+          .sort({ timestamp: -1 })
+          .lean();
+      }
+      if (validRec) {
+        consolidated.aiForecasting = mergeForecastPreservingValid(consolidated.aiForecasting, validRec.aiForecasting);
+        if (records[0]) {
+          SensorData.updateOne(
+            { _id: records[0]._id },
+            { $set: { aiForecasting: consolidated.aiForecasting } }
+          ).catch(() => {});
+        }
+      }
+    }
+
     // If the latest document in MongoDB has generator fields, remove them permanently
     if (records[0] && (records[0].generatorStatus !== undefined || records[0].generatorFuel !== undefined || records[0].generatorLoad !== undefined || records[0].generatorRuntime !== undefined)) {
       SensorData.updateMany(
@@ -736,6 +786,9 @@ router.post('/', async (req, res) => {
     // Sync waste blocks (Block A & Block B only) with any updated scalar waste values before attaching defaults
     syncWasteTelemetry(payload, body);
 
+    // Preserve last valid LSTM forecasts if incoming snapshot had empty forecasts from a gateway gap
+    payload.aiForecasting = await resolveValidForecasts(payload.aiForecasting, latest?.aiForecasting);
+
     // Guarantee all dynamic fields, including a1, a2, a3, are defaulted and attached directly to payload BEFORE saving to MongoDB
     attachDynamicDefaults(payload);
     payload.timestamp = new Date();
@@ -881,6 +934,14 @@ router.put('/', async (req, res) => {
     updateData.wasteWetFill = wasteMerged.wasteWetFill;
     updateData.WasteWetFill = wasteMerged.WasteWetFill;
     updateData.overflowRisk = wasteMerged.overflowRisk;
+
+    // Preserve last valid LSTM forecasts if incoming snapshot had empty forecasts from a gateway gap
+    if (updateData.aiForecasting !== undefined || !hasValidForecasts(recordObj.aiForecasting)) {
+      updateData.aiForecasting = await resolveValidForecasts(
+        updateData.aiForecasting ?? recordObj.aiForecasting,
+        recordObj.aiForecasting
+      );
+    }
 
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
     updateData.timestamp = new Date();

@@ -1,5 +1,4 @@
 import {
-  MdDelete,
   MdWarning,
   MdRecycling,
 } from 'react-icons/md';
@@ -72,26 +71,10 @@ export default function Waste({ data, history = [] }) {
         </div>
       </div>
 
-      {/* Waste KPIs - 4 AI-Forecast Styled Cards */}
-      <div className="grid">
+      {/* Waste KPIs - 3 AI-Forecast Styled Cards */}
+      <div className="three">
         <StatCard
           index={0}
-          icon={<MdDelete size={20} color="#3b82f6" />}
-          label="Monitored Smart Bins"
-          badgeText={d.totalBins != null ? 'All Hubs Online' : 'Active'}
-          badgeType="green"
-          nowLabel="Campus Bins"
-          nowValue={d.totalBins ?? 12}
-          unit=" units"
-          secondaryLabel="Active Blocks"
-          secondaryValue={`${blocks.length} Blocks`}
-          secondaryColor="#2563eb"
-          footerLeft="Sonar level & weight cells active"
-          footerRight="Block A–B coverage"
-        />
-
-        <StatCard
-          index={1}
           icon={<MdRecycling size={20} color="#10b981" />}
           label="Block A"
           badgeText={wetFillAvg > 75 ? 'Rapid Fill Rate' : 'Optimal Rate'}
@@ -107,7 +90,7 @@ export default function Waste({ data, history = [] }) {
         />
 
         <StatCard
-          index={2}
+          index={1}
           icon={<MdRecycling size={20} color="#2563eb" />}
           label="Block B"
           badgeText={`${dryFillAvg}% Avg Fill`}
@@ -123,7 +106,7 @@ export default function Waste({ data, history = [] }) {
         />
 
         <StatCard
-          index={3}
+          index={2}
           icon={<MdWarning size={20} color={hasOverflow ? '#ef4444' : '#10b981'} />}
           label="Overflow Risk Bins"
           badgeText={hasOverflow ? `${overflowBlocks[0]?.code || 'Bin'} Warning` : 'Zero Hazard'}

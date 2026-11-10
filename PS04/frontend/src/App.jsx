@@ -59,26 +59,28 @@ const NAV_ICONS = {
   alerts:      <MdNotificationsActive size={18} />,
 };
 
-// Parse active view and page from URL hash
+// Parse active view and page from clean URL pathname (with optional legacy hash fallback)
 function parseRouteFromLocation() {
-  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+  const rawPath = (window.location.pathname || '/').replace(/^\/+|\/+$/g, '').toLowerCase().trim();
+  const rawHash = (window.location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+  const routeKey = rawPath || rawHash;
 
-  if (hash === 'landing' || hash === '') {
+  if (routeKey === 'landing' || routeKey === '') {
     return { view: 'landing', page: 'overview' };
   }
 
-  if (PAGE_MAP[hash]) {
-    return { view: 'dashboard', page: hash };
+  if (PAGE_MAP[routeKey]) {
+    return { view: 'dashboard', page: routeKey };
   }
 
-  if (hash.startsWith('dashboard/')) {
-    const sub = hash.replace('dashboard/', '');
+  if (routeKey.startsWith('dashboard/')) {
+    const sub = routeKey.replace('dashboard/', '');
     if (PAGE_MAP[sub]) {
       return { view: 'dashboard', page: sub };
     }
   }
 
-  if (hash === 'dashboard') {
+  if (routeKey === 'dashboard') {
     return { view: 'dashboard', page: 'overview' };
   }
 
@@ -87,15 +89,16 @@ function parseRouteFromLocation() {
 
 // Determine initial route on page load / refresh
 function getInitialRoute() {
-  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
-  if (hash) {
-    const hashRoute = parseRouteFromLocation();
-    if (hashRoute) {
-      return hashRoute;
+  const rawPath = (window.location.pathname || '/').replace(/^\/+|\/+$/g, '').toLowerCase().trim();
+  const rawHash = (window.location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+  if (rawPath || rawHash) {
+    const pathRoute = parseRouteFromLocation();
+    if (pathRoute) {
+      return pathRoute;
     }
   }
 
-  // Fallback to localStorage so refresh keeps user on current page even without hash
+  // Fallback to localStorage so refresh keeps user on current page
   try {
     const savedView = localStorage.getItem('facility_ai_view');
     const savedPage = localStorage.getItem('facility_ai_page');
@@ -163,7 +166,7 @@ export default function App() {
     }
   }, [data]);
 
-  // Unified navigation helper updating state, storage, and URL hash
+  // Unified navigation helper updating state, storage, and clean URL path (no #)
   const navigateTo = (newView, newPage = page) => {
     const targetPage = PAGE_MAP[newPage] ? newPage : 'overview';
     setView(newView);
@@ -176,18 +179,17 @@ export default function App() {
       console.error(e);
     }
 
-    const targetHash = newView === 'landing' ? '#/' : `#/${targetPage}`;
-    if (window.location.hash !== targetHash) {
-      window.location.hash = targetHash;
+    const targetPath = newView === 'landing' ? '/' : `/${targetPage}`;
+    if (window.location.pathname !== targetPath || window.location.hash) {
+      window.history.pushState(null, '', targetPath);
     }
   };
 
-  // Sync hash in address bar silently when state changes
+  // Sync clean URL path silently when state changes (strips any legacy #)
   useEffect(() => {
-    const targetHash = view === 'landing' ? '#/' : `#/${page}`;
-    if (window.location.hash !== targetHash && window
-      .location.hash !== `#${page}`) {
-      window.history.replaceState(null, '', targetHash);
+    const targetPath = view === 'landing' ? '/' : `/${page}`;
+    if (window.location.pathname !== targetPath || window.location.hash) {
+      window.history.replaceState(null, '', targetPath);
     }
     try {
       localStorage.setItem('facility_ai_view', view);
@@ -197,30 +199,27 @@ export default function App() {
     }
   }, [view, page]);
 
-  // Handle browser back/forward buttons (hashchange event)
+  // Handle browser back/forward buttons (popstate event)
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
-      if (!hash || hash === 'landing') {
+    const handlePopState = () => {
+      const route = parseRouteFromLocation();
+      if (route) {
+        setView(route.view);
+        setPage(route.page);
+        try {
+          localStorage.setItem('facility_ai_view', route.view);
+          localStorage.setItem('facility_ai_page', route.page);
+        } catch {}
+      } else {
         setView('landing');
         try {
           localStorage.setItem('facility_ai_view', 'landing');
         } catch {}
-      } else {
-        const route = parseRouteFromLocation();
-        if (route) {
-          setView(route.view);
-          setPage(route.page);
-          try {
-            localStorage.setItem('facility_ai_view', route.view);
-            localStorage.setItem('facility_ai_page', route.page);
-          } catch {}
-        }
       }
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleOpenLogin = () => {
