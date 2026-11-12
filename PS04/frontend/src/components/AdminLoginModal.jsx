@@ -34,10 +34,14 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
 
     try {
       // Call backend JWT login endpoint with smart failover for production Nginx setups
+      const isCloud = typeof window !== 'undefined' && window.location.hostname.includes('ionode.cloud');
       const candidateEndpoints = [
+        ...(isCloud ? ['https://sustainable.api.ionode.cloud/api/auth/login'] : []),
+        'https://sustainable.api.ionode.cloud/api/auth/login',
         '/api/auth/login',
         `${window.location.protocol}//${window.location.hostname}:5011/api/auth/login`,
-      ];
+        'http://localhost:5011/api/auth/login',
+      ].filter((v, i, a) => a.indexOf(v) === i);
 
       let response = null;
       let responseJson = null;

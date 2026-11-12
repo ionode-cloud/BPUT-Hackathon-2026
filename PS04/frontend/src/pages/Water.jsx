@@ -12,6 +12,7 @@ import ChartBox from '../components/ChartBox';
 import StatCard from '../components/StatCard';
 import { getWaterTrendData, getTankStorageData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
+import { apiRoute } from '../utils/apiConfig';
 
 export default function Water({ data, history = [], allHistory = [], onUpdate }) {
   const d = data || {};
@@ -100,7 +101,7 @@ export default function Water({ data, history = [], allHistory = [], onUpdate })
       if (onUpdate) {
         await onUpdate({ valve1: nextVal });
       } else {
-        await fetch('http://localhost:5011/api/data', {
+        await fetch(apiRoute('/api/data'), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ valve1: nextVal }),
@@ -126,7 +127,7 @@ export default function Water({ data, history = [], allHistory = [], onUpdate })
       if (onUpdate) {
         await onUpdate({ valve2: nextVal });
       } else {
-        await fetch('http://localhost:5011/api/data', {
+        await fetch(apiRoute('/api/data'), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ valve2: nextVal }),

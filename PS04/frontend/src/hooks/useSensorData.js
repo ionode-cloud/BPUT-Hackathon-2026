@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getBackendBaseUrl, apiRoute } from '../utils/apiConfig';
 
 const CACHE_KEY_DATA = 'facility_ai_last_active_data';
 const CACHE_KEY_HISTORY = 'facility_ai_telemetry_history_store_v1';
@@ -35,14 +36,19 @@ const rawBackendUrl = import.meta.env?.VITE_BACKEND_URL;
 const normApi = normalizeEndpoint(rawApiUrl);
 const normBackend = normalizeEndpoint(rawBackendUrl);
 
-// Prioritize local relative endpoint first (uses Vite proxy with 0 CORS & 0 network latency)
+const isIonodeCloud = typeof window !== 'undefined' && window.location.hostname.includes('ionode.cloud');
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// Candidate API endpoints (prioritizes production API on cloud domain, local proxy on localhost)
 const API_ENDPOINTS = [
-  '/api/data',
+  ...(isIonodeCloud ? ['https://sustainable.api.ionode.cloud/api/data'] : []),
   ...(normApi && normApi !== '/api/data' ? [normApi] : []),
-  ...(rawApiUrl && rawApiUrl !== '/api/data' ? [rawApiUrl.trim().replace(/\/+$/, '')] : []),
+  ...(isLocal ? ['/api/data'] : []),
+  'https://sustainable.api.ionode.cloud/api/data',
   'http://localhost:5011/api/data',
   'http://127.0.0.1:5011/api/data',
-  ...(normBackend ? [normBackend] : []),
+  ...(normBackend ? [`${normBackend}/api/data`] : []),
+  '/api/data',
   '/api',
 ].filter((val, idx, arr) => arr.indexOf(val) === idx);
 
@@ -60,13 +66,20 @@ async function apiFetch(path = '', options = {}) {
       const sep = path && !path.startsWith('?') && !path.startsWith('/') && !base.endsWith('/') ? '/' : '';
       const url = path ? `${base}${sep}${path}` : base;
       const res = await fetch(url, options);
+
+      // CRITICAL: Reject static HTML responses (e.g. Nginx returning index.html for SPA routes)
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && !contentType.includes('application/json') && !contentType.includes('text/plain')) {
+        continue; // Skip static HTML fallback page and try next candidate
+      }
+
       if (res.ok) {
         activeWorkingEndpoint = base;
         return res;
       }
 
-      // Accept expected 404 "No sensor data found" from backend
-      if (res.status === 404) {
+      // Accept expected 404 "No sensor data found" from backend only if it's JSON
+      if (res.status === 404 && contentType.includes('application/json')) {
         try {
           const clone = res.clone();
           const json = await clone.json();

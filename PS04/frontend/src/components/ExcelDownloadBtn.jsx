@@ -31,18 +31,21 @@ export default function ExcelDownloadBtn({
         ? [...allHistory]
         : (Array.isArray(history) && history.length > 0 ? [...history] : []);
 
-      // 2. Fetch the entire database telemetry history (all 90+ records) directly
+      // 2. Fetch the entire database telemetry history directly
+      const isCloud = typeof window !== 'undefined' && window.location.hostname.includes('ionode.cloud');
       const candidateEndpoints = [
+        ...(isCloud ? ['https://sustainable.api.ionode.cloud/api/data?all=true'] : []),
+        'https://sustainable.api.ionode.cloud/api/data?all=true',
+        '/api/data?all=true',
         'http://localhost:5011/api/data?all=true',
         'http://127.0.0.1:5011/api/data?all=true',
-        '/api/data?all=true',
-        'http://localhost:5010/api/data?all=true',
-      ];
+      ].filter((v, i, a) => a.indexOf(v) === i);
 
       for (const ep of candidateEndpoints) {
         try {
           const res = await fetch(ep);
-          if (res.ok) {
+          const ct = res.headers.get('content-type') || '';
+          if (res.ok && ct.includes('application/json')) {
             const json = await res.json();
             if (Array.isArray(json.data) && json.data.length > 0) {
               const map = new Map();

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, Fragment } from 'react';
+import { apiRoute } from '../utils/apiConfig';
 import {
   MdHistory,
   MdSearch,
@@ -183,8 +184,25 @@ export default function History({ data = {}, history = [], allHistory = [], onUp
   // Manual refresh / re-scan handler
   const handleRefresh = async () => {
     try {
-      const res = await fetch('http://localhost:5011/api/data?all=true');
-      if (res.ok) {
+      const candidates = [
+        apiRoute('/api/data?all=true'),
+        'https://sustainable.api.ionode.cloud/api/data?all=true',
+        '/api/data?all=true',
+        'http://localhost:5011/api/data?all=true',
+      ];
+      let res = null;
+      for (const ep of candidates) {
+        try {
+          const r = await fetch(ep);
+          const ct = r.headers.get('content-type') || '';
+          if (r.ok && ct.includes('application/json')) {
+            res = r;
+            break;
+          }
+        } catch {}
+      }
+
+      if (res && res.ok) {
         const json = await res.json();
         if (Array.isArray(json.data)) {
           const merged = dedupeAndSortRecords([...json.data, ...records]);

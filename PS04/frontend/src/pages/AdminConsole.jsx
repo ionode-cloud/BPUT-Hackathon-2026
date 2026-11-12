@@ -52,10 +52,14 @@ function getAuthToken() {
 }
 
 // Smart auth API fetch with fallback to direct backend port on production
+const isCloudAuth = typeof window !== 'undefined' && window.location.hostname.includes('ionode.cloud');
 const AUTH_CANDIDATE_BASES = [
+  ...(isCloudAuth ? ['https://sustainable.api.ionode.cloud/api/auth'] : []),
+  'https://sustainable.api.ionode.cloud/api/auth',
   '/api/auth',
   `${window.location.protocol}//${window.location.hostname}:5011/api/auth`,
-];
+  'http://localhost:5011/api/auth',
+].filter((v, i, a) => a.indexOf(v) === i);
 
 async function authApiFetch(subPath, options = {}) {
   for (const base of AUTH_CANDIDATE_BASES) {
