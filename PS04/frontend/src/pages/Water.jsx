@@ -13,7 +13,7 @@ import StatCard from '../components/StatCard';
 import { getWaterTrendData, getTankStorageData } from '../utils/chartHelpers';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
-export default function Water({ data, history = [], onUpdate }) {
+export default function Water({ data, history = [], allHistory = [], onUpdate }) {
   const d = data || {};
   const trendData = getWaterTrendData(d, history);
   const tankData = getTankStorageData(d);
@@ -154,7 +154,7 @@ export default function Water({ data, history = [], onUpdate }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="water" tabLabel="Water" data={d} history={history} />
+          <ExcelDownloadBtn tabName="water" tabLabel="Water" data={d} history={history} allHistory={allHistory} />
         </div>
       </div>
 

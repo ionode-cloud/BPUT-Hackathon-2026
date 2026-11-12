@@ -95,6 +95,7 @@ const sensorDataSchema = new mongoose.Schema(
     // Free-form dynamic objects & AI forecast payloads
     aiForecasting:        { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
     priorityEngine:       { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+    anomalyDetection:     { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 
     // ── Meta ──────────────────────────────────────────────────────────────
     source:    { type: String, default: 'manual' }, // "sensor" | "manual" | "synthetic"
@@ -105,6 +106,7 @@ const sensorDataSchema = new mongoose.Schema(
     timestamps: true,  // adds createdAt + updatedAt automatically
     versionKey: false,
     strict: false,     // Allow free-form fields and keep any dynamic properties
+    minimize: false,   // Preserve empty objects {} (e.g. anomalyDetection: {}, aiForecasting: {})
   }
 );
 

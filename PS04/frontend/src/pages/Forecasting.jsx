@@ -9,6 +9,7 @@ import {
   MdKeyboardArrowUp,
   MdSignalCellularAlt,
 } from 'react-icons/md';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 function toFinite(v, fallback = 0) {
   if (v == null || v === '') return fallback;
@@ -126,7 +127,7 @@ function ForecastChart({ nowVal, points = [] }) {
   );
 }
 
-export default function Forecasting({ data = {} }) {
+export default function Forecasting({ data = {}, history = [], allHistory = [] }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [showTable, setShowTable] = useState(true);
   const [tablePage, setTablePage] = useState(1);
@@ -237,8 +238,8 @@ export default function Forecasting({ data = {} }) {
             {timeStr} &bull; {totalCount} active forecast channel{totalCount === 1 ? '' : 's'} ({ai.site || data?.location || 'Campus Facility'}).
           </p>
         </div>
-        {totalCount > 0 && (
-          <div className="banner-right-actions">
+        <div className="banner-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {totalCount > 0 && (
             <button
               type="button"
               className="btn-action"
@@ -248,8 +249,9 @@ export default function Forecasting({ data = {} }) {
               <span>{showTable ? 'Hide Telemetry Table' : 'Show Telemetry Table'}</span>
               {showTable ? <MdKeyboardArrowUp size={16} /> : <MdKeyboardArrowDown size={16} />}
             </button>
-          </div>
-        )}
+          )}
+          <ExcelDownloadBtn tabName="forecasting" tabLabel="AI Forecast" data={data} history={history} allHistory={allHistory} />
+        </div>
       </div>
 
       {/* ════ ZERO DATA STATE (IF API HAS NOT LOGGED FORECASTS YET) ════ */}

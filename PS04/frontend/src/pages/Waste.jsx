@@ -24,7 +24,7 @@ function getBlockDirective(block) {
   return 'Operating within optimal capacity.';
 }
 
-export default function Waste({ data, history = [] }) {
+export default function Waste({ data, history = [], allHistory = [] }) {
   const d = data || {};
   const trendData = getWasteTrendData(d, history);
   const dryWetBlockChart = getDryWetBlockData(d);
@@ -76,7 +76,7 @@ export default function Waste({ data, history = [] }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="waste" tabLabel="Waste" data={d} history={history} />
+          <ExcelDownloadBtn tabName="waste" tabLabel="Waste" data={d} history={history} allHistory={allHistory} />
         </div>
       </div>
 

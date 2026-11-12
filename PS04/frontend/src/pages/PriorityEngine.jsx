@@ -7,6 +7,7 @@ import {
   MdKeyboardArrowUp,
   MdCheckCircleOutline,
 } from 'react-icons/md';
+import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
 // Styling helper for Priority level badges
 function getLevelBadgeStyle(level) {
@@ -54,7 +55,7 @@ function getLevelBadgeStyle(level) {
   }
 }
 
-export default function PriorityEngine({ data = {} }) {
+export default function PriorityEngine({ data = {}, history = [], allHistory = [] }) {
   const [showTable, setShowTable] = useState(true);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(5);
@@ -105,7 +106,7 @@ export default function PriorityEngine({ data = {} }) {
             {timeStr} &bull; {rawItems.length} ranked operational action{rawItems.length === 1 ? '' : 's'} scored across {areas.length} facility subsystem{areas.length === 1 ? '' : 's'}.
           </p>
         </div>
-        <div className="banner-right-actions">
+        <div className="banner-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             type="button"
             className="btn-action"
@@ -115,6 +116,7 @@ export default function PriorityEngine({ data = {} }) {
             <span>{showTable ? 'Hide Triage Table' : 'Show Triage Table'}</span>
             {showTable ? <MdKeyboardArrowUp size={16} /> : <MdKeyboardArrowDown size={16} />}
           </button>
+          <ExcelDownloadBtn tabName="priority" tabLabel="Priority Engine" data={data} history={history} allHistory={allHistory} />
         </div>
       </div>
 

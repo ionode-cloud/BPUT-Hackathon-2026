@@ -57,7 +57,7 @@ function formatAlertTime(isoString) {
   }
 }
 
-export default function AlertHistory({ data }) {
+export default function AlertHistory({ data, history = [], allHistory = [] }) {
   // Load initial alerts from localStorage merged with live sensor telemetry
   const [alerts, setAlerts] = useState(() => loadPersistedAlerts(data));
   const [selectedSystem, setSelectedSystem] = useState('all'); // 'all' | 'air' | 'energy' | 'water' | 'waste'
@@ -178,7 +178,7 @@ export default function AlertHistory({ data }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="alerts" tabLabel="Alert History" alerts={alerts} />
+          <ExcelDownloadBtn tabName="alerts" tabLabel="Alert History" data={data} history={allHistory} allHistory={allHistory} alerts={alerts} />
         </div>
       </div>
 

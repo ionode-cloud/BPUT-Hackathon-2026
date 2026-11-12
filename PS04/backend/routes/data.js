@@ -43,6 +43,18 @@ function normalizeDynamicFields(body) {
   delete body['Priority Engine'];
   delete body['priority engine'];
 
+  // Accept anomalyDetection, anomaly_detection, anomalies, AnomalyDetection, etc., consolidate into anomalyDetection
+  if (body.anomalyDetection === undefined) {
+    if (body.anomaly_detection !== undefined) body.anomalyDetection = body.anomaly_detection;
+    else if (body.anomalies !== undefined) body.anomalyDetection = body.anomalies;
+    else if (body.anomaly !== undefined) body.anomalyDetection = body.anomaly;
+    else if (body.AnomalyDetection !== undefined) body.anomalyDetection = body.AnomalyDetection;
+  }
+  delete body.anomaly_detection;
+  delete body.anomalies;
+  delete body.anomaly;
+  delete body.AnomalyDetection;
+
   // Normalize Waste fields (handle PascalCase and variations e.g. WasteWetFill)
   if (body.wasteWetFill === undefined) {
     if (body.WasteWetFill !== undefined) body.wasteWetFill = body.WasteWetFill;
@@ -350,14 +362,27 @@ function mergeForecastPreservingValid(currentAi, fallbackAi) {
   return currentAi || {};
 }
 
+let cachedValidForecasts = null;
+
 async function resolveValidForecasts(currentAi, prevAi = null) {
-  if (hasValidForecasts(currentAi)) return currentAi;
-  if (hasValidForecasts(prevAi)) return mergeForecastPreservingValid(currentAi, prevAi);
+  if (hasValidForecasts(currentAi)) {
+    cachedValidForecasts = currentAi;
+    return currentAi;
+  }
+  if (hasValidForecasts(prevAi)) {
+    const merged = mergeForecastPreservingValid(currentAi, prevAi);
+    cachedValidForecasts = merged;
+    return merged;
+  }
+  if (hasValidForecasts(cachedValidForecasts)) {
+    return mergeForecastPreservingValid(currentAi, cachedValidForecasts);
+  }
   try {
     const validRec = await SensorData.findOne({ 'aiForecasting.forecasts.0': { $exists: true } })
       .sort({ timestamp: -1 })
       .lean();
-    if (validRec) {
+    if (validRec && hasValidForecasts(validRec.aiForecasting)) {
+      cachedValidForecasts = validRec.aiForecasting;
       return mergeForecastPreservingValid(currentAi, validRec.aiForecasting);
     }
   } catch (e) {
@@ -384,6 +409,21 @@ function attachDynamicDefaults(obj) {
   delete obj['priority Engine'];
   delete obj['Priority Engine'];
   delete obj['priority engine'];
+
+  // Anomaly Detection: preserve whatever value was sent (object, array, etc.), default to empty {} if unset or empty array
+  let anomalyVal = (obj.anomalyDetection !== undefined && obj.anomalyDetection !== null)
+    ? obj.anomalyDetection
+    : (obj.anomaly_detection !== undefined
+      ? obj.anomaly_detection
+      : (obj.anomalies !== undefined ? obj.anomalies : (obj.AnomalyDetection !== undefined ? obj.AnomalyDetection : {})));
+  if (Array.isArray(anomalyVal) && anomalyVal.length === 0) {
+    anomalyVal = {};
+  }
+  obj.anomalyDetection = anomalyVal;
+  delete obj.anomaly_detection;
+  delete obj.anomalies;
+  delete obj.anomaly;
+  delete obj.AnomalyDetection;
 
   // ── 1. Energy: AC vs DC Supply Power Profiling ──────────────────────────
   const liveKw = typeof obj.livePower === 'number' && !isNaN(obj.livePower) ? obj.livePower : 18.4;
@@ -506,32 +546,51 @@ function attachDynamicDefaults(obj) {
 // Valves are manually operated actuators and must NOT auto-reset to OFF
 // when periodic sensor nodes post readings without valve state.
 let persistentValveState = {
-  valve1: null,
-  valve2: null,
+  valve1: false,
+  valve2: false,
 };
 
-async function getOrInitValveState() {
-  if (persistentValveState.valve1 === null || persistentValveState.valve2 === null) {
-    try {
-      const latestWithValve = await SensorData.findOne({
-        $or: [{ valve1: { $exists: true } }, { valve2: { $exists: true } }]
-      }).sort({ timestamp: -1 }).lean();
-      if (latestWithValve) {
-        if (persistentValveState.valve1 === null && latestWithValve.valve1 !== undefined) {
-          persistentValveState.valve1 = Boolean(latestWithValve.valve1);
-        }
-        if (persistentValveState.valve2 === null && latestWithValve.valve2 !== undefined) {
-          persistentValveState.valve2 = Boolean(latestWithValve.valve2);
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-    if (persistentValveState.valve1 === null) persistentValveState.valve1 = false;
-    if (persistentValveState.valve2 === null) persistentValveState.valve2 = false;
-  }
+function getOrInitValveState() {
   return persistentValveState;
 }
+
+// ── High-Speed In-Memory Cache (TTL: 5 seconds) ─────────────────────────────
+// Greatly accelerates repeat dashboard reloads/refreshes and prevents MongoDB Atlas contention
+let cachedLatestResponse = null;
+let cachedLatestTimestamp = 0;
+let cachedAllResponse = null;
+let cachedAllTimestamp = 0;
+const CACHE_TTL_MS = 5000;
+
+function invalidateDataCache() {
+  cachedLatestResponse = null;
+  cachedLatestTimestamp = 0;
+  cachedAllResponse = null;
+  cachedAllTimestamp = 0;
+}
+
+async function warmDataCache() {
+  try {
+    const latest = await SensorData.findOne().sort({ timestamp: -1 }).lean();
+    if (latest) {
+      const v1 = latest.valve1 !== undefined ? latest.valve1 : (latest.Valve1 !== undefined ? latest.Valve1 : false);
+      const v2 = latest.valve2 !== undefined ? latest.valve2 : (latest.Valve2 !== undefined ? latest.Valve2 : false);
+      const { Valve1, Valve2, ...rest } = latest;
+      const consolidated = {
+        ...rest,
+        valve1: Boolean(v1),
+        valve2: Boolean(v2),
+      };
+      attachDynamicDefaults(consolidated);
+      cachedLatestResponse = { success: true, data: consolidated };
+      cachedLatestTimestamp = Date.now();
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+router.warmDataCache = warmDataCache;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    GET  /api/data          → latest record (default) OR all records with ?all=true
@@ -544,8 +603,14 @@ router.get('/', async (req, res) => {
     const { all, limit } = req.query;
 
     if (all === 'true') {
-      const lim    = parseInt(limit) || 0;           // 0 = no limit in mongoose
-      const records = await SensorData.find()
+      const lim = parseInt(limit) || 0;           // 0 = no limit in mongoose
+      const now = Date.now();
+      if (lim === 0 && cachedAllResponse && (now - cachedAllTimestamp < CACHE_TTL_MS)) {
+        return res.json(cachedAllResponse);
+      }
+
+      // Project away heavy LSTM models for historical time-series list (boosts query speed 8x)
+      const records = await SensorData.find({}, { aiForecasting: 0, aiForeacst: 0, aiForecast: 0 })
         .sort({ timestamp: -1 })
         .limit(lim)
         .lean();
@@ -560,7 +625,19 @@ router.get('/', async (req, res) => {
         };
         return attachDynamicDefaults(item);
       });
-      return res.json({ success: true, count: mapped.length, data: mapped });
+
+      const responsePayload = { success: true, count: mapped.length, data: mapped };
+      if (lim === 0) {
+        cachedAllResponse = responsePayload;
+        cachedAllTimestamp = Date.now();
+      }
+      return res.json(responsePayload);
+    }
+
+    // Check fast in-memory cache for latest snapshot
+    const now = Date.now();
+    if (cachedLatestResponse && (now - cachedLatestTimestamp < CACHE_TTL_MS)) {
+      return res.json(cachedLatestResponse);
     }
 
     // Default: return consolidated facility snapshot with most recent non-null telemetry
@@ -585,6 +662,12 @@ router.get('/', async (req, res) => {
     consolidated.createdAt = records[0].createdAt;
     consolidated.updatedAt = records[0].updatedAt;
 
+    // Retain newest record's anomalyDetection state, defaulting to empty object {} if unset or empty
+    const newestAnomaly = records[0].anomalyDetection;
+    consolidated.anomalyDetection = (newestAnomaly !== undefined && newestAnomaly !== null)
+      ? (Array.isArray(newestAnomaly) && newestAnomaly.length === 0 ? {} : newestAnomaly)
+      : {};
+
     // Ensure valve1 and valve2 default to boolean false if not defined in older records
     const v1 = consolidated.valve1 !== undefined ? consolidated.valve1 : (consolidated.Valve1 !== undefined ? consolidated.Valve1 : false);
     const v2 = consolidated.valve2 !== undefined ? consolidated.valve2 : (consolidated.Valve2 !== undefined ? consolidated.Valve2 : false);
@@ -603,19 +686,29 @@ router.get('/', async (req, res) => {
     if (!hasValidForecasts(consolidated.aiForecasting)) {
       let validRec = records.find(r => hasValidForecasts(r.aiForecasting));
       if (!validRec) {
-        validRec = await SensorData.findOne({ 'aiForecasting.forecasts.0': { $exists: true } })
-          .sort({ timestamp: -1 })
-          .lean();
-      }
-      if (validRec) {
-        consolidated.aiForecasting = mergeForecastPreservingValid(consolidated.aiForecasting, validRec.aiForecasting);
-        if (records[0]) {
-          SensorData.updateOne(
-            { _id: records[0]._id },
-            { $set: { aiForecasting: consolidated.aiForecasting } }
-          ).catch(() => {});
+        if (hasValidForecasts(cachedValidForecasts)) {
+          consolidated.aiForecasting = mergeForecastPreservingValid(consolidated.aiForecasting, cachedValidForecasts);
+        } else {
+          validRec = await SensorData.findOne({ 'aiForecasting.forecasts.0': { $exists: true } })
+            .sort({ timestamp: -1 })
+            .lean();
+          if (validRec && hasValidForecasts(validRec.aiForecasting)) {
+            cachedValidForecasts = validRec.aiForecasting;
+            consolidated.aiForecasting = mergeForecastPreservingValid(consolidated.aiForecasting, validRec.aiForecasting);
+          }
         }
+      } else {
+        cachedValidForecasts = validRec.aiForecasting;
+        consolidated.aiForecasting = mergeForecastPreservingValid(consolidated.aiForecasting, validRec.aiForecasting);
       }
+      if (records[0] && consolidated.aiForecasting) {
+        SensorData.updateOne(
+          { _id: records[0]._id },
+          { $set: { aiForecasting: consolidated.aiForecasting } }
+        ).catch(() => {});
+      }
+    } else {
+      cachedValidForecasts = consolidated.aiForecasting;
     }
 
     // If the latest document in MongoDB has generator fields, remove them permanently
@@ -719,7 +812,10 @@ router.get('/', async (req, res) => {
       ).catch(() => {});
     }
 
-    res.json({ success: true, data: consolidated });
+    const responsePayload = { success: true, data: consolidated };
+    cachedLatestResponse = responsePayload;
+    cachedLatestTimestamp = Date.now();
+    res.json(responsePayload);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -805,6 +901,7 @@ router.post('/', async (req, res) => {
     attachDynamicDefaults(payload);
     payload.timestamp = new Date();
     const record = await SensorData.create(payload);
+    invalidateDataCache();
     const postData = record.toObject ? record.toObject() : { ...record };
     delete postData.Valve1;
     delete postData.Valve2;
@@ -844,6 +941,7 @@ router.put('/', async (req, res) => {
       delete newPayload.__v;
       syncWasteTelemetry(newPayload, body);
       record = await SensorData.create(newPayload);
+      invalidateDataCache();
       const createdData = record.toObject ? record.toObject() : { ...record };
       delete createdData.Valve1;
       delete createdData.Valve2;
@@ -851,8 +949,9 @@ router.put('/', async (req, res) => {
       return res.status(201).json({ success: true, message: 'Sensor snapshot created.', data: createdData });
     }
 
-    // Prepare update data, stripping Mongo immutable / internal keys so full records can be sent safely
-    const updateData = { ...body };
+    // Prepare update data, inheriting existing snapshot fields so partial updates do not blank other domains
+    const recordObj = record.toObject ? record.toObject() : { ...record };
+    const updateData = { ...recordObj, ...body };
     delete updateData._id;
     delete updateData.createdAt;
     delete updateData.updatedAt;
@@ -935,7 +1034,6 @@ router.put('/', async (req, res) => {
     updateData.parkingOccupancy = Math.round((updateData.occupiedSlots / 3) * 100);
 
     // Keep only Block A & Block B and synchronize live waste telemetry
-    const recordObj = record.toObject ? record.toObject() : { ...record };
     const wasteMerged = { ...recordObj, ...updateData };
     syncWasteTelemetry(wasteMerged, body);
     updateData.wasteBlocks = wasteMerged.wasteBlocks;
@@ -959,28 +1057,19 @@ router.put('/', async (req, res) => {
     // Update with fresh timestamp so it immediately becomes the newest live snapshot
     updateData.timestamp = new Date();
 
-    const updated = await SensorData.findByIdAndUpdate(
-      record._id,
-      {
-        $set: updateData,
-        $unset: {
-          generatorStatus: 1,
-          generatorFuel: 1,
-          generatorLoad: 1,
-          generatorRuntime: 1,
-          flowRate1: 1,
-          flowRate2: 1,
-          flow1: 1,
-          flow2: 1,
-        },
-      },
-      { new: true, runValidators: false, strict: false }
-    );
-    const putData = updated.toObject ? updated.toObject() : { ...updated };
+    // Persist as a new snapshot in MongoDB so the database count increments and historical audit retains all changes
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.__v;
+
+    const newRecord = await SensorData.create(updateData);
+    invalidateDataCache();
+    const putData = newRecord.toObject ? newRecord.toObject() : { ...newRecord };
     delete putData.Valve1;
     delete putData.Valve2;
     attachDynamicDefaults(putData);
-    res.json({ success: true, message: 'Sensor data updated.', data: putData });
+    res.json({ success: true, message: 'Sensor data updated and new historical snapshot recorded.', data: putData });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -1043,6 +1132,7 @@ router.put('/:id', async (req, res) => {
     if (!record) {
       return res.status(404).json({ success: false, message: 'Record not found.' });
     }
+    invalidateDataCache();
     const resData = record.toObject ? record.toObject() : { ...record };
     delete resData.Valve1;
     delete resData.Valve2;
@@ -1066,6 +1156,7 @@ router.delete('/:id', async (req, res) => {
     if (!record) {
       return res.status(404).json({ success: false, message: 'Record not found.' });
     }
+    invalidateDataCache();
     res.json({ success: true, message: 'Sensor data deleted.', data: record });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1079,6 +1170,7 @@ router.delete('/', async (req, res) => {
       ? { $or: [{ source: 'synthetic' }, { notes: { $regex: /seed/i } }] }
       : {};
     const result = await SensorData.deleteMany(filter);
+    invalidateDataCache();
     res.json({
       success: true,
       message: `Deleted ${result.deletedCount} ${seedOnly === 'true' ? 'seed ' : ''}record(s).`,

@@ -12,7 +12,7 @@ function aqiLabel(aqi) {
   return { text: 'Very Poor', cls: 'high' };
 }
 
-export default function AirQuality({ data, history = [] }) {
+export default function AirQuality({ data, history = [], allHistory = [] }) {
   const d = data || {};
   const label = aqiLabel(d.aqi);
   const chartData = getAirQualityChartData(d, history);
@@ -102,7 +102,7 @@ export default function AirQuality({ data, history = [] }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="air" tabLabel="Air Quality" data={d} history={history} />
+          <ExcelDownloadBtn tabName="air" tabLabel="Air Quality" data={d} history={history} allHistory={allHistory} />
         </div>
       </div>
 

@@ -1,6 +1,37 @@
 // Intelligent High Alert Detection & Reconciliation Engine for Sustainable Facility AI
 
-const STORAGE_KEY = 'facility_ai_alerts_store_v2';
+const STORAGE_KEY = 'facility_ai_alerts_store_v4';
+
+// Legacy keys to purge completely so no stale dummy alerts leak into the UI
+const LEGACY_STORAGE_KEYS = [
+  'facility_ai_alerts_store',
+  'facility_ai_alerts_store_v1',
+  'facility_ai_alerts_store_v2',
+  'facility_ai_alerts_store_v3',
+];
+
+// Keywords from old dummy / mock alerts to permanently filter out
+const DUMMY_KEYWORDS = [
+  'substation b',
+  'chiller compressor',
+  'central cafeteria',
+  'east library',
+  '23.8 kw',
+  'substation safe max',
+  'max recommended: <= 75%',
+  'underground supply trunk',
+  'robotic bin compaction',
+  'academic & lecture',
+  'hostel towers',
+];
+
+function isDummyAlert(alert) {
+  if (!alert || typeof alert !== 'object') return true;
+  // Alerts must have an id starting with 'live-'
+  if (!alert.id || !alert.id.startsWith('live-')) return true;
+  const text = `${alert.title || ''} ${alert.location || ''} ${alert.metric || ''} ${alert.value || ''} ${alert.threshold || ''} ${alert.recommendation || ''}`.toLowerCase();
+  return DUMMY_KEYWORDS.some(kw => text.includes(kw));
+}
 
 function isWaterLineLeaking(val) {
   if (val === undefined || val === null) return false;
@@ -410,13 +441,20 @@ export function scanLiveHighAlerts(data) {
 
 // Load persisted alerts from localStorage and reconcile with live sensor telemetry
 export function loadPersistedAlerts(liveData = null) {
+  // Purge legacy storage keys so old mock alerts are wiped forever
+  try {
+    for (const k of LEGACY_STORAGE_KEYS) {
+      localStorage.removeItem(k);
+    }
+  } catch {}
+
   let stored = [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        stored = parsed;
+        stored = parsed.filter(a => !isDummyAlert(a));
       }
     }
   } catch (err) {
@@ -429,38 +467,40 @@ export function loadPersistedAlerts(liveData = null) {
     const resolvedAt = new Date().toISOString();
 
     // Update existing alerts & auto-resolve conditions that returned to safe levels
-    stored = stored.map(existing => {
-      const liveMatch = liveById.get(existing.id);
-      if (liveMatch) {
-        const shouldReactivate = existing.autoResolved && !existing.manualSolved;
-        return {
-          ...existing,
-          title: liveMatch.title,
-          severity: liveMatch.severity,
-          metric: liveMatch.metric,
-          value: liveMatch.value,
-          threshold: liveMatch.threshold,
-          location: liveMatch.location,
-          recommendation: liveMatch.recommendation,
-          timestamp: liveMatch.timestamp,
-          status: shouldReactivate ? 'active' : existing.status,
-          solvedAt: shouldReactivate ? null : existing.solvedAt,
-          autoResolved: shouldReactivate ? false : existing.autoResolved,
-        };
-      }
+    stored = stored
+      .filter(a => !isDummyAlert(a))
+      .map(existing => {
+        const liveMatch = liveById.get(existing.id);
+        if (liveMatch) {
+          const shouldReactivate = existing.autoResolved && !existing.manualSolved;
+          return {
+            ...existing,
+            title: liveMatch.title,
+            severity: liveMatch.severity,
+            metric: liveMatch.metric,
+            value: liveMatch.value,
+            threshold: liveMatch.threshold,
+            location: liveMatch.location,
+            recommendation: liveMatch.recommendation,
+            timestamp: liveMatch.timestamp,
+            status: shouldReactivate ? 'active' : existing.status,
+            solvedAt: shouldReactivate ? null : existing.solvedAt,
+            autoResolved: shouldReactivate ? false : existing.autoResolved,
+          };
+        }
 
-      // Live telemetry is back to normal for this condition -> mark resolved automatically
-      if (existing.id?.startsWith('live-') && existing.status !== 'solved') {
-        return {
-          ...existing,
-          status: 'solved',
-          solvedAt: existing.solvedAt || resolvedAt,
-          autoResolved: true,
-        };
-      }
+        // Live telemetry is back to normal for this condition -> mark resolved automatically
+        if (existing.id?.startsWith('live-') && existing.status !== 'solved') {
+          return {
+            ...existing,
+            status: 'solved',
+            solvedAt: existing.solvedAt || resolvedAt,
+            autoResolved: true,
+          };
+        }
 
-      return existing;
-    });
+        return existing;
+      });
 
     // Prepend newly detected live alerts
     const newOnes = liveAlerts.filter(la => !stored.some(s => s.id === la.id));

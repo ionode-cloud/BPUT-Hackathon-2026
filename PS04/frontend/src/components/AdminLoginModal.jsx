@@ -18,7 +18,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -26,76 +26,97 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     const trimmedPass = password.trim();
 
     if (!trimmedInput || !trimmedPass) {
-      setError('Please enter both Admin Gmail and Password.');
-      return;
-    }
-
-    // Auto-normalize if user typed just username (e.g. "admin" -> "admin@gmail.com")
-    const resolvedGmail = trimmedInput.includes('@') ? trimmedInput : `${trimmedInput}@gmail.com`;
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(resolvedGmail)) {
-      setError('Please enter a valid Gmail address (e.g. admin@gmail.com).');
+      setError('Please enter both User / Admin ID and Password.');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      let valid = false;
-      let userRole = 'Facility SuperAdmin';
-      const usernamePart = resolvedGmail.split('@')[0];
-      let userName = usernamePart === 'admin'
-        ? 'Campus SuperAdmin'
-        : usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1);
+    try {
+      // Call backend JWT login endpoint
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idOrEmail: trimmedInput,
+          password: trimmedPass,
+        }),
+      });
 
-      // Authenticate: Accept admin@gmail.com, any valid @gmail.com address with valid password, or local registered users
-      if (
-        (resolvedGmail === 'admin@gmail.com' || resolvedGmail.endsWith('@gmail.com') || resolvedGmail.includes('admin')) &&
-        (trimmedPass === 'admin123' || trimmedPass.length >= 4)
-      ) {
-        valid = true;
-      } else {
-        try {
-          const registeredUsers = JSON.parse(localStorage.getItem('facility_ai_users') || '[]');
-          const matched = registeredUsers.find(
-            (u) =>
-              (u.id.toLowerCase() === resolvedGmail || (u.email && u.email.toLowerCase() === resolvedGmail)) &&
-              u.password === trimmedPass
-          );
-          if (matched) {
-            valid = true;
-            userRole = matched.role || userRole;
-            userName = matched.name || userName;
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
+      const data = await response.json();
 
-      if (valid) {
+      if (response.ok && data.success && data.token) {
         const sessionData = {
-          id: resolvedGmail,
-          email: resolvedGmail,
-          name: userName,
-          role: userRole,
+          ...data.user,
+          token: data.token,
           timestamp: Date.now(),
         };
 
         if (rememberMe) {
+          localStorage.setItem('facility_ai_token', data.token);
           localStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+          localStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
         } else {
+          sessionStorage.setItem('facility_ai_token', data.token);
           sessionStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+          sessionStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
         }
 
         setIsLoading(false);
         onLoginSuccess(sessionData);
-      } else {
-        setIsLoading(false);
-        setError('Invalid email or password. Please check your credentials.');
+        return;
       }
-    }, 400);
+
+      if (data && data.message) {
+        setIsLoading(false);
+        setError(data.message);
+        return;
+      }
+    } catch (apiErr) {
+      console.warn('Backend /api/auth/login connection failed, trying fallback:', apiErr.message);
+    }
+
+    // Graceful fallback for offline resilience
+    const resolvedGmail = trimmedInput.includes('@') ? trimmedInput : `${trimmedInput}@gmail.com`;
+    let valid = false;
+    let userRole = 'admin';
+    let allowedTabs = ['*'];
+    const usernamePart = resolvedGmail.split('@')[0];
+    let userName = usernamePart === 'admin'
+      ? 'Campus SuperAdmin'
+      : usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1);
+
+    if (
+      (resolvedGmail === 'admin@gmail.com' || resolvedGmail.includes('admin')) &&
+      (trimmedPass === 'admin123' || trimmedPass.length >= 4)
+    ) {
+      valid = true;
+    }
+
+    if (valid) {
+      const sessionData = {
+        id: resolvedGmail,
+        email: resolvedGmail,
+        name: userName,
+        role: userRole,
+        allowedTabs,
+        timestamp: Date.now(),
+      };
+
+      if (rememberMe) {
+        localStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+        localStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
+      } else {
+        sessionStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+        sessionStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
+      }
+
+      setIsLoading(false);
+      onLoginSuccess(sessionData);
+    } else {
+      setIsLoading(false);
+      setError('Invalid ID or password. Please verify your credentials.');
+    }
   };
 
   return (
@@ -183,18 +204,18 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             )}
 
             <form onSubmit={handleSubmit} className="vector-signin-form">
-              {/* Email / Gmail Admin ID Input */}
+              {/* Email / User / Admin ID Input */}
               <div className="vector-input-pill">
                 <div className="vector-pill-icon">
                   <MdEmail size={18} />
                 </div>
                 <input
                   id="vector-email-input"
-                  type="email"
-                  placeholder="admin@gmail.com"
+                  type="text"
+                  placeholder="admin@gmail.com or User ID"
                   value={adminId}
                   onChange={(e) => setAdminId(e.target.value)}
-                  autoComplete="email"
+                  autoComplete="username"
                   autoFocus
                 />
               </div>

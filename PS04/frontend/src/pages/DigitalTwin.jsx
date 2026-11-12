@@ -11,7 +11,7 @@ import {
 import StatCard from '../components/StatCard';
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 
-export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }) {
+export default function DigitalTwin({ data, history = [], allHistory = [], onUpdate, onNavigate }) {
   const d = data || {};
 
   // Vitals
@@ -42,7 +42,21 @@ export default function DigitalTwin({ data, history = [], onUpdate, onNavigate }
 
   return (
     <>
-     
+      {/* Tab Control / Export Banner */}
+      <div className="tab-control-banner">
+        <div className="banner-left-info">
+          <div className="engine-status-pill">
+            <span className="pulse-dot-small" style={{ background: '#3b82f6' }} />
+            <span>Digital Twin V2 &bull; 2.5D Isometric Campus Spatial Layout &amp; Smart Parking</span>
+          </div>
+          <p className="banner-subtext">
+            Multi-node spatial telemetry: Substation electrical bus, 3-Bay ultrasonic parking plaza (a1–a3), and campus building blocks.
+          </p>
+        </div>
+        <div className="banner-right-actions">
+          <ExcelDownloadBtn tabName="digitaltwin" tabLabel="Digital Twin & Parking" data={d} history={history} allHistory={allHistory} />
+        </div>
+      </div>
 
       {/* Top Twin & Parking Vitals (3/3 Grid Layout: 2 Rows of 3 Cards) */}
       <div className="three" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 20 }}>

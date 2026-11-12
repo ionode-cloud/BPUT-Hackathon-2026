@@ -16,6 +16,10 @@ import {
   MdAutoAwesome,
   MdTune,
   MdLayers,
+  MdHistory,
+  MdTroubleshoot,
+  MdAdminPanelSettings,
+  MdLockOutline,
 } from 'react-icons/md';
 
 import { NAV_ITEMS, PAGE_TITLES } from './data/constants';
@@ -24,7 +28,6 @@ import { loadPersistedAlerts, countActiveAlerts } from './utils/alertEngine';
 
 import LandingPage      from './pages/LandingPage';
 import AdminLoginModal  from './components/AdminLoginModal';
-import ExcelDownloadBtn from './components/ExcelDownloadBtn';
 import Overview         from './pages/Overview';
 import DigitalTwin      from './pages/DigitalTwin';
 import AirQuality       from './pages/AirQuality';
@@ -34,29 +37,38 @@ import Waste            from './pages/Waste';
 import Forecasting      from './pages/Forecasting';
 import PriorityEngine   from './pages/PriorityEngine';
 import AlertHistory     from './pages/AlertHistory';
+import AnomalyDetection from './pages/AnomalyDetection';
+import History          from './pages/History';
+import AdminConsole    from './pages/AdminConsole';
 
 const PAGE_MAP = {
-  overview:    Overview,
-  digitaltwin: DigitalTwin,
-  air:         AirQuality,
-  energy:      Energy,
-  water:       Water,
-  waste:       Waste,
-  forecasting: Forecasting,
-  priority:    PriorityEngine,
-  alerts:      AlertHistory,
+  overview:     Overview,
+  digitaltwin:  DigitalTwin,
+  air:          AirQuality,
+  energy:       Energy,
+  water:        Water,
+  waste:        Waste,
+  forecasting:  Forecasting,
+  priority:     PriorityEngine,
+  alerts:       AlertHistory,
+  anomalydetection: AnomalyDetection,
+  history:      History,
+  adminconsole: AdminConsole,
 };
 
 const NAV_ICONS = {
-  overview:    <MdApartment           size={18} />,
-  digitaltwin: <MdLayers              size={18} />,
-  air:         <MdAir                 size={18} />,
-  energy:      <MdElectricBolt        size={18} />,
-  water:       <MdWaterDrop           size={18} />,
-  waste:       <MdDelete              size={18} />,
-  forecasting: <MdAutoAwesome         size={18} />,
-  priority:    <MdTune                size={18} />,
-  alerts:      <MdNotificationsActive size={18} />,
+  overview:     <MdApartment           size={18} />,
+  digitaltwin:  <MdLayers              size={18} />,
+  air:          <MdAir                 size={18} />,
+  energy:       <MdElectricBolt        size={18} />,
+  water:        <MdWaterDrop           size={18} />,
+  waste:        <MdDelete              size={18} />,
+  forecasting:  <MdAutoAwesome         size={18} />,
+  priority:     <MdTune                size={18} />,
+  alerts:       <MdNotificationsActive size={18} />,
+  anomalydetection: <MdTroubleshoot    size={18} />,
+  history:      <MdHistory             size={18} />,
+  adminconsole: <MdAdminPanelSettings  size={18} />,
 };
 
 // Parse active view and page from clean URL pathname (with optional legacy hash fallback)
@@ -135,7 +147,7 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [adminUser, setAdminUser] = useState(() => {
     try {
-      const stored = localStorage.getItem('facility_ai_admin') || sessionStorage.getItem('facility_ai_admin');
+      const stored = localStorage.getItem('facility_ai_admin') || sessionStorage.getItem('facility_ai_admin') || localStorage.getItem('facility_ai_user');
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -147,14 +159,39 @@ export default function App() {
   const {
     data,
     history,
+    allHistory,
     loading,
     error,
     isEmpty,
     refetch,
     updateData,
+    pollInterval,
+    setPollInterval,
   } = useSensorData();
 
-  const isAdmin = Boolean(adminUser);
+  const isAdmin = Boolean(adminUser && adminUser.role === 'admin');
+
+  // Compute authorized navigation items for sidebar
+  const visibleNavItems = useMemo(() => {
+    if (!adminUser) return NAV_ITEMS.filter(item => !item.adminOnly);
+    if (adminUser.role === 'admin') {
+      return NAV_ITEMS;
+    }
+    const allowed = Array.isArray(adminUser.allowedTabs) ? adminUser.allowedTabs : ['overview'];
+    return NAV_ITEMS.filter((item) => {
+      if (item.adminOnly) return false;
+      return allowed.includes(item.id);
+    });
+  }, [adminUser]);
+
+  // Check if current user is authorized for the active page
+  const isPageAuthorized = useMemo(() => {
+    if (!adminUser) return true;
+    if (adminUser.role === 'admin') return true;
+    if (page === 'adminconsole') return false;
+    const allowed = Array.isArray(adminUser.allowedTabs) ? adminUser.allowedTabs : ['overview'];
+    return allowed.includes(page);
+  }, [adminUser, page]);
 
   // Compute active unresolved high alerts count for sidebar notification badge
   const activeAlertCount = useMemo(() => {
@@ -229,13 +266,27 @@ export default function App() {
   const handleLoginSuccess = (session) => {
     setAdminUser(session);
     setShowLoginModal(false);
-    navigateTo('dashboard', page);
+
+    // If user is non-admin and current page is not in their allowedTabs, route to first allowed tab
+    if (session.role !== 'admin') {
+      const allowed = Array.isArray(session.allowedTabs) && session.allowedTabs.length > 0
+        ? session.allowedTabs
+        : ['overview'];
+      const target = allowed.includes(page) ? page : allowed[0];
+      navigateTo('dashboard', target);
+    } else {
+      navigateTo('dashboard', page);
+    }
   };
 
   const handleLogout = () => {
     try {
       localStorage.removeItem('facility_ai_admin');
+      localStorage.removeItem('facility_ai_user');
+      localStorage.removeItem('facility_ai_token');
       sessionStorage.removeItem('facility_ai_admin');
+      sessionStorage.removeItem('facility_ai_user');
+      sessionStorage.removeItem('facility_ai_token');
       localStorage.setItem('facility_ai_view', 'landing');
       localStorage.setItem('facility_ai_page', 'overview');
     } catch (e) {
@@ -295,7 +346,7 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          {NAV_ITEMS.map(item => (
+          {visibleNavItems.map(item => (
             <button
               key={item.id}
               className={page === item.id ? 'active' : ''}
@@ -337,59 +388,69 @@ export default function App() {
 
       {/* ════ Main Content ════ */}
       <main className="main">
-        <header className="header">
-          <div>
-            <h1>{PAGE_TITLES[page]}</h1>
-            <div className="subtitle">
-              Intelligent IoT Telemetry • Dynamic Sensor Curves • Live API Stream
-            </div>
-          </div>
-
-          <div className="header-actions">
-            {/* Download in Excel Button */}
-            <ExcelDownloadBtn
-              tabName={page}
-              tabLabel={PAGE_TITLES[page]}
-              data={data || {}}
-              history={history || []}
-              alerts={loadPersistedAlerts(data)}
-              variant="header"
-            />
-
-            {/* Admin Badge */}
-            <div className="admin-status-pill" title={adminUser?.email || adminUser?.id || 'admin@gmail.com'}>
-              <MdShield size={14} color="#38bdf8" />
-              <span>{adminUser?.email || adminUser?.id ? `${adminUser.email || adminUser.id} (${adminUser?.role || 'Admin'})` : (adminUser?.name || 'admin@gmail.com')}</span>
+        {page !== 'anomalydetection' && (
+          <header className="header">
+            <div>
+              <h1>{PAGE_TITLES[page]}</h1>
+              <div className="subtitle">
+                Intelligent IoT Telemetry • Dynamic Sensor Curves • Live API Stream
+              </div>
             </div>
 
-            {/* Refresh Button */}
-            <button
-              className="btn-action"
-              onClick={refetch}
-              title="Query latest sensor state from API"
-            >
-              <MdRefresh size={18} />
-            </button>
+            <div className="header-actions">
+              {/* Admin / User Role Badge */}
+              <div className="admin-status-pill" title={adminUser?.email || adminUser?.id || 'admin@gmail.com'}>
+                <MdShield size={14} color={adminUser?.role === 'admin' ? '#38bdf8' : '#10b981'} />
+                <span>
+                  {adminUser?.email || adminUser?.id
+                    ? `${adminUser.email || adminUser.id} (${(adminUser?.role || 'User').toUpperCase()})`
+                    : 'admin@gmail.com (ADMIN)'}
+                </span>
+              </div>
 
-            {/* Status Pill */}
-            {error ? (
-              <div className="status status--error">
-                <MdSignalWifiOff size={14} />
-                API Error
+              {/* Auto-Refresh Control & Manual Refresh Button */}
+              <div className="refresh-control-group" title="Auto-refresh interval and manual refresh">
+                <select
+                  className="poll-interval-select"
+                  value={pollInterval || 0}
+                  onChange={(e) => setPollInterval(Number(e.target.value))}
+                  title="Select how frequently telemetry reloads / refreshes"
+                >
+                  <option value={10000}>Auto: 10s</option>
+                  <option value={15000}>Auto: 15s</option>
+                  <option value={30000}>Auto: 30s</option>
+                  <option value={60000}>Auto: 60s</option>
+                  <option value={0}>Auto: Off</option>
+                </select>
+                <button
+                  className="btn-action btn-refresh"
+                  onClick={refetch}
+                  title="Query latest sensor state from API (Manual Refresh)"
+                >
+                  <MdRefresh size={18} />
+                </button>
               </div>
-            ) : isEmpty || !data ? (
-              <div className="status status--empty">
-                <span className="pulse-dot" style={{ background: '#f59e0b' }} />
-                Status: -
-              </div>
-            ) : (
-              <div className="status">
-                <span className="pulse-dot" />
-                Live • {clock}
-              </div>
-            )}
-          </div>
-        </header>
+
+              {/* Status Pill */}
+              {error ? (
+                <div className="status status--error">
+                  <MdSignalWifiOff size={14} />
+                  API Error
+                </div>
+              ) : isEmpty || !data ? (
+                <div className="status status--empty">
+                  <span className="pulse-dot" style={{ background: '#f59e0b' }} />
+                  Status: -
+                </div>
+              ) : (
+                <div className="status">
+                  <span className="pulse-dot" />
+                  Live • {clock}
+                </div>
+              )}
+            </div>
+          </header>
+        )}
 
         {/* Loading Spinner during initial fetch */}
         {loading && !data && !isEmpty && (
@@ -412,14 +473,66 @@ export default function App() {
           </div>
         )}
 
-        {/* Active Page — Always rendered; displays '-' if API has no data */}
-        {(!loading || data || isEmpty) && (
-          <PageComponent
-            data={data || {}}
-            history={history || []}
-            onUpdate={updateData}
-            onNavigate={navigateTo}
-          />
+        {/* Access Restricted Banner if user is not authorized for this tab */}
+        {!isPageAuthorized ? (
+          <div className="state-box" style={{ maxWidth: '640px', margin: '4rem auto', textAlign: 'center', padding: '2.5rem' }}>
+            <MdLockOutline size={56} color="#ef4444" style={{ marginBottom: '1rem' }} />
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f8fafc', marginBottom: '0.5rem' }}>
+              Subsystem Access Restricted
+            </h2>
+            <p style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+              Your account (<strong>{adminUser?.email || adminUser?.id || 'User'}</strong>) with role{' '}
+              <span className="role-badge" style={{ verticalAlign: 'middle' }}>
+                {(adminUser?.role || 'user').toUpperCase()}
+              </span>{' '}
+              is not granted access to the <strong>{PAGE_TITLES[page] || page}</strong> subsystem.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Your Authorized Subsystem Domains:
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {(Array.isArray(adminUser?.allowedTabs) ? adminUser.allowedTabs : ['overview']).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className="btn-action"
+                    onClick={() => navigateTo('dashboard', t)}
+                    style={{ borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                  >
+                    {PAGE_TITLES[t] || t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn-action btn-action--primary"
+              style={{ marginTop: '2rem' }}
+              onClick={() => {
+                const target = Array.isArray(adminUser?.allowedTabs) && adminUser.allowedTabs[0]
+                  ? adminUser.allowedTabs[0]
+                  : 'overview';
+                navigateTo('dashboard', target);
+              }}
+            >
+              Switch to Authorized Dashboard
+            </button>
+          </div>
+        ) : (
+          /* Active Page — Always rendered when authorized */
+          (!loading || data || isEmpty) && (
+            <PageComponent
+              data={data || {}}
+              history={history || []}
+              allHistory={allHistory || []}
+              onUpdate={updateData}
+              onNavigate={navigateTo}
+              onRefresh={refetch}
+            />
+          )
         )}
       </main>
 

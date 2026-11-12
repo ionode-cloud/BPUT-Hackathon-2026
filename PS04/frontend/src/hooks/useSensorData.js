@@ -1,4 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+const CACHE_KEY_DATA = 'facility_ai_last_active_data';
+const CACHE_KEY_HISTORY = 'facility_ai_telemetry_history_store_v1';
+const CACHE_KEY_INTERVAL = 'facility_ai_poll_interval_ms';
+
+function getCached(key, fallback = null) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function setCached(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // ignore quota errors
+  }
+}
 
 function normalizeEndpoint(raw) {
   if (!raw || typeof raw !== 'string') return null;
@@ -14,47 +35,47 @@ const rawBackendUrl = import.meta.env?.VITE_BACKEND_URL;
 const normApi = normalizeEndpoint(rawApiUrl);
 const normBackend = normalizeEndpoint(rawBackendUrl);
 
+// Prioritize local relative endpoint first (uses Vite proxy with 0 CORS & 0 network latency)
 const API_ENDPOINTS = [
-  ...(normApi ? [normApi] : []),
-  ...(rawApiUrl ? [rawApiUrl.trim().replace(/\/+$/, '')] : []),
-  ...(normBackend ? [normBackend] : []),
+  '/api/data',
+  ...(normApi && normApi !== '/api/data' ? [normApi] : []),
+  ...(rawApiUrl && rawApiUrl !== '/api/data' ? [rawApiUrl.trim().replace(/\/+$/, '')] : []),
   'http://localhost:5011/api/data',
   'http://127.0.0.1:5011/api/data',
-  'http://localhost:5010/api/data',
-  'http://127.0.0.1:5010/api/data',
-  '/api/data',
-  'http://localhost:5000/api/data',
-  'http://127.0.0.1:5000/api/data',
+  ...(normBackend ? [normBackend] : []),
   '/api',
-  'http://localhost:5011/api',
-  'http://127.0.0.1:5011/api',
-  'http://localhost:5010/api',
-  'http://127.0.0.1:5010/api',
-  'http://localhost:5000/api',
-  'http://127.0.0.1:5000/api',
 ].filter((val, idx, arr) => arr.indexOf(val) === idx);
 
-const POLL_INTERVAL = Number(import.meta.env?.VITE_POLL_INTERVAL) || 5000; // Configurable polling interval
+let activeWorkingEndpoint = null;
 
 async function apiFetch(path = '', options = {}) {
+  // Try known good working endpoint first to eliminate connection round-trips
+  const candidates = activeWorkingEndpoint
+    ? [activeWorkingEndpoint, ...API_ENDPOINTS.filter(e => e !== activeWorkingEndpoint)]
+    : API_ENDPOINTS;
+
   let lastErr = null;
-  for (const base of API_ENDPOINTS) {
+  for (const base of candidates) {
     try {
       const sep = path && !path.startsWith('?') && !path.startsWith('/') && !base.endsWith('/') ? '/' : '';
       const url = path ? `${base}${sep}${path}` : base;
       const res = await fetch(url, options);
-      if (res.ok) return res;
+      if (res.ok) {
+        activeWorkingEndpoint = base;
+        return res;
+      }
 
-      // Only accept 404 if it's the expected "No sensor data found" JSON payload from data collection
+      // Accept expected 404 "No sensor data found" from backend
       if (res.status === 404) {
         try {
           const clone = res.clone();
           const json = await clone.json();
           if (json && (json.message === 'No sensor data found.' || json.data === null)) {
+            activeWorkingEndpoint = base;
             return res;
           }
         } catch {
-          // not our data api 404, fallback to next endpoint in list
+          // not backend data api 404
         }
       }
     } catch (err) {
@@ -65,53 +86,100 @@ async function apiFetch(path = '', options = {}) {
 }
 
 export function useSensorData() {
-  const [data, setData] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedData = getCached(CACHE_KEY_DATA, null);
+  const cachedAllHistory = getCached(CACHE_KEY_HISTORY, []);
+
+  // State initialized from local storage cache for instant 0ms first-paint on reload/refresh
+  const [data, setData] = useState(() => cachedData);
+  const [allHistory, setAllHistory] = useState(() => cachedAllHistory);
+  const [history, setHistory] = useState(() => {
+    return Array.isArray(cachedAllHistory) && cachedAllHistory.length > 0
+      ? [...cachedAllHistory.slice(0, 20)].reverse()
+      : [];
+  });
+  // If cache exists, loading is false immediately — no blank screen or spinner delay on refresh!
+  const [loading, setLoading] = useState(() => !cachedData);
   const [error, setError] = useState(null);
   const [isEmpty, setIsEmpty] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(() => cachedData ? new Date() : null);
 
-  const fetchData = useCallback(async () => {
+  // Configurable polling interval (defaults to 15s so refresh takes more time, avoiding frequent flickering)
+  const defaultInterval = Number(import.meta.env?.VITE_POLL_INTERVAL) || 15000;
+  const [pollInterval, setPollIntervalState] = useState(() => {
     try {
-      // 1. Fetch latest snapshot
-      const latestRes = await apiFetch();
+      const saved = localStorage.getItem(CACHE_KEY_INTERVAL);
+      if (saved !== null) {
+        const parsed = Number(saved);
+        if (!isNaN(parsed)) return parsed;
+      }
+    } catch {}
+    return defaultInterval;
+  });
+
+  const setPollInterval = useCallback((newInterval) => {
+    const val = Number(newInterval);
+    setPollIntervalState(val);
+    try {
+      localStorage.setItem(CACHE_KEY_INTERVAL, String(val));
+    } catch {}
+  }, []);
+
+  const isFetchingRef = useRef(false);
+
+  const fetchData = useCallback(async (isManual = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    try {
+      if (isManual) {
+        setLoading(true);
+      }
+
+      // Execute latest snapshot fetch and historical fetch concurrently in parallel
+      const [latestRes, histRes] = await Promise.all([
+        apiFetch('').catch(err => ({ ok: false, status: 500, error: err })),
+        apiFetch('?all=true').catch(err => ({ ok: false, status: 500, error: err }))
+      ]);
 
       if (latestRes.status === 404) {
         setData(null);
         setHistory([]);
+        setAllHistory([]);
         setIsEmpty(true);
         setError(null);
         setLoading(false);
+        setCached(CACHE_KEY_DATA, null);
+        setCached(CACHE_KEY_HISTORY, []);
         return;
       }
 
-      if (!latestRes.ok) {
-        throw new Error(`HTTP ${latestRes.status}`);
+      if (!latestRes.ok && !latestRes.json) {
+        throw latestRes.error || new Error(`HTTP ${latestRes.status || 'Error'}`);
       }
 
       const latestJson = await latestRes.json();
-      let activeData = latestJson.data || null;
+      let activeData = latestJson?.data || null;
 
-      // 2. Fetch recent history for dynamic time-series charts (newest first, limit to 20)
-      let records = [];
-      try {
-        const histRes = await apiFetch('?all=true&limit=20');
-        if (histRes.ok) {
+      let allRecords = [];
+      if (histRes.ok && histRes.json) {
+        try {
           const histJson = await histRes.json();
-          // Reverse so chronological (oldest to newest)
-          records = Array.isArray(histJson.data) ? [...histJson.data].reverse() : [];
-          setHistory(records);
+          allRecords = Array.isArray(histJson?.data) ? histJson.data : [];
+          setAllHistory(allRecords);
+          setCached(CACHE_KEY_HISTORY, allRecords);
+
+          const chartSlice = [...allRecords.slice(0, 20)].reverse();
+          setHistory(chartSlice);
+        } catch (histErr) {
+          console.warn('Could not parse history:', histErr);
         }
-      } catch (histErr) {
-        console.warn('Could not load history for charts:', histErr);
       }
 
-      // Merge non-null history into current snapshot if any field is null
-      if (activeData && records.length > 0) {
+      // Merge non-null history into current snapshot if any field is null (excluding dynamic anomalyDetection)
+      if (activeData && allRecords.length > 0) {
         const merged = { ...activeData };
-        for (const rec of records) {
+        for (const rec of allRecords) {
           for (const [key, val] of Object.entries(rec)) {
+            if (key === 'anomalyDetection') continue; // Do not backfill anomalyDetection from old history
             if ((merged[key] === null || merged[key] === undefined) && val !== null && val !== undefined) {
               merged[key] = val;
             }
@@ -120,16 +188,24 @@ export function useSensorData() {
         activeData = merged;
       }
 
-      setData(activeData);
+      if (activeData) {
+        setData(activeData);
+        setCached(CACHE_KEY_DATA, activeData);
+      }
       setIsEmpty(false);
       setError(null);
       setLastUpdated(new Date());
     } catch (err) {
-      setError(err.message);
+      if (!data && !cachedData) {
+        setError(err.message);
+      } else {
+        console.warn('Background sync error:', err.message);
+      }
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, []);
+  }, [data, cachedData]);
 
   // Clear synthetic / demo seed records as requested
   const clearSeedData = useCallback(async () => {
@@ -137,7 +213,7 @@ export function useSensorData() {
       setLoading(true);
       const res = await apiFetch('?seedOnly=true', { method: 'DELETE' });
       const json = await res.json();
-      await fetchData();
+      await fetchData(true);
       return json;
     } catch (err) {
       setError(err.message);
@@ -152,7 +228,7 @@ export function useSensorData() {
       setLoading(true);
       const res = await apiFetch('', { method: 'DELETE' });
       const json = await res.json();
-      await fetchData();
+      await fetchData(true);
       return json;
     } catch (err) {
       setError(err.message);
@@ -170,7 +246,7 @@ export function useSensorData() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    await fetchData();
+    await fetchData(true);
     return json;
   }, [fetchData]);
 
@@ -193,29 +269,47 @@ export function useSensorData() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (json?.data) {
-      setData(prev => ({
-        ...(prev || {}),
-        ...json.data,
-      }));
+      setData(prev => {
+        const next = { ...(prev || {}), ...json.data };
+        setCached(CACHE_KEY_DATA, next);
+        return next;
+      });
+      setAllHistory(prev => {
+        const map = new Map();
+        [json.data, ...(prev || [])].forEach(item => {
+          if (item && item._id && !map.has(String(item._id))) {
+            map.set(String(item._id), item);
+          }
+        });
+        const nextAll = Array.from(map.values());
+        setCached(CACHE_KEY_HISTORY, nextAll);
+        return nextAll;
+      });
     }
-    fetchData();
+    fetchData(false);
     return json;
   }, [fetchData]);
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(fetchData, POLL_INTERVAL);
+    if (!pollInterval || pollInterval <= 0) return;
+    const id = setInterval(() => {
+      fetchData(false);
+    }, pollInterval);
     return () => clearInterval(id);
-  }, [fetchData]);
+  }, [fetchData, pollInterval]);
 
   return {
     data,
     history,
+    allHistory,
     loading,
     error,
     isEmpty,
     lastUpdated,
-    refetch: fetchData,
+    refetch: () => fetchData(true),
+    pollInterval,
+    setPollInterval,
     clearSeedData,
     clearAllData,
     sendData,

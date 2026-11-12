@@ -1,15 +1,62 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config();
 const express  = require('express');
 const mongoose = require('mongoose');
 const cors     = require('cors');
 
 const dataRouter = require('./routes/data');
+const { router: authRouter, seedDefaultAdmin } = require('./routes/auth');
 
 const app  = express();
 const PORT = process.env.PORT || 5011; // Loaded from .env
 
-// ── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors());
+// ── CORS Configuration from .env ─────────────────────────────────────────────
+const rawCorsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5011,http://127.0.0.1:5011';
+const allowedOrigins = rawCorsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // allow curl, mobile, server-to-server
+  if (allowedOrigins.includes('*')) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  // Allow any localhost / 127.0.0.1 development origin
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  return false;
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-access-token'],
+  exposedHeaders: ['Authorization'],
+};
+
+app.use(cors(corsOptions));
+
+// Explicit CORS Headers Fallback Middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// ── Body Parsers ─────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.text({ type: ['text/*', 'application/*'] }));
@@ -26,6 +73,7 @@ app.use((req, res, next) => {
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/data', dataRouter);
+app.use('/api/auth', authRouter);
 
 // Exact /api redirect to /api/data without intercepting subroutes like /api/nodes
 app.get('/api', (req, res) => {
@@ -71,6 +119,9 @@ mongoose
   .then(async () => {
     console.log('✅  MongoDB connected');
 
+    // Auto-seed default Administrator if not exists
+    await seedDefaultAdmin();
+
     // Auto-verify and persist a1, a2, a3 in the latest MongoDB document so it is permanently visible in the database
     try {
       const SensorData = require('./models/SensorData');
@@ -112,6 +163,14 @@ mongoose
       }
     } catch (e) {
       console.warn('⚠️  Could not auto-verify parking bays on startup:', e.message);
+    }
+
+    // Pre-warm high-speed in-memory telemetry cache for 0ms initial load
+    if (typeof dataRouter.warmDataCache === 'function') {
+      try {
+        await dataRouter.warmDataCache();
+        console.log('⚡  High-speed in-memory telemetry cache warmed');
+      } catch (e) {}
     }
 
     app.listen(PORT, () => console.log(`🚀  Server running on http://localhost:${PORT}`));

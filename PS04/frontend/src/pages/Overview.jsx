@@ -23,7 +23,7 @@ import {
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 import StatCard from '../components/StatCard';
 
-export default function Overview({ data, history = [], onNavigate }) {
+export default function Overview({ data, history = [], allHistory = [], onNavigate }) {
   const d = data || {};
   const [tabFilter, setTabFilter] = useState('all'); // 'all' | 'air' | 'energy' | 'water' | 'waste' | 'digitaltwin'
 
@@ -59,7 +59,7 @@ export default function Overview({ data, history = [], onNavigate }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="overview" tabLabel="Overview" data={d} history={history} />
+          <ExcelDownloadBtn tabName="overview" tabLabel="Overview" data={d} history={history} allHistory={allHistory} />
         </div>
       </div>
 

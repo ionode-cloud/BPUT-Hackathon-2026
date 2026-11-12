@@ -12,7 +12,7 @@ import {
 import ExcelDownloadBtn from '../components/ExcelDownloadBtn';
 import StatCard from '../components/StatCard';
 
-export default function Energy({ data, history = [] }) {
+export default function Energy({ data, history = [], allHistory = [] }) {
   const d = data || {};
   const barData = getEnergyBarData(d, history);
   const acDcData = getAcDcEnergyData(d);
@@ -56,7 +56,7 @@ export default function Energy({ data, history = [] }) {
           </p>
         </div>
         <div className="banner-right-actions">
-          <ExcelDownloadBtn tabName="energy" tabLabel="Energy" data={d} history={history} />
+          <ExcelDownloadBtn tabName="energy" tabLabel="Energy" data={d} history={history} allHistory={allHistory} />
         </div>
       </div>
 
