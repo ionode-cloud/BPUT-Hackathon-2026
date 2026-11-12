@@ -33,44 +33,68 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     setIsLoading(true);
 
     try {
-      // Call backend JWT login endpoint
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idOrEmail: trimmedInput,
-          password: trimmedPass,
-        }),
-      });
+      // Call backend JWT login endpoint with smart failover for production Nginx setups
+      const candidateEndpoints = [
+        '/api/auth/login',
+        `${window.location.protocol}//${window.location.hostname}:5011/api/auth/login`,
+      ];
 
-      const data = await response.json();
+      let response = null;
+      let responseJson = null;
 
-      if (response.ok && data.success && data.token) {
-        const sessionData = {
-          ...data.user,
-          token: data.token,
-          timestamp: Date.now(),
-        };
+      for (const endpoint of candidateEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              idOrEmail: trimmedInput,
+              password: trimmedPass,
+            }),
+          });
 
-        if (rememberMe) {
-          localStorage.setItem('facility_ai_token', data.token);
-          localStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
-          localStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
-        } else {
-          sessionStorage.setItem('facility_ai_token', data.token);
-          sessionStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
-          sessionStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
+          // Check if response is valid JSON rather than an Nginx HTML error page (e.g. 405 Method Not Allowed)
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            response = res;
+            responseJson = await res.json();
+            break;
+          }
+        } catch {
+          // try next candidate
         }
-
-        setIsLoading(false);
-        onLoginSuccess(sessionData);
-        return;
       }
 
-      if (data && data.message) {
-        setIsLoading(false);
-        setError(data.message);
-        return;
+      if (response && responseJson) {
+        const data = responseJson;
+
+        if (response.ok && data.success && data.token) {
+          const sessionData = {
+            ...data.user,
+            token: data.token,
+            timestamp: Date.now(),
+          };
+
+          if (rememberMe) {
+            localStorage.setItem('facility_ai_token', data.token);
+            localStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+            localStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
+          } else {
+            sessionStorage.setItem('facility_ai_token', data.token);
+            sessionStorage.setItem('facility_ai_admin', JSON.stringify(sessionData));
+            sessionStorage.setItem('facility_ai_user', JSON.stringify(sessionData));
+          }
+
+          setIsLoading(false);
+          onLoginSuccess(sessionData);
+          return;
+        }
+
+        if (data && data.message) {
+          setIsLoading(false);
+          setError(data.message);
+          return;
+        }
       }
     } catch (apiErr) {
       console.warn('Backend /api/auth/login connection failed, trying fallback:', apiErr.message);

@@ -51,6 +51,29 @@ function getAuthToken() {
   return localStorage.getItem('facility_ai_token') || sessionStorage.getItem('facility_ai_token') || '';
 }
 
+// Smart auth API fetch with fallback to direct backend port on production
+const AUTH_CANDIDATE_BASES = [
+  '/api/auth',
+  `${window.location.protocol}//${window.location.hostname}:5011/api/auth`,
+];
+
+async function authApiFetch(subPath, options = {}) {
+  for (const base of AUTH_CANDIDATE_BASES) {
+    try {
+      const fullUrl = `${base}${subPath.startsWith('/') ? '' : '/'}${subPath}`;
+      const res = await fetch(fullUrl, options);
+      const ct = res.headers.get('content-type') || '';
+      if (res.status === 405 || !ct.includes('application/json')) {
+        continue;
+      }
+      return res;
+    } catch {
+      // try next candidate
+    }
+  }
+  return fetch(`/api/auth${subPath.startsWith('/') ? '' : '/'}${subPath}`, options);
+}
+
 export default function AdminConsole() {
   // Current Admin Profile
   const [adminUser] = useState(() => {
@@ -91,19 +114,22 @@ export default function AdminConsole() {
     let token = getAuthToken();
     if (token) return token;
     try {
-      const loginRes = await fetch('/api/auth/login', {
+      const loginRes = await authApiFetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'admin@gmail.com', password: 'admin123' }),
       });
-      const loginData = await loginRes.json();
-      if (loginRes.ok && loginData.success && loginData.token) {
-        token = loginData.token;
-        localStorage.setItem('facility_ai_token', token);
-        const adminSession = { ...loginData.user, token };
-        localStorage.setItem('facility_ai_admin', JSON.stringify(adminSession));
-        localStorage.setItem('facility_ai_user', JSON.stringify(adminSession));
-        return token;
+      const ct = loginRes.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const loginData = await loginRes.json();
+        if (loginRes.ok && loginData.success && loginData.token) {
+          token = loginData.token;
+          localStorage.setItem('facility_ai_token', token);
+          const adminSession = { ...loginData.user, token };
+          localStorage.setItem('facility_ai_admin', JSON.stringify(adminSession));
+          localStorage.setItem('facility_ai_user', JSON.stringify(adminSession));
+          return token;
+        }
       }
     } catch (err) {
       console.warn('Auto-admin auth failed:', err.message);
@@ -116,7 +142,7 @@ export default function AdminConsole() {
     setLoadingUsers(true);
     let activeToken = await ensureAdminToken();
     try {
-      let res = await fetch('/api/auth/users', {
+      let res = await authApiFetch('/users', {
         headers: {
           'Authorization': activeToken ? `Bearer ${activeToken}` : '',
         },
@@ -126,20 +152,23 @@ export default function AdminConsole() {
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('facility_ai_token');
         activeToken = await ensureAdminToken();
-        res = await fetch('/api/auth/users', {
+        res = await authApiFetch('/users', {
           headers: {
             'Authorization': activeToken ? `Bearer ${activeToken}` : '',
           },
         });
       }
 
-      const data = await res.json();
-      if (res.ok && data.success && Array.isArray(data.users)) {
-        setUsers(data.users);
-      } else {
-        const localUsers = JSON.parse(localStorage.getItem('facility_ai_users') || '[]');
-        setUsers(localUsers);
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await res.json();
+        if (res.ok && data.success && Array.isArray(data.users)) {
+          setUsers(data.users);
+          return;
+        }
       }
+      const localUsers = JSON.parse(localStorage.getItem('facility_ai_users') || '[]');
+      setUsers(localUsers);
     } catch (err) {
       console.warn('Failed to fetch users from backend, reading local fallback:', err.message);
       const localUsers = JSON.parse(localStorage.getItem('facility_ai_users') || '[]');
@@ -206,7 +235,7 @@ export default function AdminConsole() {
     const activeToken = await ensureAdminToken();
 
     try {
-      const res = await fetch('/api/auth/users', {
+      const res = await authApiFetch('/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,6 +243,11 @@ export default function AdminConsole() {
         },
         body: JSON.stringify(newUser),
       });
+
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(`HTTP ${res.status}: Server returned non-JSON response.`);
+      }
 
       const data = await res.json();
 
@@ -244,7 +278,7 @@ export default function AdminConsole() {
   const handleToggleUserActive = async (user) => {
     const activeToken = await ensureAdminToken();
     try {
-      const res = await fetch(`/api/auth/users/${user.id}`, {
+      const res = await authApiFetch(`/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -252,6 +286,10 @@ export default function AdminConsole() {
         },
         body: JSON.stringify({ isActive: !user.isActive }),
       });
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(`HTTP ${res.status}: Server returned non-JSON response.`);
+      }
       const data = await res.json();
       if (res.ok && data.success) {
         fetchUsers();
@@ -269,12 +307,16 @@ export default function AdminConsole() {
 
     const activeToken = await ensureAdminToken();
     try {
-      const res = await fetch(`/api/auth/users/${user.id}`, {
+      const res = await authApiFetch(`/users/${user.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': activeToken ? `Bearer ${activeToken}` : '',
         },
       });
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(`HTTP ${res.status}: Server returned non-JSON response.`);
+      }
       const data = await res.json();
       if (res.ok && data.success) {
         setUserMsg({ type: 'success', text: `User "${user.email}" deleted successfully.` });
@@ -313,7 +355,7 @@ export default function AdminConsole() {
         payload.password = editPassword.trim();
       }
 
-      const res = await fetch(`/api/auth/users/${editingUser.id}`, {
+      const res = await authApiFetch(`/users/${editingUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -321,6 +363,11 @@ export default function AdminConsole() {
         },
         body: JSON.stringify(payload),
       });
+
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(`HTTP ${res.status}: Server returned non-JSON response.`);
+      }
 
       const data = await res.json();
       if (res.ok && data.success) {
