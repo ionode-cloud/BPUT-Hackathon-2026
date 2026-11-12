@@ -52,11 +52,17 @@ export default function Water({ data, history = [], onUpdate }) {
   // Val1 & Val2 Individual Flow Rates (L/m)
   const rawFlow1 = d.val1Flow ?? d.flowRate1;
   const rawFlow2 = d.val2Flow ?? d.flowRate2;
+  const hasSplitFlow = rawFlow1 != null || rawFlow2 != null;
   const baseFlow = typeof d.flowRate === 'number' && !isNaN(d.flowRate) ? d.flowRate : 0;
   const val1Flow = rawFlow1 != null ? Number(rawFlow1) : (baseFlow > 0 ? Number((baseFlow * 0.65).toFixed(1)) : 0);
   const val2Flow = rawFlow2 != null ? Number(rawFlow2) : (baseFlow > 0 ? Number((baseFlow * 0.35).toFixed(1)) : 0);
   const totalFlow = Number((val1Flow + val2Flow).toFixed(1));
-  const isHighVelocity = val1Flow > 20 || val2Flow > 20 || totalFlow > 25;
+  const effectiveFlow = hasSplitFlow ? totalFlow : baseFlow;
+  const hasFlowData = hasSplitFlow || d.flowRate != null;
+  const isHighVelocity = val1Flow > 20 || val2Flow > 20 || effectiveFlow > 25;
+  const leakLineLabel = isVal1Leaking && isVal2Leaking
+    ? 'val1 & val2'
+    : (isVal1Leaking ? 'val1 (Valve 1)' : (isVal2Leaking ? 'val2 (Valve 2)' : 'Main Line'));
 
   // Read current valve state directly from API telemetry
   const apiValve1 = Boolean(d.valve1 ?? false);
@@ -190,9 +196,9 @@ export default function Water({ data, history = [], onUpdate }) {
           index={2}
           icon={<MdSpeed size={18} color={isHighVelocity ? '#f59e0b' : '#10b981'} />}
           label="Current Flow Rate"
-          badgeText={isHighVelocity ? 'High Velocity' : (totalFlow > 0 ? 'Steady Flow' : 'Nominal Flow')}
+          badgeText={isHighVelocity ? 'High Velocity' : (effectiveFlow > 0 ? 'Steady Flow' : 'Nominal Flow')}
           badgeType={isHighVelocity ? 'amber' : 'green'}
-          nowValue={totalFlow}
+          nowValue={effectiveFlow}
           footerLeft={isHighVelocity ? 'High velocity detected' : 'Steady hydraulic pressure'}
           footerRight="Line Limit: 35 L/m"
         >
@@ -558,23 +564,23 @@ export default function Water({ data, history = [], onUpdate }) {
             </tr>
             <tr>
               <td>Line Flow Velocity</td>
-              <td><b>{d.flowRate != null ? `${d.flowRate} L/min` : '-'}</b></td>
+              <td><b>{hasFlowData ? `${effectiveFlow} L/min` : '-'}</b></td>
               <td>
-                <span className={`badge ${d.flowRate != null ? (d.flowRate > 20 ? 'medium' : 'good') : ''}`}>
-                  {d.flowRate != null ? (d.flowRate > 20 ? 'Heavy Flow' : 'Standard') : '-'}
+                <span className={`badge ${hasFlowData ? (isHighVelocity ? 'medium' : 'good') : ''}`}>
+                  {hasFlowData ? (isHighVelocity ? 'Heavy Flow' : 'Standard') : '-'}
                 </span>
               </td>
-              <td>{d.flowRate != null ? (d.flowRate > 20 ? 'Inspect washroom solenoid valves' : 'Flow rates balanced') : '-'}</td>
+              <td>{hasFlowData ? (isHighVelocity ? 'Inspect washroom solenoid valves' : 'Flow rates balanced') : '-'}</td>
             </tr>
             <tr>
-              <td>Pressure & Leak Sensor</td>
-              <td><b>{d.leakStatus ?? '-'}</b></td>
+              <td>Pressure &amp; Leak Sensor</td>
+              <td><b>{anyLeak ? `Leak Detected (${leakLineLabel})` : `Normal (val1: ${val1StatusText}, val2: ${val2StatusText})`}</b></td>
               <td>
-                <span className={`badge ${d.leakStatus != null ? (isLeaking ? 'high' : 'good') : ''}`}>
-                  {d.leakStatus != null ? (isLeaking ? 'Alarm' : 'Nominal') : '-'}
+                <span className={`badge ${anyLeak ? 'high' : 'good'}`}>
+                  {anyLeak ? 'Alarm' : 'Nominal'}
                 </span>
               </td>
-              <td>{d.leakStatus != null ? (isLeaking ? 'Dispatch plumber to block valve #4' : 'Zero pressure loss') : '-'}</td>
+              <td>{anyLeak ? `Isolate ${leakLineLabel} and inspect pipeline` : 'Zero pressure loss'}</td>
             </tr>
             <tr>
               <td>Solenoid Valve 1</td>
@@ -604,13 +610,13 @@ export default function Water({ data, history = [], onUpdate }) {
         </table>
 
         <div style={{ marginTop: 16 }}>
-          {isLeaking ? (
+          {anyLeak ? (
             <div className="recommendation recommendation--alert">
-              <b>Emergency Water Alert:</b> Acoustic anomaly confirmed ({d.leakStatus}). Automatic shutoff valve armed for branch pipeline B.
+              <b>Emergency Water Alert:</b> Acoustic anomaly confirmed on {leakLineLabel}. Close corresponding solenoid valve to prevent water loss.
             </div>
           ) : d.tankLevel != null ? (
             <div className="recommendation">
-              <b>Hydraulic System Healthy:</b> Tank holding {d.tankLevel}% with average delivery flow of {d.flowRate ?? '-'} L/min. Valve 1 is {valve1 ? 'ON' : 'OFF'} and Valve 2 is {valve2 ? 'ON' : 'OFF'}.
+              <b>Hydraulic System Healthy:</b> Tank holding {d.tankLevel}% with delivery flow of {hasFlowData ? effectiveFlow : '-'} L/min. Valve 1 is {valve1 ? 'ON' : 'OFF'} and Valve 2 is {valve2 ? 'ON' : 'OFF'}.
             </div>
           ) : (
             <div className="small" style={{ color: 'var(--muted)' }}>-</div>

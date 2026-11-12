@@ -119,7 +119,7 @@ export default function AlertHistory({ data }) {
   const handleResetDefaults = () => {
     const fresh = resetDefaultAlerts(data);
     setAlerts(fresh);
-    showToast('🔄 Reloaded standard high alert incident dataset.');
+    showToast('🔄 Synced alerts with live sensor telemetry.');
   };
 
   // Compute summary KPI counts
@@ -297,10 +297,10 @@ export default function AlertHistory({ data }) {
               type="button"
               className="btn-action"
               onClick={handleResetDefaults}
-              title="Reload standard sample & live alerts"
+              title="Re-scan current live sensor telemetry for active alerts"
             >
               <MdRefresh size={16} />
-              <span>Reload Sample</span>
+              <span>Sync Live</span>
             </button>
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function AlertHistory({ data }) {
                 style={{ marginTop: 12 }}
               >
                 <MdRefresh size={16} />
-                <span>Load Live & Demo Alert Incidents</span>
+                <span>Scan Live Sensor Telemetry</span>
               </button>
             )}
           </div>

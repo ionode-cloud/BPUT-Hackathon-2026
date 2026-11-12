@@ -42,16 +42,25 @@ export default function Waste({ data, history = [] }) {
   const blockA = blocks.find((b) => b.id === 'block-a' || b.code === 'BL-A') || null;
   const blockB = blocks.find((b) => b.id === 'block-b' || b.code === 'BL-B') || null;
   const overflowBlocks = blocks.filter((b) => (b.wetFill ?? 0) > 80 || (b.dryFill ?? 0) > 80);
-  const overflowCount = overflowBlocks.length > 0 ? overflowBlocks.length : (d.overflowRisk ?? 0);
+  const overflowCount = blocks.length > 0 ? overflowBlocks.length : (d.overflowRisk ?? 0);
   const hasOverflow = overflowCount > 0;
   const avgCompliance = blocks.length > 0
     ? (blocks.reduce((acc, b) => acc + (b.complianceScore ?? 90), 0) / blocks.length).toFixed(1)
     : '0.0';
 
-  const totalDryKg = d.wasteDry != null ? d.wasteDry : Number(blocks.reduce((acc, b) => acc + (b.dryWeight || 0), 0).toFixed(1));
-  const totalWetKg = d.wasteWet != null ? d.wasteWet : Number(blocks.reduce((acc, b) => acc + (b.wetWeight || 0), 0).toFixed(1));
-  const dryFillAvg = d.wasteDryFill != null ? d.wasteDryFill : (blockB?.dryFill ?? 0);
-  const wetFillAvg = d.wasteWetFill != null ? d.wasteWetFill : (blockA?.wetFill ?? 0);
+  const blockAWeight = blockA
+    ? Number(((blockA.wetWeight || 0) + (blockA.dryWeight || 0)).toFixed(1))
+    : (d.wasteWet ?? 0);
+  const blockAFill = blockA
+    ? Math.max(blockA.wetFill ?? 0, blockA.dryFill ?? 0)
+    : (d.wasteWetFill ?? 0);
+
+  const blockBWeight = blockB
+    ? Number(((blockB.dryWeight || 0) + (blockB.wetWeight || 0)).toFixed(1))
+    : (d.wasteDry ?? 0);
+  const blockBFill = blockB
+    ? Math.max(blockB.dryFill ?? 0, blockB.wetFill ?? 0)
+    : (d.wasteDryFill ?? 0);
 
   return (
     <>
@@ -77,14 +86,14 @@ export default function Waste({ data, history = [] }) {
           index={0}
           icon={<MdRecycling size={20} color="#10b981" />}
           label="Block A"
-          badgeText={wetFillAvg > 75 ? 'Rapid Fill Rate' : 'Optimal Rate'}
-          badgeType={wetFillAvg > 75 ? 'red' : 'green'}
+          badgeText={blockAFill > 80 ? 'Overflow Risk' : blockAFill > 60 ? 'Moderate Fill' : 'Optimal Rate'}
+          badgeType={blockAFill > 80 ? 'red' : blockAFill > 60 ? 'amber' : 'green'}
           nowLabel="Weight"
-          nowValue={totalWetKg}
+          nowValue={blockAWeight}
           unit=" kg"
           secondaryLabel="Avg Fill"
-          secondaryValue={`${wetFillAvg}%`}
-          secondaryColor={wetFillAvg > 75 ? '#dc2626' : '#10b981'}
+          secondaryValue={`${blockAFill}%`}
+          secondaryColor={blockAFill > 80 ? '#dc2626' : blockAFill > 60 ? '#d97706' : '#10b981'}
           footerLeft="Block A smart bin telemetry"
           footerRight="Sonar & weight cells active"
         />
@@ -93,14 +102,14 @@ export default function Waste({ data, history = [] }) {
           index={1}
           icon={<MdRecycling size={20} color="#2563eb" />}
           label="Block B"
-          badgeText={`${dryFillAvg}% Avg Fill`}
-          badgeType={dryFillAvg > 75 ? 'amber' : 'blue'}
+          badgeText={`${blockBFill}% Avg Fill`}
+          badgeType={blockBFill > 80 ? 'red' : blockBFill > 60 ? 'amber' : 'blue'}
           nowLabel="Weight"
-          nowValue={totalDryKg}
+          nowValue={blockBWeight}
           unit=" kg"
           secondaryLabel="Avg Fill"
-          secondaryValue={`${dryFillAvg}%`}
-          secondaryColor="#2563eb"
+          secondaryValue={`${blockBFill}%`}
+          secondaryColor={blockBFill > 80 ? '#dc2626' : '#2563eb'}
           footerLeft="Block B smart bin telemetry"
           footerRight="Target: 100% recycling"
         />
@@ -115,7 +124,7 @@ export default function Waste({ data, history = [] }) {
           nowValue={overflowCount}
           unit=" bin(s)"
           secondaryLabel="Pred. Overflow"
-          secondaryValue={d.overflowPrediction != null ? `~${d.overflowPrediction}h` : '< 3.5h'}
+          secondaryValue={d.overflowPrediction != null ? `~${d.overflowPrediction}h` : (hasOverflow ? 'Immediate' : 'Safe')}
           secondaryColor={hasOverflow ? '#dc2626' : '#15803d'}
           footerLeft={hasOverflow ? `${overflowBlocks[0]?.name || 'Block'} bin exceeds 80%` : 'Block A & B within safe limits'}
           footerRight="Priority dispatch"
@@ -166,34 +175,42 @@ export default function Waste({ data, history = [] }) {
             </tr>
           </thead>
           <tbody>
-            {blocks.map((b) => {
-              const maxFill = Math.max(b.wetFill ?? 0, b.dryFill ?? 0);
-              return (
-                <tr key={b.id}>
-                  <td>
-                    <b>{b.name}</b>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Code: {b.code} • Cleared: {b.lastCollection}</div>
-                  </td>
-                  <td>
-                    <span style={{ color: '#2563eb', fontWeight: 700 }}>{b.dryWeight} kg</span>
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}> ({b.dryFill}% fill)</span>
-                  </td>
-                  <td>
-                    <span style={{ color: '#059669', fontWeight: 700 }}>{b.wetWeight} kg</span>
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}> ({b.wetFill}% fill)</span>
-                  </td>
-                  <td>
-                    <span className="badge good">{b.complianceScore}% Accuracy</span>
-                  </td>
-                  <td>
-                    <span className={`badge ${maxFill > 80 ? 'high' : maxFill > 60 ? 'medium' : 'good'}`}>
-                      {b.status}
-                    </span>
-                  </td>
-                  <td>{getBlockDirective(b)}</td>
-                </tr>
-              );
-            })}
+            {blocks.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px 12px' }}>
+                  No Block A or Block B waste telemetry available yet.
+                </td>
+              </tr>
+            ) : (
+              blocks.map((b) => {
+                const maxFill = Math.max(b.wetFill ?? 0, b.dryFill ?? 0);
+                return (
+                  <tr key={b.id}>
+                    <td>
+                      <b>{b.name}</b>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Code: {b.code} • Cleared: {b.lastCollection}</div>
+                    </td>
+                    <td>
+                      <span style={{ color: '#2563eb', fontWeight: 700 }}>{b.dryWeight} kg</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}> ({b.dryFill}% fill)</span>
+                    </td>
+                    <td>
+                      <span style={{ color: '#059669', fontWeight: 700 }}>{b.wetWeight} kg</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}> ({b.wetFill}% fill)</span>
+                    </td>
+                    <td>
+                      <span className="badge good">{b.complianceScore}% Accuracy</span>
+                    </td>
+                    <td>
+                      <span className={`badge ${maxFill > 80 ? 'high' : maxFill > 60 ? 'medium' : 'good'}`}>
+                        {b.status}
+                      </span>
+                    </td>
+                    <td>{getBlockDirective(b)}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
 

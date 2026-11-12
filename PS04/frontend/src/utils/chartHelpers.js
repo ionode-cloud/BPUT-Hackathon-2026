@@ -282,12 +282,15 @@ export function getDryWetBlockData(data) {
     ? data.wasteBlocks.filter(b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B'))
     : [];
 
-  const blocks = allowedBlocks.length > 0
-    ? allowedBlocks
-    : [
-        { code: 'BL-A', name: 'Block A', dryFill: 0, wetFill: 28 },
-        { code: 'BL-B', name: 'Block B', dryFill: 68, wetFill: 0 },
-      ];
+  let blocks = allowedBlocks;
+  if (blocks.length === 0 && (data?.wasteWetFill != null || data?.wasteDryFill != null)) {
+    blocks = [
+      { code: 'BL-A', name: 'Block A', dryFill: 0, wetFill: Number(data.wasteWetFill ?? 0) },
+      { code: 'BL-B', name: 'Block B', dryFill: Number(data.wasteDryFill ?? 0), wetFill: 0 },
+    ];
+  }
+
+  if (blocks.length === 0) return { labels: [], datasets: [] };
 
   return {
     labels: blocks.map(b => b.code || (b.name ? b.name.split(' ')[0] : 'Block')),
@@ -312,8 +315,12 @@ export function getDryWetBlockData(data) {
  * Energy Tab: AC Supply vs DC Supply Breakdown
  */
 export function getAcDcEnergyData(data) {
-  const acKwh = data?.acEnergy ?? (data?.todaysEnergy ? Number((data.todaysEnergy * 0.76).toFixed(1)) : 108.3);
-  const dcKwh = data?.dcEnergy ?? (data?.todaysEnergy ? Number((data.todaysEnergy * 0.24).toFixed(1)) : 34.2);
+  if (!data || (data.acEnergy == null && data.dcEnergy == null && data.todaysEnergy == null)) {
+    return { labels: [], datasets: [] };
+  }
+
+  const acKwh = data.acEnergy ?? Number(((data.todaysEnergy ?? 0) * 0.76).toFixed(3));
+  const dcKwh = data.dcEnergy ?? Number(((data.todaysEnergy ?? 0) * 0.24).toFixed(3));
 
   return {
     labels: ['AC Supply (Mains/HVAC)', 'DC Supply (Solar/BESS)'],

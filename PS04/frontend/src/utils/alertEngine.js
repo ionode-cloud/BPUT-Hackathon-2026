@@ -1,291 +1,404 @@
-// Intelligent High Alert Detection & Persistence Engine for Sustainable Facility AI
+// Intelligent High Alert Detection & Reconciliation Engine for Sustainable Facility AI
 
-const STORAGE_KEY = 'facility_ai_alerts_store_v1';
+const STORAGE_KEY = 'facility_ai_alerts_store_v2';
 
-// Initial realistic high-alert incident history across all tabs
-const BASELINE_HIGH_ALERTS = [
-  {
-    id: 'alert-water-pipe-leak',
-    system: 'water',
-    systemLabel: 'Water Management',
-    severity: 'CRITICAL',
-    title: 'Acoustic Pipe Rupture & Water Leak Detected',
-    metric: 'Hydraulic Integrity',
-    value: 'Leak Detected',
-    threshold: 'Normal Acoustic Wave',
-    location: 'Underground Supply Trunk — Substation B',
-    recommendation: 'Actuate Solenoid Valve 1 to isolate ruptured pipe segment and prevent campus water loss.',
-    timestamp: new Date(Date.now() - 14 * 60 * 1000).toISOString(), // 14 mins ago
-    status: 'active', // 'active' | 'solved'
-    solvedAt: null,
-    cleared: false,
-  },
-  {
-    id: 'alert-air-aqi-hazard',
-    system: 'air',
-    systemLabel: 'Air Quality',
-    severity: 'CRITICAL',
-    title: 'Severe AQI Degradation & Toxic Particulate Spike',
-    metric: 'Air Quality Index (AQI)',
-    value: '148 AQI • PM2.5: 58 µg/m³',
-    threshold: 'Safe Ceiling: ≤ 100 AQI',
-    location: 'Science Quad & Chemistry Exhaust Stack',
-    recommendation: 'Engage active HEPA air scrubbers and notify laboratory staff to seal ventilation dampers.',
-    timestamp: new Date(Date.now() - 32 * 60 * 1000).toISOString(), // 32 mins ago
-    status: 'active',
-    solvedAt: null,
-    cleared: false,
-  },
-  {
-    id: 'alert-energy-peak-surge',
-    system: 'energy',
-    systemLabel: 'Energy',
-    severity: 'HIGH',
-    title: 'Peak Electrical Demand Spikes Above Grid Ceiling',
-    metric: 'Live Grid Power Draw',
-    value: '23.8 kW (88% of Peak)',
-    threshold: 'Substation Safe Max: ≤ 20.0 kW',
-    location: 'Main Substation #1 — Chiller Compressor Line',
-    recommendation: 'Activate dynamic load shedding on secondary HVAC chillers to avert power tariff penalties.',
-    timestamp: new Date(Date.now() - 58 * 60 * 1000).toISOString(), // 58 mins ago
-    status: 'active',
-    solvedAt: null,
-    cleared: false,
-  },
-  {
-    id: 'alert-waste-bin-overflow',
-    system: 'waste',
-    systemLabel: 'Waste',
-    severity: 'HIGH',
-    title: 'Smart Waste Bin Volumetric Overflow Emergency',
-    metric: 'Sonar Fill Level',
-    value: '89% Fill • 2 Bins at Overflow Risk',
-    threshold: 'Max Recommended: ≤ 75% Fill',
-    location: 'Central Cafeteria & East Library Quad',
-    recommendation: 'Dispatch campus waste collection crew for automated robotic bin compaction and pickup.',
-    timestamp: new Date(Date.now() - 95 * 60 * 1000).toISOString(), // 1.5 hrs ago
-    status: 'active',
-    solvedAt: null,
-    cleared: false,
-  },
-  {
-    id: 'alert-air-nh3-ammonia',
-    system: 'air',
-    systemLabel: 'Air Quality',
-    severity: 'CRITICAL',
-    title: 'Toxic Ammonia (NH3) Vapor Accumulation',
-    metric: 'Ammonia Concentration',
-    value: '18 ppm NH3',
-    threshold: 'Permissible Limit: ≤ 10 ppm',
-    location: 'Hazardous Waste Processing & Sewage Bay',
-    recommendation: 'Evacuate utility personnel from basement corridor and run emergency scrubber exhaust.',
-    timestamp: new Date(Date.now() - 140 * 60 * 1000).toISOString(),
-    status: 'active',
-    solvedAt: null,
-    cleared: false,
-  },
-  {
-    id: 'alert-water-low-tank',
-    system: 'water',
-    systemLabel: 'Water Management',
-    severity: 'HIGH',
-    title: 'Critical Low Water Reservoir Storage Warning',
-    metric: 'Tank Storage Level',
-    value: '19% Capacity',
-    threshold: 'Minimum Safety Reserve: ≥ 30%',
-    location: 'Hostel Block C Overhead Reservoir',
-    recommendation: 'Engage auxiliary submersible booster pump to replenish drinking supply.',
-    timestamp: new Date(Date.now() - 210 * 60 * 1000).toISOString(),
-    status: 'active',
-    solvedAt: null,
-    cleared: false,
-  },
-];
+function isWaterLineLeaking(val) {
+  if (val === undefined || val === null) return false;
+  return (
+    val === false ||
+    val === 'false' ||
+    val === 0 ||
+    val === '0' ||
+    String(val).toLowerCase().includes('leak')
+  );
+}
 
-// Helper to extract live high alert items from current API data snapshot
+// Extract live high-alert conditions strictly from current API telemetry snapshot
 export function scanLiveHighAlerts(data) {
-  if (!data || typeof data !== 'object') return [];
+  if (!data || typeof data !== 'object' || Object.keys(data).length === 0) return [];
   const alerts = [];
-  const now = new Date().toISOString();
+  const now = data.timestamp ? new Date(data.timestamp).toISOString() : new Date().toISOString();
 
-  // 1. Water Leaks
-  if (data.leakStatus && data.leakStatus !== 'Normal') {
+  // 1. Water Leaks (val1, val2, and leakStatus)
+  const val1Leaking = isWaterLineLeaking(data.val1);
+  const val2Leaking = isWaterLineLeaking(data.val2);
+  const mainLeaking = Boolean(data.leakStatus && String(data.leakStatus).toLowerCase() !== 'normal');
+
+  if (val1Leaking) {
     alerts.push({
-      id: `live-water-leak-${data.timestamp ? new Date(data.timestamp).getTime() : 'active'}`,
+      id: 'live-water-leak-val1',
+      system: 'water',
+      systemLabel: 'Water Management',
+      severity: 'CRITICAL',
+      title: 'Acoustic Pipe Rupture / Leak Detected (val1)',
+      metric: 'val1 Acoustic Line Sensor',
+      value: 'Leak Detected',
+      threshold: 'Normal',
+      location: data.location ? `${data.location} — Line 1 (val1)` : 'Main Supply Pipeline (val1)',
+      recommendation: 'Close Solenoid Valve 1 immediately to isolate Line 1 and stop water loss.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  if (val2Leaking) {
+    alerts.push({
+      id: 'live-water-leak-val2',
+      system: 'water',
+      systemLabel: 'Water Management',
+      severity: 'CRITICAL',
+      title: 'Acoustic Pipe Rupture / Leak Detected (val2)',
+      metric: 'val2 Acoustic Line Sensor',
+      value: 'Leak Detected',
+      threshold: 'Normal',
+      location: data.location ? `${data.location} — Line 2 (val2)` : 'Auxiliary Branch Pipeline (val2)',
+      recommendation: 'Close Solenoid Valve 2 immediately to isolate Line 2 and stop water loss.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  if (!val1Leaking && !val2Leaking && mainLeaking) {
+    alerts.push({
+      id: 'live-water-leak-main',
       system: 'water',
       systemLabel: 'Water Management',
       severity: 'CRITICAL',
       title: 'Acoustic Pipe Rupture / Leak Detected',
       metric: 'Hydraulic Integrity',
       value: String(data.leakStatus),
-      threshold: 'Normal Flow',
-      location: data.location || 'Underground Main Pipeline',
-      recommendation: 'Close Solenoid Valve 1 immediately to isolate ruptured line.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      threshold: 'Normal',
+      location: data.location || 'Main Water Supply Pipeline',
+      recommendation: 'Isolate main solenoid valves and inspect hydraulic trunk immediately.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 2. Air Quality - High AQI
+  // 2. Water High Flow Velocity (val1Flow, val2Flow, or combined flowRate)
+  const rawFlow1 = data.val1Flow ?? data.flowRate1;
+  const rawFlow2 = data.val2Flow ?? data.flowRate2;
+  const val1Flow = rawFlow1 != null ? Number(rawFlow1) : 0;
+  const val2Flow = rawFlow2 != null ? Number(rawFlow2) : 0;
+  const totalFlow = (rawFlow1 != null || rawFlow2 != null)
+    ? Number((val1Flow + val2Flow).toFixed(1))
+    : Number(data.flowRate || 0);
+
+  if (val1Flow > 20 || val2Flow > 20 || totalFlow > 25) {
+    alerts.push({
+      id: 'live-water-high-flow',
+      system: 'water',
+      systemLabel: 'Water Management',
+      severity: totalFlow > 35 ? 'CRITICAL' : 'HIGH',
+      title: 'High Water Line Flow Velocity Detected',
+      metric: 'Hydraulic Flow Rate',
+      value: `${totalFlow} L/m (val1: ${val1Flow}, val2: ${val2Flow})`,
+      threshold: '≤ 25 L/m (Line Limit 35 L/m)',
+      location: data.location || 'Campus Distribution Header',
+      recommendation: 'Inspect downstream washroom solenoids and pressure regulators for line surge.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  // 3. Water Low Tank Storage (< 25% aligns with Water tab & Priority Engine)
+  if (data.tankLevel != null && data.tankLevel < 25) {
+    alerts.push({
+      id: 'live-water-tank-low',
+      system: 'water',
+      systemLabel: 'Water Management',
+      severity: data.tankLevel < 15 ? 'CRITICAL' : 'HIGH',
+      title: 'Low Tank Water Storage Reserve',
+      metric: 'Water Tank Level',
+      value: `${data.tankLevel}%`,
+      threshold: '≥ 25%',
+      location: data.location || 'Main Campus Storage Reservoir',
+      recommendation: 'Start replenishment pump and verify inlet valve to maintain reserve above 25%.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  // 4. Air Quality - High AQI
   if (data.aqi != null && data.aqi > 100) {
     alerts.push({
-      id: `live-air-aqi-${Math.round(data.aqi)}`,
+      id: 'live-air-aqi',
       system: 'air',
       systemLabel: 'Air Quality',
       severity: data.aqi > 150 ? 'CRITICAL' : 'HIGH',
       title: 'Elevated Atmospheric AQI Index Breach',
-      metric: 'Air Quality Index',
+      metric: 'Air Quality Index (AQI)',
       value: `${data.aqi} AQI`,
       threshold: '≤ 100 AQI',
-      location: 'Science Quad Ambient Sensors',
-      recommendation: 'Direct HVAC fresh-air intake scrubbers into high-efficiency recirculation mode.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      location: data.location || 'Campus Ambient Air Sensors',
+      recommendation: 'Limit outdoor exposure, keep windows sealed, and switch HVAC into recirculation filtration.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 3. Air Quality - PM2.5
+  // 5. Air Quality - PM2.5
   if (data.pm25 != null && data.pm25 > 50) {
     alerts.push({
-      id: `live-air-pm25-${Math.round(data.pm25)}`,
+      id: 'live-air-pm25',
       system: 'air',
       systemLabel: 'Air Quality',
-      severity: 'HIGH',
-      title: 'Hazardous PM2.5 Respirable Dust Infiltration',
+      severity: data.pm25 > 90 ? 'CRITICAL' : 'HIGH',
+      title: 'Elevated PM2.5 Particulate Concentration',
       metric: 'PM2.5 Particulate',
       value: `${data.pm25} µg/m³`,
-      threshold: '≤ 25 µg/m³',
-      location: 'Mechanical Workshop East Bay',
-      recommendation: 'Engage secondary extraction vents and restrict outdoor athletic activities.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      threshold: '≤ 50 µg/m³',
+      location: data.location || 'Campus Ambient Air Sensors',
+      recommendation: 'Engage HEPA filtration / extraction vents and inspect nearby dust or combustion sources.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 4. Air Quality - Toxic Smoke or NH3
+  // 6. Air Quality - PM10
+  if (data.pm10 != null && data.pm10 > 100) {
+    alerts.push({
+      id: 'live-air-pm10',
+      system: 'air',
+      systemLabel: 'Air Quality',
+      severity: data.pm10 > 200 ? 'CRITICAL' : 'HIGH',
+      title: 'Elevated PM10 Coarse Dust Concentration',
+      metric: 'PM10 Particulate',
+      value: `${data.pm10} µg/m³`,
+      threshold: '≤ 100 µg/m³',
+      location: data.location || 'Campus Ambient Air Sensors',
+      recommendation: 'Inspect nearby road/construction dust and activate air scrubbers.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  // 7. Air Quality - Smoke
   if (data.smoke != null && data.smoke > 30) {
     alerts.push({
-      id: `live-air-smoke-${Math.round(data.smoke)}`,
+      id: 'live-air-smoke',
       system: 'air',
       systemLabel: 'Air Quality',
       severity: 'CRITICAL',
       title: 'Optical Smoke / Combustion Vapor Detected',
-      metric: 'Smoke Sensor Optical Density',
+      metric: 'Smoke Sensor Concentration',
       value: `${data.smoke} ppm`,
-      threshold: '≤ 20 ppm',
-      location: 'Utility Service Tunnel & Boiler Bay',
-      recommendation: 'Dispatch immediate physical inspection for smoldering electrical insulation.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      threshold: '≤ 30 ppm',
+      location: data.location || 'Campus Air Safety Zone',
+      recommendation: 'Dispatch immediate inspection for smoke, burning, or electrical insulation fault.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 5. Energy - High Power Draw
-  if (data.livePower != null && data.livePower > 22) {
+  // 8. Air Quality - Ammonia (NH3)
+  if (data.nh3 != null && data.nh3 > 10) {
     alerts.push({
-      id: `live-energy-power-${Math.round(data.livePower)}`,
+      id: 'live-air-nh3',
+      system: 'air',
+      systemLabel: 'Air Quality',
+      severity: 'CRITICAL',
+      title: 'Elevated Ammonia (NH3) Vapor Level',
+      metric: 'Ammonia (NH3) Concentration',
+      value: `${data.nh3} ppm`,
+      threshold: '≤ 10 ppm',
+      location: data.location || 'Utility & Sanitation Corridor',
+      recommendation: 'Ventilate area immediately and run exhaust scrubbers.',
+      timestamp: now,
+      status: 'active',
+      solvedAt: null,
+      cleared: false,
+    });
+  }
+
+  // 9. Energy - AC Mains Grid Offline
+  const gridStatus = String(data.gridStatus || '').toUpperCase();
+  if (gridStatus === 'OFFLINE' || gridStatus === 'OFF') {
+    const acKw = data.acPower ?? 0;
+    const dcKw = data.dcPower ?? data.livePower ?? 0;
+    alerts.push({
+      id: 'live-energy-grid-offline',
       system: 'energy',
       systemLabel: 'Energy',
       severity: 'HIGH',
-      title: 'Grid Power Surge Exceeds Substation Headroom',
-      metric: 'Live Draw',
-      value: `${data.livePower} kW`,
-      threshold: '≤ 20.0 kW',
-      location: 'Main Substation #1 Transformer Feed',
-      recommendation: 'Shift non-critical water pumping schedules outside peak grid tariff window.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      title: 'AC Mains Grid Supply Offline',
+      metric: 'Grid Status & AC/DC Bus',
+      value: `${gridStatus} • AC: ${acKw} kW | DC: ${dcKw} kW`,
+      threshold: 'ONLINE',
+      location: data.location || 'Main Electrical Substation',
+      recommendation: 'Verify AC mains feeder breaker; sustain essential DC Solar PV & BESS bus loads.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 6. Water - Tank Depletion or Overflow
-  if (data.tankLevel != null && data.tankLevel < 20) {
+  // 10. Energy - High Power Draw / Peak Demand (consistent with 45 kW Grid Ceiling in Energy tab)
+  if ((data.livePower != null && data.livePower > 35) || (data.peakDemand != null && data.peakDemand > 40)) {
+    const liveKw = data.livePower ?? 0;
+    const peakKw = data.peakDemand ?? 0;
+    const isCritical = liveKw > 45 || peakKw > 45;
     alerts.push({
-      id: `live-water-tank-low-${Math.round(data.tankLevel)}`,
-      system: 'water',
-      systemLabel: 'Water Management',
-      severity: 'HIGH',
-      title: 'Critical Low Tank Water Storage',
-      metric: 'Water Tank Level',
-      value: `${data.tankLevel}%`,
-      threshold: '≥ 25%',
-      location: 'Main Campus Storage Reservoir',
-      recommendation: 'Run supply replenishment pump to safeguard against dry-run motor burnout.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      id: 'live-energy-power',
+      system: 'energy',
+      systemLabel: 'Energy',
+      severity: isCritical ? 'CRITICAL' : 'HIGH',
+      title: 'Electrical Demand Approaching Grid Ceiling',
+      metric: 'Live Draw / Peak Demand',
+      value: `${liveKw} kW (Peak: ${peakKw} kW)`,
+      threshold: '≤ 35.0 kW (Ceiling: 45 kW)',
+      location: data.location || 'Main Substation Transformer Feed',
+      recommendation: 'Shift non-critical HVAC and pumping loads onto DC Solar/BESS or off-peak windows.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
     });
   }
 
-  // 7. Waste - Overflow Risk
-  if ((data.overflowRisk != null && data.overflowRisk > 0) || (data.averageFill != null && data.averageFill > 80)) {
-    alerts.push({
-      id: `live-waste-overflow-${data.overflowRisk || data.averageFill}`,
-      system: 'waste',
-      systemLabel: 'Waste',
-      severity: 'HIGH',
-      title: 'Smart Waste Bin Overfill Warning',
-      metric: 'Volumetric Sonar Fill',
-      value: data.overflowRisk ? `${data.overflowRisk} Bins at Risk` : `${data.averageFill}% Avg`,
-      threshold: '≤ 75%',
-      location: 'Campus Courtyard & Dining Facilities',
-      recommendation: 'Trigger route optimization notice to facility waste logistics truck.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
-      status: 'active',
-      solvedAt: null,
-      cleared: false,
-    });
-  }
-
-  // 8. Waste - Block-wise Wet Waste Alert (Block A & Block B only)
+  // 11. Waste - Block-wise Dry & Wet Overflow (Block A & Block B only)
   const allowedWasteBlocks = Array.isArray(data.wasteBlocks)
-    ? data.wasteBlocks.filter(b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B'))
+    ? data.wasteBlocks.filter(
+        b => b && (b.id === 'block-a' || b.id === 'block-b' || b.code === 'BL-A' || b.code === 'BL-B')
+      )
     : [];
-  const wetAtRiskBlock = allowedWasteBlocks.find(b => b.wetFill > 80 || b.dryFill > 80);
-  if (wetAtRiskBlock) {
-    alerts.push({
-      id: `live-waste-wet-overflow-${wetAtRiskBlock.id}`,
-      system: 'waste',
-      systemLabel: 'Waste',
-      severity: 'HIGH',
-      title: `${wetAtRiskBlock.name} Wet Waste Overflow Hazard`,
-      metric: 'Wet Organic Sonar Fill',
-      value: `${wetAtRiskBlock.wetFill}% Fill (${wetAtRiskBlock.wetWeight} kg)`,
-      threshold: '≤ 75% Fill',
-      location: `${wetAtRiskBlock.name} Sanitation Bay`,
-      recommendation: 'Prioritize Sanitation Vehicle 02 dispatch to empty organic waste container and prevent decomposition odors.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
-      status: 'active',
-      solvedAt: null,
-      cleared: false,
-    });
+
+  if (allowedWasteBlocks.length > 0) {
+    for (const block of allowedWasteBlocks) {
+      const isBlockA = block.id === 'block-a' || block.code === 'BL-A';
+      const blockName = isBlockA ? 'Block A' : 'Block B';
+      const blockCode = block.code || (isBlockA ? 'BL-A' : 'BL-B');
+      const wetFill = Number(block.wetFill ?? 0);
+      const dryFill = Number(block.dryFill ?? 0);
+
+      if (wetFill > 80) {
+        alerts.push({
+          id: `live-waste-wet-${blockCode.toLowerCase()}`,
+          system: 'waste',
+          systemLabel: 'Waste',
+          severity: wetFill > 90 ? 'CRITICAL' : 'HIGH',
+          title: `${blockName} Wet Waste Bin Overflow Risk`,
+          metric: 'Wet Organic Sonar Fill',
+          value: `${wetFill}% Fill (${block.wetWeight ?? 0} kg)`,
+          threshold: '≤ 80% Fill',
+          location: `${blockName} (${blockCode})`,
+          recommendation: `Dispatch sanitation collection to ${blockName} organic bin to prevent overflow and odor.`,
+          timestamp: now,
+          status: 'active',
+          solvedAt: null,
+          cleared: false,
+        });
+      }
+
+      if (dryFill > 80) {
+        alerts.push({
+          id: `live-waste-dry-${blockCode.toLowerCase()}`,
+          system: 'waste',
+          systemLabel: 'Waste',
+          severity: dryFill > 90 ? 'CRITICAL' : 'HIGH',
+          title: `${blockName} Dry Waste Bin Overflow Risk`,
+          metric: 'Dry Recyclables Sonar Fill',
+          value: `${dryFill}% Fill (${block.dryWeight ?? 0} kg)`,
+          threshold: '≤ 80% Fill',
+          location: `${blockName} (${blockCode})`,
+          recommendation: `Dispatch recycling collection crew to ${blockName} dry waste container.`,
+          timestamp: now,
+          status: 'active',
+          solvedAt: null,
+          cleared: false,
+        });
+      }
+    }
+  } else {
+    if (data.wasteWetFill != null && data.wasteWetFill > 80) {
+      alerts.push({
+        id: 'live-waste-wet-scalar',
+        system: 'waste',
+        systemLabel: 'Waste',
+        severity: 'HIGH',
+        title: 'Block A Wet Waste Bin Overflow Risk',
+        metric: 'Wet Organic Sonar Fill',
+        value: `${data.wasteWetFill}% Fill (${data.wasteWet ?? 0} kg)`,
+        threshold: '≤ 80% Fill',
+        location: 'Block A (BL-A)',
+        recommendation: 'Dispatch sanitation crew to empty Block A wet waste bin.',
+        timestamp: now,
+        status: 'active',
+        solvedAt: null,
+        cleared: false,
+      });
+    }
+    if (data.wasteDryFill != null && data.wasteDryFill > 80) {
+      alerts.push({
+        id: 'live-waste-dry-scalar',
+        system: 'waste',
+        systemLabel: 'Waste',
+        severity: 'HIGH',
+        title: 'Block B Dry Waste Bin Overflow Risk',
+        metric: 'Dry Recyclables Sonar Fill',
+        value: `${data.wasteDryFill}% Fill (${data.wasteDry ?? 0} kg)`,
+        threshold: '≤ 80% Fill',
+        location: 'Block B (BL-B)',
+        recommendation: 'Dispatch sanitation crew to empty Block B dry waste bin.',
+        timestamp: now,
+        status: 'active',
+        solvedAt: null,
+        cleared: false,
+      });
+    }
+    if ((data.overflowRisk != null && data.overflowRisk > 0) || (data.averageFill != null && data.averageFill > 80)) {
+      alerts.push({
+        id: 'live-waste-overflow',
+        system: 'waste',
+        systemLabel: 'Waste',
+        severity: 'HIGH',
+        title: 'Smart Waste Bin Overfill Warning',
+        metric: 'Volumetric Sonar Fill',
+        value: data.overflowRisk ? `${data.overflowRisk} Bin(s) at Risk` : `${data.averageFill}% Avg`,
+        threshold: '≤ 80% Fill',
+        location: data.location || 'Campus Waste Blocks',
+        recommendation: 'Trigger route dispatch notice to campus sanitation collection.',
+        timestamp: now,
+        status: 'active',
+        solvedAt: null,
+        cleared: false,
+      });
+    }
   }
 
-  // 9. Parking - Plaza Saturation
+  // 12. Parking - Plaza Saturation
   if (data.parkingOccupancy != null && data.parkingOccupancy > 85) {
     alerts.push({
-      id: `live-parking-saturation-${data.parkingOccupancy}`,
+      id: 'live-parking-saturation',
       system: 'digitaltwin',
       systemLabel: 'Digital Twin & Parking',
       severity: 'HIGH',
-      title: 'Smart Parking Plaza Nearing Total Saturation',
+      title: 'Smart Parking Plaza Nearing Saturation',
       metric: 'Bay Occupancy',
-      value: `${data.parkingOccupancy}% Occupied (${data.occupiedSlots}/${data.totalSlots} Slots)`,
+      value: `${data.parkingOccupancy}% Occupied (${data.occupiedSlots}/${data.totalSlots} Bays)`,
       threshold: '≤ 85% Capacity',
-      location: 'Main Campus Parking Plaza & EV Station',
-      recommendation: 'Activate dynamic message signs at Gate 1 directing incoming vehicles to East Overflow Bay.',
-      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : now,
+      location: data.location || 'Main Campus Parking Plaza',
+      recommendation: 'Direct incoming vehicles at Gate 1 to alternate overflow bays.',
+      timestamp: now,
       status: 'active',
       solvedAt: null,
       cleared: false,
@@ -295,49 +408,68 @@ export function scanLiveHighAlerts(data) {
   return alerts;
 }
 
-// Load persisted alerts from localStorage, merged with baseline and live detected alerts
+// Load persisted alerts from localStorage and reconcile with live sensor telemetry
 export function loadPersistedAlerts(liveData = null) {
   let stored = [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      stored = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        stored = parsed;
+      }
     }
   } catch (err) {
     console.error('Failed to parse alerts from storage:', err);
   }
 
-  // If storage is completely empty, initialize with default baseline alerts
-  if (!Array.isArray(stored) || stored.length === 0) {
-    stored = [...BASELINE_HIGH_ALERTS];
-  }
-
-  // Scan live sensor snapshot for any active high-threshold conditions
-  if (liveData) {
+  if (liveData && typeof liveData === 'object' && Object.keys(liveData).length > 0) {
     const liveAlerts = scanLiveHighAlerts(liveData);
-    for (const la of liveAlerts) {
-      const existingIdx = stored.findIndex(a => a.id === la.id);
-      if (existingIdx === -1) {
-        // Prepend new live alert
-        stored.unshift(la);
-      } else {
-        // Update metric values while preserving solved / cleared user actions
-        stored[existingIdx] = {
-          ...stored[existingIdx],
-          value: la.value,
-          metric: la.metric,
-          timestamp: la.timestamp,
+    const liveById = new Map(liveAlerts.map(a => [a.id, a]));
+    const resolvedAt = new Date().toISOString();
+
+    // Update existing alerts & auto-resolve conditions that returned to safe levels
+    stored = stored.map(existing => {
+      const liveMatch = liveById.get(existing.id);
+      if (liveMatch) {
+        const shouldReactivate = existing.autoResolved && !existing.manualSolved;
+        return {
+          ...existing,
+          title: liveMatch.title,
+          severity: liveMatch.severity,
+          metric: liveMatch.metric,
+          value: liveMatch.value,
+          threshold: liveMatch.threshold,
+          location: liveMatch.location,
+          recommendation: liveMatch.recommendation,
+          timestamp: liveMatch.timestamp,
+          status: shouldReactivate ? 'active' : existing.status,
+          solvedAt: shouldReactivate ? null : existing.solvedAt,
+          autoResolved: shouldReactivate ? false : existing.autoResolved,
         };
       }
+
+      // Live telemetry is back to normal for this condition -> mark resolved automatically
+      if (existing.id?.startsWith('live-') && existing.status !== 'solved') {
+        return {
+          ...existing,
+          status: 'solved',
+          solvedAt: existing.solvedAt || resolvedAt,
+          autoResolved: true,
+        };
+      }
+
+      return existing;
+    });
+
+    // Prepend newly detected live alerts
+    const newOnes = liveAlerts.filter(la => !stored.some(s => s.id === la.id));
+    if (newOnes.length > 0) {
+      stored = [...newOnes, ...stored];
     }
   }
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-  } catch (err) {
-    console.error(err);
-  }
-
+  saveAlerts(stored);
   return stored;
 }
 
@@ -350,7 +482,7 @@ export function saveAlerts(alerts) {
   }
 }
 
-// Mark an alert as solved
+// Mark an alert as solved (or reopen) manually
 export function markAlertSolved(alertList, id) {
   const updated = alertList.map(a => {
     if (a.id === id) {
@@ -359,6 +491,8 @@ export function markAlertSolved(alertList, id) {
         ...a,
         status: isAlreadySolved ? 'active' : 'solved',
         solvedAt: isAlreadySolved ? null : new Date().toISOString(),
+        manualSolved: !isAlreadySolved,
+        autoResolved: false,
       };
     }
     return a;
@@ -367,7 +501,7 @@ export function markAlertSolved(alertList, id) {
   return updated;
 }
 
-// Clear an alert (remove or mark cleared)
+// Clear an alert
 export function clearAlert(alertList, id) {
   const updated = alertList.filter(a => a.id !== id);
   saveAlerts(updated);
@@ -381,6 +515,8 @@ export function markAllAlertsSolved(alertList) {
     ...a,
     status: 'solved',
     solvedAt: a.solvedAt || now,
+    manualSolved: true,
+    autoResolved: false,
   }));
   saveAlerts(updated);
   return updated;
@@ -392,17 +528,9 @@ export function clearAllAlerts() {
   return [];
 }
 
-// Reset alerts back to default baseline
+// Re-scan strictly from live telemetry (zero fake baseline data)
 export function resetDefaultAlerts(liveData = null) {
-  const fresh = [...BASELINE_HIGH_ALERTS];
-  if (liveData) {
-    const liveAlerts = scanLiveHighAlerts(liveData);
-    for (const la of liveAlerts) {
-      if (!fresh.some(f => f.id === la.id)) {
-        fresh.unshift(la);
-      }
-    }
-  }
+  const fresh = liveData ? scanLiveHighAlerts(liveData) : [];
   saveAlerts(fresh);
   return fresh;
 }

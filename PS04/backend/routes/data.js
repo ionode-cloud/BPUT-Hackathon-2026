@@ -288,6 +288,10 @@ function syncWasteTelemetry(obj, explicitBody = null) {
   const totalWet = obj.wasteBlocks.reduce((acc, b) => acc + Number(b.wetWeight || 0), 0);
   const calcDryFill = computeActiveAvgFill(obj.wasteBlocks, 'dryFill');
   const calcWetFill = computeActiveAvgFill(obj.wasteBlocks, 'wetFill');
+  const blockMaxFills = obj.wasteBlocks.map(b => Math.max(Number(b.wetFill || 0), Number(b.dryFill || 0))).filter(v => v > 0);
+  const calcAvgFill = blockMaxFills.length > 0
+    ? Math.round(blockMaxFills.reduce((acc, v) => acc + v, 0) / blockMaxFills.length)
+    : 0;
   const calcOverflow = obj.wasteBlocks.filter(b => Number(b.wetFill || 0) > 80 || Number(b.dryFill || 0) > 80).length;
 
   const shouldRecomputeAll = hadExtraBlocks || hasExplicitBlocks || hasExplicitScalars;
@@ -315,6 +319,12 @@ function syncWasteTelemetry(obj, explicitBody = null) {
     }
   }
   obj.WasteWetFill = obj.wasteWetFill;
+
+  if (shouldRecomputeAll || obj.averageFill === undefined || obj.averageFill === null || obj.averageFill === 0) {
+    if (!explicitBody || explicitBody.averageFill === undefined) {
+      obj.averageFill = calcAvgFill;
+    }
+  }
 
   if (shouldRecomputeAll || obj.overflowRisk === undefined || obj.overflowRisk === null) {
     if (!explicitBody || explicitBody.overflowRisk === undefined) {
@@ -380,16 +390,16 @@ function attachDynamicDefaults(obj) {
   const todayKwh = typeof obj.todaysEnergy === 'number' && !isNaN(obj.todaysEnergy) ? obj.todaysEnergy : 142.5;
 
   if (obj.acPower === undefined || obj.acPower === null) {
-    obj.acPower = Number((liveKw * 0.78).toFixed(1)); // 78% AC (Mains, Chillers, Heavy Lab loads)
+    obj.acPower = Number((liveKw * 0.78).toFixed(3)); // 78% AC (Mains, Chillers, Heavy Lab loads)
   }
   if (obj.acEnergy === undefined || obj.acEnergy === null) {
-    obj.acEnergy = Number((todayKwh * 0.76).toFixed(1));
+    obj.acEnergy = Number((todayKwh * 0.76).toFixed(3));
   }
   if (obj.dcPower === undefined || obj.dcPower === null) {
-    obj.dcPower = Number((liveKw * 0.22).toFixed(1)); // 22% DC (Solar PV bus, BESS, Server DC racks)
+    obj.dcPower = Number((liveKw * 0.22).toFixed(3)); // 22% DC (Solar PV bus, BESS, Server DC racks)
   }
   if (obj.dcEnergy === undefined || obj.dcEnergy === null) {
-    obj.dcEnergy = Number((todayKwh * 0.24).toFixed(1));
+    obj.dcEnergy = Number((todayKwh * 0.24).toFixed(3));
   }
 
   // ── 2. Energy: Grid Status ─────────────────────────────────────────────
@@ -684,6 +694,7 @@ router.get('/', async (req, res) => {
     // If the latest document still has Block C/D/E, old block names, or missing wasteBlocks, update MongoDB
     const hasStaleWasteBlocks = !records[0] || !Array.isArray(records[0].wasteBlocks) ||
       records[0].wasteBlocks.length !== 2 ||
+      (records[0].averageFill === 0 && consolidated.averageFill > 0) ||
       records[0].wasteBlocks.some(b =>
         (b.id !== 'block-a' && b.id !== 'block-b') ||
         (b.name || '').includes('Academic') ||
@@ -701,6 +712,7 @@ router.get('/', async (req, res) => {
             WasteDryFill: consolidated.WasteDryFill,
             wasteWetFill: consolidated.wasteWetFill,
             WasteWetFill: consolidated.WasteWetFill,
+            averageFill: consolidated.averageFill,
             overflowRisk: consolidated.overflowRisk,
           }
         }
@@ -933,6 +945,7 @@ router.put('/', async (req, res) => {
     updateData.WasteDryFill = wasteMerged.WasteDryFill;
     updateData.wasteWetFill = wasteMerged.wasteWetFill;
     updateData.WasteWetFill = wasteMerged.WasteWetFill;
+    updateData.averageFill = wasteMerged.averageFill;
     updateData.overflowRisk = wasteMerged.overflowRisk;
 
     // Preserve last valid LSTM forecasts if incoming snapshot had empty forecasts from a gateway gap

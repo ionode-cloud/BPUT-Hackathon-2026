@@ -352,7 +352,7 @@ export default function App() {
               tabLabel={PAGE_TITLES[page]}
               data={data || {}}
               history={history || []}
-              alerts={loadPersistedAlerts()}
+              alerts={loadPersistedAlerts(data)}
               variant="header"
             />
 
